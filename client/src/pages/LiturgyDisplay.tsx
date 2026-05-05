@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   unifiedSections,
-  getSlidesForSection,
+  getSplitSlidesForSection,
   getRoleColor,
   getRoleLabel,
   getLiturgyLabel,
@@ -39,7 +39,7 @@ export default function LiturgyDisplay() {
           setCurrentSlide(null);
         } else {
           setDeaconSlide(null);
-          const slides = getSlidesForSection(data.liturgyType, data.sectionKey);
+          const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey);
           setCurrentSlide(slides[data.slideIndex] ?? null);
         }
       } catch {
@@ -72,13 +72,10 @@ export default function LiturgyDisplay() {
         </span>
       </div>
 
-      {/* شريحة الشماس — مؤقتة */}
+      {/* شريحة الشماس */}
       {deaconSlide && (
-        <div
-          className="flex flex-col items-center gap-6 px-12 max-w-4xl text-center animate-pulse overflow-y-auto scrollbar-hide"
-          style={{ maxHeight: 'calc(100vh - 120px)' }}
-        >
-          <div className="text-blue-400 text-sm font-bold tracking-widest uppercase shrink-0">
+        <div className="flex flex-col items-center gap-6 px-12 max-w-4xl text-center animate-pulse">
+          <div className="text-blue-400 text-sm font-bold tracking-widest uppercase">
             مرد الشماس
           </div>
           <div
@@ -92,13 +89,8 @@ export default function LiturgyDisplay() {
 
       {/* الشريحة الرئيسية */}
       {!deaconSlide && currentSlide && (
-        <div
-          className="flex flex-col items-center gap-4 px-12 max-w-5xl text-center w-full overflow-y-auto scrollbar-hide"
-          style={{ maxHeight: 'calc(100vh - 120px)' }}
-        >
-          <div
-            className={`text-xs font-bold tracking-widest uppercase shrink-0 ${getRoleColor(currentSlide.role)}`}
-          >
+        <div className="flex flex-col items-center gap-8 px-12 max-w-5xl text-center">
+          <div className={`text-xs font-bold tracking-widest uppercase ${getRoleColor(currentSlide.role)}`}>
             {getRoleLabel(currentSlide.role)}
           </div>
           <div
@@ -107,7 +99,7 @@ export default function LiturgyDisplay() {
           >
             {currentSlide.text}
           </div>
-          <div className="text-white/30 text-sm shrink-0">
+          <div className="text-white/30 text-sm">
             {currentSlide.title}
           </div>
         </div>
@@ -122,7 +114,7 @@ export default function LiturgyDisplay() {
 
       {/* شريط سفلي */}
       <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-        {getSlidesForSection(session.liturgyType, session.sectionKey).map((_, i) => (
+        {getSplitSlidesForSection(session.liturgyType, session.sectionKey).map((_, i) => (
           <div
             key={i}
             className={`h-1 rounded-full transition-all duration-300 ${

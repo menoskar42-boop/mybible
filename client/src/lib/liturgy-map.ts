@@ -159,6 +159,74 @@ export function getSlidesForSection(liturgyType: LiturgyType, sectionKey: string
   return section?.slides[liturgyType] ?? [];
 }
 
+// ── تقسيم النص الطويل إلى صفحات بناءً على حد الأحرف
+// يحافظ على حدود الفقرات ما أمكن
+function splitTextIntoPages(text: string, maxChars: number): string[] {
+  const paragraphs = text.split('\n').filter(p => p.trim() !== '');
+  const pages: string[] = [];
+  let current = '';
+
+  for (const para of paragraphs) {
+    const candidate = current ? current + '\n' + para : para;
+    if (candidate.length <= maxChars) {
+      current = candidate;
+    } else {
+      if (current) pages.push(current);
+      // فقرة منفردة أطول من الحد — نقسمها عند حدود الكلمات
+      if (para.length > maxChars) {
+        const words = para.split(' ');
+        let chunk = '';
+        for (const word of words) {
+          const next = chunk ? chunk + ' ' + word : word;
+          if (next.length <= maxChars) {
+            chunk = next;
+          } else {
+            if (chunk) pages.push(chunk);
+            chunk = word;
+          }
+        }
+        current = chunk;
+      } else {
+        current = para;
+      }
+    }
+  }
+  if (current) pages.push(current);
+  return pages.length > 0 ? pages : [text];
+}
+
+// الحد الأقصى للأحرف في شريحة واحدة على شاشة التلفزيون
+const SLIDE_MAX_CHARS = 200;
+
+// ── نسخة مقسّمة من getSlidesForSection
+// كل شريحة طويلة تُقسَّم إلى شرائح منفصلة بنفس الدور والعنوان
+export function getSplitSlidesForSection(
+  liturgyType: LiturgyType,
+  sectionKey: string,
+  maxChars = SLIDE_MAX_CHARS,
+): LiturgySlide[] {
+  const slides = getSlidesForSection(liturgyType, sectionKey);
+  const result: LiturgySlide[] = [];
+
+  for (const slide of slides) {
+    if (slide.text.length <= maxChars) {
+      result.push(slide);
+      continue;
+    }
+    const pages = splitTextIntoPages(slide.text, maxChars);
+    pages.forEach((page, i) => {
+      result.push({
+        ...slide,
+        id: `${slide.id}-p${i + 1}`,
+        text: page,
+        title: pages.length > 1 ? `${slide.title} (${i + 1}/${pages.length})` : slide.title,
+      });
+    });
+  }
+
+  return result;
+}
+
 export function getLiturgyLabel(type: LiturgyType): string {
   return { basil: 'الباسيلي', gregory: 'الغريغوري', cyril: 'الكيرلسي' }[type];
 }

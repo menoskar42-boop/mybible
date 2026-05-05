@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   unifiedSections,
-  getSlidesForSection,
+  getSplitSlidesForSection,
   getLiturgyLabel,
   getRoleLabel,
   getRoleColor,
@@ -41,7 +41,7 @@ export default function LiturgyControl() {
   const [showDeaconPanel, setShowDeaconPanel] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
 
-  const currentSlides = getSlidesForSection(session.liturgyType, session.sectionKey);
+  const currentSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey);
   const currentSlide = currentSlides[session.slideIndex];
 
   const pushSession = useCallback(async (patch: Partial<LiturgySession>) => {
@@ -68,7 +68,7 @@ export default function LiturgyControl() {
   }, []);
 
   function switchLiturgy(type: LiturgyType) {
-    const slides = getSlidesForSection(type, session.sectionKey);
+    const slides = getSplitSlidesForSection(type, session.sectionKey);
     const idx = Math.min(session.slideIndex, Math.max(0, slides.length - 1));
     pushSession({ liturgyType: type, slideIndex: idx, deaconOverride: null });
   }
@@ -267,7 +267,7 @@ export default function LiturgyControl() {
             <h2 className="text-sm font-bold text-gray-300 mb-3">الأقسام</h2>
             <div className="space-y-1">
               {unifiedSections.map(sec => {
-                const slides = getSlidesForSection(session.liturgyType, sec.sectionKey);
+                const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey);
                 return (
                   <button
                     key={sec.sectionKey}
