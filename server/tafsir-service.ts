@@ -446,7 +446,7 @@ export function getVerseTafsir(
   for (const entry of verseEntries) {
     if (!entry.tafsir) continue;
     const extracted = extractVerseTafsir(entry.tafsir, verse, chapter);
-    if (extracted && extracted.length >= 30) return extracted;
+    if (extracted && extracted.length >= 20) return extracted;
   }
 
   // ── Step 2: Scan ALL chapter entries with extractVerseTafsir
@@ -457,7 +457,7 @@ export function getVerseTafsir(
     if (!entry.tafsir || seenBlobs.has(entry.tafsir)) continue;
     seenBlobs.add(entry.tafsir);
     const extracted = extractVerseTafsir(entry.tafsir, verse, chapter);
-    if (extracted && extracted.length >= 30) return extracted;
+    if (extracted && extracted.length >= 20) return extracted;
   }
 
   // ── Step 3: Fallback — return any chapter entry whose FIRST range header
