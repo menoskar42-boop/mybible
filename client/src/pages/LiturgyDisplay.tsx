@@ -68,9 +68,7 @@ export default function LiturgyDisplay() {
           <span className="text-white text-sm">{section?.icon} {section?.label}</span>
         </div>
         <span className="text-white text-sm">
-          {getSlidesForSection(session.liturgyType, session.sectionKey).findIndex(
-            (_, i) => i === session.slideIndex
-          ) + 1}
+          {session.slideIndex + 1}
         </span>
       </div>
 

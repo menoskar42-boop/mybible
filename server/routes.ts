@@ -1166,7 +1166,13 @@ export async function registerRoutes(
   });
 
   app.post('/api/liturgy-session', (req, res) => {
-    liturgySession = { ...liturgySession, ...req.body, updatedAt: Date.now() };
+    const { liturgyType, sectionKey, slideIndex, deaconOverride } = req.body ?? {};
+    const patch: Record<string, unknown> = {};
+    if (liturgyType !== undefined) patch.liturgyType = liturgyType;
+    if (sectionKey !== undefined) patch.sectionKey = sectionKey;
+    if (slideIndex !== undefined) patch.slideIndex = slideIndex;
+    if (deaconOverride !== undefined) patch.deaconOverride = deaconOverride;
+    liturgySession = { ...liturgySession, ...patch, updatedAt: Date.now() };
     res.json(liturgySession);
   });
 

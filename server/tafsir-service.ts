@@ -70,7 +70,7 @@ function parseCSV(text: string): TafsirEntry[] {
       }
     }
 
-    fields.push(current);
+    fields.push(current.replace(/"$/, ""));
     i++;
 
     if (fields.length >= 4) {

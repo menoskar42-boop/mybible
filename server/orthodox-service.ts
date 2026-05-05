@@ -50,6 +50,10 @@ function parseSynaxarium(html: string): TodaySynaxarium {
     }
   }
 
+  if (!result.entries.length) {
+    console.warn('[orthodox] Synaxarium parsing returned 0 entries — HTML structure may have changed');
+  }
+
   return result;
 }
 
