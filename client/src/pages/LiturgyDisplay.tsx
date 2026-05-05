@@ -74,12 +74,15 @@ export default function LiturgyDisplay() {
 
       {/* شريحة الشماس — مؤقتة */}
       {deaconSlide && (
-        <div className="flex flex-col items-center gap-6 px-12 max-w-4xl text-center animate-pulse">
-          <div className="text-blue-400 text-sm font-bold tracking-widest uppercase">
+        <div
+          className="flex flex-col items-center gap-6 px-12 max-w-4xl text-center animate-pulse overflow-y-auto scrollbar-hide"
+          style={{ maxHeight: 'calc(100vh - 120px)' }}
+        >
+          <div className="text-blue-400 text-sm font-bold tracking-widest uppercase shrink-0">
             مرد الشماس
           </div>
           <div
-            className="text-white leading-relaxed whitespace-pre-line"
+            className="text-white whitespace-pre-line"
             style={{ fontSize: 'clamp(2rem, 6vw, 4.5rem)', lineHeight: 1.6 }}
           >
             {deaconSlide.text}
@@ -89,19 +92,22 @@ export default function LiturgyDisplay() {
 
       {/* الشريحة الرئيسية */}
       {!deaconSlide && currentSlide && (
-        <div className="flex flex-col items-center gap-8 px-12 max-w-5xl text-center">
+        <div
+          className="flex flex-col items-center gap-4 px-12 max-w-5xl text-center w-full overflow-y-auto scrollbar-hide"
+          style={{ maxHeight: 'calc(100vh - 120px)' }}
+        >
           <div
-            className={`text-xs font-bold tracking-widest uppercase ${getRoleColor(currentSlide.role)}`}
+            className={`text-xs font-bold tracking-widest uppercase shrink-0 ${getRoleColor(currentSlide.role)}`}
           >
             {getRoleLabel(currentSlide.role)}
           </div>
           <div
-            className="text-white leading-relaxed whitespace-pre-line"
+            className="text-white whitespace-pre-line"
             style={{ fontSize: 'clamp(1.6rem, 4.5vw, 3.8rem)', lineHeight: 1.8 }}
           >
             {currentSlide.text}
           </div>
-          <div className="text-white/30 text-sm mt-4">
+          <div className="text-white/30 text-sm shrink-0">
             {currentSlide.title}
           </div>
         </div>
