@@ -2230,12 +2230,12 @@ function BookReaderSection() {
     setSelectedBook(book);
     setSelectedChapter(book.chapters[0] ?? null);
     setSearchQuery('');
-    setTimeout(() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
   }
 
   function openChapter(ch: BookChapter) {
     setSelectedChapter(ch);
-    setTimeout(() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
   }
 
   function goBack() {
