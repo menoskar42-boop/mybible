@@ -63,7 +63,14 @@ export default function LiturgyControl() {
   useEffect(() => {
     fetch('/api/liturgy-session')
       .then(r => r.json())
-      .then(data => setSession(data))
+      .then(data => {
+        const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey);
+        const safeIdx = Math.min(
+          Math.max(0, data.slideIndex),
+          Math.max(0, slides.length - 1),
+        );
+        setSession({ ...data, slideIndex: safeIdx });
+      })
       .catch(() => {});
   }, []);
 
