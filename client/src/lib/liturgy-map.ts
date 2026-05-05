@@ -10,6 +10,7 @@ export interface LiturgySlide {
   role: 'priest' | 'deacon' | 'people' | 'all';
   title: string;
   text: string;
+  copticText?: string;
 }
 
 export interface UnifiedSection {
@@ -48,6 +49,7 @@ function extractSlides(liturgyId: LiturgyType, chapterIds: string[]): LiturgySli
         role: normalizeRole(part.role),
         title: part.title,
         text: part.text,
+        ...(part.copticText ? { copticText: part.copticText } : {}),
       });
     }
   }
@@ -214,12 +216,16 @@ export function getSplitSlidesForSection(
       continue;
     }
     const pages = splitTextIntoPages(slide.text, maxChars);
+    const copticPages = slide.copticText
+      ? splitTextIntoPages(slide.copticText, maxChars)
+      : [];
     pages.forEach((page, i) => {
       result.push({
         ...slide,
         id: `${slide.id}-p${i + 1}`,
         text: page,
         title: pages.length > 1 ? `${slide.title} (${i + 1}/${pages.length})` : slide.title,
+        ...(copticPages[i] ? { copticText: copticPages[i] } : {}),
       });
     });
   }

@@ -89,20 +89,56 @@ export default function LiturgyDisplay() {
 
       {/* الشريحة الرئيسية */}
       {!deaconSlide && currentSlide && (
-        <div className="flex flex-col items-center gap-8 px-12 max-w-5xl text-center">
-          <div className={`text-xs font-bold tracking-widest uppercase ${getRoleColor(currentSlide.role)}`}>
-            {getRoleLabel(currentSlide.role)}
+        currentSlide.copticText ? (
+          /* شاشة مقسومة: قبطي على اليسار — عربي على اليمين */
+          <div className="flex w-full h-full items-center" style={{ maxHeight: '80vh' }}>
+            {/* الجانب القبطي — يسار */}
+            <div
+              dir="ltr"
+              className="flex-1 flex flex-col items-center justify-center gap-6 px-10 border-r border-white/10 h-full"
+            >
+              <div className="text-blue-300/60 text-xs font-bold tracking-widest uppercase">Coptic</div>
+              <div
+                className="text-white/90 whitespace-pre-line text-center"
+                style={{ fontSize: 'clamp(1.2rem, 3vw, 2.6rem)', lineHeight: 1.9, fontFamily: 'serif' }}
+              >
+                {currentSlide.copticText}
+              </div>
+            </div>
+            {/* الجانب العربي — يمين */}
+            <div
+              dir="rtl"
+              className="flex-1 flex flex-col items-center justify-center gap-6 px-10 h-full"
+            >
+              <div className={`text-xs font-bold tracking-widest uppercase ${getRoleColor(currentSlide.role)}`}>
+                {getRoleLabel(currentSlide.role)}
+              </div>
+              <div
+                className="text-white whitespace-pre-line text-center"
+                style={{ fontSize: 'clamp(1.4rem, 3.5vw, 3rem)', lineHeight: 1.8 }}
+              >
+                {currentSlide.text}
+              </div>
+              <div className="text-white/30 text-sm">{currentSlide.title}</div>
+            </div>
           </div>
-          <div
-            className="text-white whitespace-pre-line"
-            style={{ fontSize: 'clamp(1.6rem, 4.5vw, 3.8rem)', lineHeight: 1.8 }}
-          >
-            {currentSlide.text}
+        ) : (
+          /* شاشة عادية بدون قبطي */
+          <div className="flex flex-col items-center gap-8 px-12 max-w-5xl text-center">
+            <div className={`text-xs font-bold tracking-widest uppercase ${getRoleColor(currentSlide.role)}`}>
+              {getRoleLabel(currentSlide.role)}
+            </div>
+            <div
+              className="text-white whitespace-pre-line"
+              style={{ fontSize: 'clamp(1.6rem, 4.5vw, 3.8rem)', lineHeight: 1.8 }}
+            >
+              {currentSlide.text}
+            </div>
+            <div className="text-white/30 text-sm">
+              {currentSlide.title}
+            </div>
           </div>
-          <div className="text-white/30 text-sm">
-            {currentSlide.title}
-          </div>
-        </div>
+        )
       )}
 
       {/* حالة الانتظار */}
