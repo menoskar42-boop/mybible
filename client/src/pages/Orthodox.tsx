@@ -305,12 +305,11 @@ function AgpeyaSection() {
               </div>
               <Button
                 size="sm"
-                className={`mt-3 gap-1.5 text-xs text-white ${selectedHour.colorBadge} border-0`}
-                style={{ background: 'var(--color-amber-600, #d97706)' }}
+                className="mt-3 gap-1.5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
                 onClick={() => setAudioOpen(true)}
                 data-testid={`agpeya-listen-${selectedHour.id}`}
               >
-                <Volume2 className="w-3.5 h-3.5" />
+                <Volume2 className="w-4 h-4 ml-1" />
                 استمع للصلاة
               </Button>
             </div>
@@ -321,9 +320,20 @@ function AgpeyaSection() {
         <Dialog open={audioOpen} onOpenChange={setAudioOpen}>
           <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl" data-testid="agpeya-audio-dialog">
             <DialogHeader className="px-4 pt-4 pb-2">
-              <DialogTitle className="text-right font-display text-base flex items-center gap-2">
-                <span>{selectedHour.icon}</span>
-                <span>{selectedHour.name} — استمع للصلاة</span>
+              <DialogTitle className="text-right font-display text-base flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <span>{selectedHour.icon}</span>
+                  <span>{selectedHour.name} — استمع للصلاة</span>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAudioOpen(false)}
+                  className="flex-shrink-0"
+                  data-testid="agpeya-audio-close"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </DialogTitle>
             </DialogHeader>
             <div className="px-4 pb-2">
