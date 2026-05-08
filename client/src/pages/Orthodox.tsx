@@ -468,8 +468,8 @@ function AgpeyaSection() {
                       {hour.icon}
                     </div>
                     <div>
-                      <p className="font-display font-bold text-foreground text-base">{hour.name}</p>
-                      <p className="text-xs text-muted-foreground">{hour.arabicTime}</p>
+                      <p className="font-display font-bold text-foreground text-lg">{hour.name}</p>
+                      <p className="text-sm text-muted-foreground">{hour.arabicTime}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -479,8 +479,8 @@ function AgpeyaSection() {
                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{hour.description}</p>
-                <p className="text-xs mt-1.5 opacity-70">📖 {hour.psalms}</p>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{hour.description}</p>
+                <p className="text-sm mt-1.5 opacity-70">📖 {hour.psalms}</p>
               </div>
             </Card>
           </motion.div>
@@ -914,9 +914,9 @@ function HymnsSection() {
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">{cat.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-display font-bold text-foreground mb-1 text-base">{cat.name}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{cat.description}</p>
-                    <p className={`text-xs mt-2 font-medium ${cat.colorText}`}>{cat.hymns.length} ألحان</p>
+                    <h3 className="font-display font-bold text-foreground mb-1 text-lg">{cat.name}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{cat.description}</p>
+                    <p className={`text-sm mt-2 font-medium ${cat.colorText}`}>{cat.hymns.length} ألحان</p>
                   </div>
                   <ChevronLeft className={`w-4 h-4 flex-shrink-0 mt-1 ${cat.colorText}`} />
                 </div>
@@ -1158,7 +1158,7 @@ function KatamarosSection() {
                     {season.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-display font-bold text-foreground text-base leading-snug">{season.arabicName}</h3>
+                    <h3 className="font-display font-bold text-foreground text-lg leading-snug">{season.arabicName}</h3>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <Badge variant="outline" className={`text-xs ${season.colorText} border-current`}>
                         {season.days.length} يوم / أحد
@@ -1167,7 +1167,7 @@ function KatamarosSection() {
                         5 قراءات / يوم
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed line-clamp-2">
+                    <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-2">
                       {season.description}
                     </p>
                   </div>
@@ -1369,14 +1369,14 @@ function SaintsVideosSection() {
                       {saint.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-display font-bold text-foreground text-base leading-snug">{saint.name}</h4>
+                      <h4 className="font-display font-bold text-foreground text-lg leading-snug">{saint.name}</h4>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <Badge variant="outline" className={`text-xs ${saint.colorText} border-current`}>
                           {saint.category}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">🕊️ {saint.feastDay}</span>
+                        <span className="text-sm text-muted-foreground">🕊️ {saint.feastDay}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
+                      <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
                         {saint.shortBio}
                       </p>
                     </div>
@@ -1696,10 +1696,10 @@ function CreedSection() {
                     <span className="text-2xl flex-shrink-0">{topic.icon}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="font-display font-bold text-foreground text-base">{topic.title}</h3>
+                        <h3 className="font-display font-bold text-foreground text-lg">{topic.title}</h3>
                         <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{topic.category}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{topic.summary}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{topic.summary}</p>
                     </div>
                   </div>
                   {expandedTopic === topic.id
@@ -1789,7 +1789,7 @@ function HistorySection() {
                           <h3 className="font-display font-bold text-foreground text-lg">{era.era}</h3>
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.badge}`}>{era.period}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{era.summary}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">{era.summary}</p>
                       </div>
                     </div>
                     {isOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
@@ -2001,11 +2001,11 @@ function FiguresSection() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-display font-bold text-foreground text-base">{figure.name}</h3>
+                        <h3 className="font-display font-bold text-foreground text-lg">{figure.name}</h3>
                         <Badge variant="outline" className="text-xs text-rose-600 border-rose-300">{figure.category}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{figure.title}</p>
-                      <p className="text-xs text-rose-600 dark:text-rose-400">{figure.period}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{figure.title}</p>
+                      <p className="text-sm text-rose-600 dark:text-rose-400">{figure.period}</p>
                     </div>
                   </div>
                   {expandedFigure === figure.id
@@ -2235,8 +2235,8 @@ function BibleCommentarySection() {
                     {father.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-display font-bold text-foreground text-base">{father.name}</h3>
-                    <p className="text-xs text-muted-foreground">{father.fullTitle}</p>
+                    <h3 className="font-display font-bold text-foreground text-lg">{father.name}</h3>
+                    <p className="text-sm text-muted-foreground">{father.fullTitle}</p>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <Badge variant="outline" className={`text-xs ${father.colorText} border-current`}>
                         {father.century}
@@ -2506,9 +2506,9 @@ function BookReaderSection() {
                       {book.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-display font-bold text-foreground text-base leading-snug">{book.title}</h3>
-                      <p className={`text-xs mt-0.5 font-medium ${c.text}`}>{book.era}</p>
-                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{book.description}</p>
+                      <h3 className="font-display font-bold text-foreground text-lg leading-snug">{book.title}</h3>
+                      <p className={`text-sm mt-0.5 font-medium ${c.text}`}>{book.era}</p>
+                      <p className="text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-2">{book.description}</p>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${c.badge}`}>{book.category}</span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
