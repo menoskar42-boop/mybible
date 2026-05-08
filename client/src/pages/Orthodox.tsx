@@ -152,7 +152,7 @@ function SynaxariumSection() {
         <div className="space-y-3">
           {today.day.entries.map((entry, i) => renderEntryCard(entry, i))}
         </div>
-        <p className="text-xs text-center text-muted-foreground mt-4">
+        <p className="text-sm text-center text-muted-foreground mt-4">
           اضغط على أي مدخل لقراءة السيرة الكاملة • مدمج داخل الموقع
         </p>
       </div>
@@ -1111,8 +1111,8 @@ function KatamarosSection() {
                       {selectedSeason.icon}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-display font-bold text-foreground text-base">{day.name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="font-display font-bold text-foreground text-lg">{day.name}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">
                         {day.readings.map(r => r.label).join(' · ')}
                       </p>
                     </div>
@@ -1631,7 +1631,7 @@ function CreedSection() {
               <span className="text-2xl">📜</span>
               <div>
                 <h3 className="font-display font-bold text-foreground text-lg">قانون الإيمان النيقاوي</h3>
-                <p className="text-xs text-muted-foreground">صِيغ في مجمع نيقية 325م — يُتلى في كل قداس إلهي</p>
+                <p className="text-sm text-muted-foreground">صِيغ في مجمع نيقية 325م — يُتلى في كل قداس إلهي</p>
               </div>
             </div>
             {showCreed ? <ChevronUp className="w-4 h-4 text-amber-600" /> : <ChevronDown className="w-4 h-4 text-amber-600" />}
@@ -1806,7 +1806,7 @@ function HistorySection() {
                     >
                       <div className="p-4 border-t border-border/30">
                         <p className="text-base text-muted-foreground mb-3 leading-relaxed">{era.summary}</p>
-                        <h4 className="text-xs font-bold text-foreground mb-2 uppercase tracking-wide">أبرز الأحداث</h4>
+                        <h4 className="text-sm font-bold text-foreground mb-2 uppercase tracking-wide">أبرز الأحداث</h4>
                         <ul className="space-y-2">
                           {era.events.map((ev, ei) => (
                             <li key={ei} className="flex items-start gap-2.5">
@@ -2025,8 +2025,8 @@ function FiguresSection() {
                       <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
                         <p className="text-base text-foreground leading-relaxed">{figure.description}</p>
                         <div className="mt-2 p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20">
-                          <p className="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-1">الإرث والأثر</p>
-                          <p className="text-xs text-foreground leading-relaxed">{figure.legacy}</p>
+                          <p className="text-sm font-semibold text-rose-700 dark:text-rose-300 mb-1">الإرث والأثر</p>
+                          <p className="text-sm text-foreground leading-relaxed">{figure.legacy}</p>
                         </div>
                       </div>
                     </motion.div>
@@ -2377,19 +2377,19 @@ function BookReaderSection() {
             size="sm"
             disabled={!prevCh}
             onClick={() => prevCh && openChapter(prevCh)}
-            className="text-xs"
+            className="text-sm"
             data-testid="reader-prev-chapter"
           >
             <ChevronDown className="w-3.5 h-3.5 ml-1 rotate-90" />
             السابق
           </Button>
-          <span className="text-xs text-muted-foreground">{chIdx + 1} / {selectedBook.chapters.length}</span>
+          <span className="text-sm text-muted-foreground">{chIdx + 1} / {selectedBook.chapters.length}</span>
           <Button
             variant="outline"
             size="sm"
             disabled={!nextCh}
             onClick={() => nextCh && openChapter(nextCh)}
-            className="text-xs"
+            className="text-sm"
             data-testid="reader-next-chapter"
           >
             التالي
@@ -2750,7 +2750,7 @@ function BibleMapsSection() {
       )}
 
       {/* معلومات الترخيص */}
-      <p className="text-xs text-muted-foreground mt-3 text-center">
+      <p className="text-sm text-muted-foreground mt-3 text-center">
         🗺️ خرائط OpenStreetMap — مفتوحة المصدر © مساهمو OpenStreetMap | بيانات المواقع: تراث عام
       </p>
     </div>
@@ -2774,7 +2774,7 @@ function PopeShenoudaQASection() {
         <MessageCircle className="w-5 h-5 text-amber-500" />
         <h2 className="text-lg font-bold font-display text-foreground">أسئلة مع البابا شنودة الثالث</h2>
       </div>
-      <p className="text-xs text-muted-foreground mb-4">فيديوهات أسئلة الشعب وإجابات البابا — اضغط على الفيديو لمشاهدته والأسئلة مكتوبة بجانبه</p>
+      <p className="text-sm text-muted-foreground mb-4">فيديوهات أسئلة الشعب وإجابات البابا — اضغط على الفيديو لمشاهدته والأسئلة مكتوبة بجانبه</p>
 
       {/* فلتر التصنيف */}
       <div className="flex flex-wrap gap-2 mb-5">
@@ -2858,7 +2858,7 @@ function PopeShenoudaQASection() {
 
                   {/* قائمة الأسئلة */}
                   <div className="lg:w-3/5 flex-1">
-                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1">
+                    <p className="text-sm font-semibold text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1">
                       <HelpCircle className="w-3.5 h-3.5" />
                       الأسئلة المطروحة في هذا الفيديو
                     </p>
@@ -2997,7 +2997,7 @@ function ApocryphaSection() {
         </div>
         <div>
           <h2 className="font-display text-xl font-bold text-foreground">الأسفار القانونية الثانية</h2>
-          <p className="text-xs text-muted-foreground">الأسفار المقبولة في الكنيسة القبطية الأرثوذكسية</p>
+          <p className="text-sm text-muted-foreground">الأسفار المقبولة في الكنيسة القبطية الأرثوذكسية</p>
         </div>
       </div>
 
@@ -3079,7 +3079,7 @@ function ApocryphaSection() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">اختر إصحاحاً للقراءة:</p>
+              <p className="text-sm text-muted-foreground mb-3">اختر إصحاحاً للقراءة:</p>
               <div className="flex flex-wrap gap-1.5">
                 {Array.from({ length: selectedBook.chaptersCount }, (_, i) => i + 1).map(chNum => {
                   const hasContent = selectedBook.chapters.some(c => c.chapter === chNum && c.verses.length > 0);
@@ -3198,7 +3198,7 @@ function ApocryphaSection() {
                   <ChevronRight className="w-4 h-4" />
                   السابق
                 </Button>
-                <span className="text-xs text-muted-foreground font-medium">
+                <span className="text-sm text-muted-foreground font-medium">
                   {selectedChapter} / {selectedBook.chaptersCount}
                 </span>
                 <Button
