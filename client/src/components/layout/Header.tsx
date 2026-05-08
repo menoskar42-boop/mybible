@@ -16,8 +16,10 @@ const navItems = [
   { href: '/bible', label: 'الكتاب المقدس' },
   { href: '/plans', label: 'خطط القراءة' },
   { href: '/emotions', label: 'تعزية روحية' },
+  { href: '/orthodox', label: 'أرثوذوكسيات' },
   { href: '/kids', label: 'للأطفال' },
   { href: '/highlights', label: 'آياتي' },
+  { href: '/search', label: 'بحث' },
 ];
 
 export function Header({ isPremium = false, onToggleTheme, isDark = false }: HeaderProps) {
