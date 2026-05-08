@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cross, Play, BookOpen, Music, Calendar, Video, ChevronDown, ChevronUp, Church, Mic2, BookMarked, History, HelpCircle, Users, Search, Map, Library, MessageCircle, BookText, Loader2, Scroll, ChevronRight, X, ChevronLeft } from 'lucide-react';
+import { Cross, Play, BookOpen, Music, Calendar, Video, ChevronDown, ChevronUp, Church, Mic2, BookMarked, History, HelpCircle, Users, Search, Map, Library, MessageCircle, BookText, Loader2, Scroll, ChevronRight, X, ChevronLeft, Volume2, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -245,9 +245,15 @@ function SynaxariumSection() {
   return null;
 }
 
+const AGPEYA_PLAYLIST_ID = 'PLvMAQ886uces2LPBNwge5x6FOp5BE5e49';
+const AGPEYA_HOUR_INDEX: Record<string, number> = {
+  prime: 0, terce: 1, sext: 2, none: 3, vespers: 4, compline: 5, midnight: 6,
+};
+
 function AgpeyaSection() {
   const [selectedHour, setSelectedHour] = useState<AgpeyaHourFull | null>(null);
   const [expandedPrayers, setExpandedPrayers] = useState<Set<string>>(new Set());
+  const [audioOpen, setAudioOpen] = useState(false);
 
   const togglePrayer = (id: string) => {
     setExpandedPrayers(prev => {
@@ -260,6 +266,7 @@ function AgpeyaSection() {
   const openHour = (hour: AgpeyaHourFull) => {
     setSelectedHour(hour);
     setExpandedPrayers(new Set());
+    setAudioOpen(false);
   };
 
   const roleColor: Record<string, string> = {
@@ -296,9 +303,65 @@ function AgpeyaSection() {
                 <p className="text-xs text-muted-foreground">📖 {selectedHour.psalms}</p>
                 <p className="text-xs text-muted-foreground">✝️ الإنجيل: {selectedHour.gospel}</p>
               </div>
+              <Button
+                size="sm"
+                className="mt-3 gap-1.5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+                onClick={() => setAudioOpen(true)}
+                data-testid={`agpeya-listen-${selectedHour.id}`}
+              >
+                <Volume2 className="w-4 h-4 ml-1" />
+                استمع للصلاة
+              </Button>
             </div>
           </div>
         </div>
+
+        {/* مشغّل الصلاة — نافذة يوتيوب */}
+        <Dialog open={audioOpen} onOpenChange={setAudioOpen}>
+          <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl" data-testid="agpeya-audio-dialog">
+            <DialogHeader className="px-4 pt-4 pb-2">
+              <DialogTitle className="text-right font-display text-base flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <span>{selectedHour.icon}</span>
+                  <span>{selectedHour.name} — استمع للصلاة</span>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAudioOpen(false)}
+                  className="flex-shrink-0"
+                  data-testid="agpeya-audio-close"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="px-4 pb-2">
+              <div className="aspect-video rounded-xl overflow-hidden bg-black">
+                <iframe
+                  key={selectedHour.id}
+                  src={`https://www.youtube-nocookie.com/embed/videoseries?list=${AGPEYA_PLAYLIST_ID}&index=${AGPEYA_HOUR_INDEX[selectedHour.id] ?? 0}&autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                  title={selectedHour.name}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              </div>
+            </div>
+            <div className="px-4 pb-4">
+              <a
+                href={`https://www.youtube.com/playlist?list=${AGPEYA_PLAYLIST_ID}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-sm transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                افتح قائمة التشغيل على يوتيوب
+              </a>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* صلوات الساعة */}
         <div className="space-y-2 mb-5">
@@ -2230,12 +2293,12 @@ function BookReaderSection() {
     setSelectedBook(book);
     setSelectedChapter(book.chapters[0] ?? null);
     setSearchQuery('');
-    setTimeout(() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
   }
 
   function openChapter(ch: BookChapter) {
     setSelectedChapter(ch);
-    setTimeout(() => contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
   }
 
   function goBack() {
