@@ -119,7 +119,7 @@ function SynaxariumSection() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="text-sm text-muted-foreground mt-2 leading-relaxed"
+                    className="text-base text-muted-foreground mt-2 leading-relaxed"
                   >
                     {entry.description}
                   </motion.p>
@@ -804,7 +804,7 @@ function HymnsSection() {
                   {sec.note && (
                     <p className={`text-xs italic ${selectedCategory.colorText} mb-3 mt-3 font-medium`}>{sec.note}</p>
                   )}
-                  <pre className="text-sm text-foreground leading-8 whitespace-pre-wrap font-arabic mt-3 text-right">
+                  <pre className="text-base text-foreground leading-9 whitespace-pre-wrap font-arabic mt-3 text-right">
                     {sec.text}
                   </pre>
                 </div>
@@ -1018,7 +1018,7 @@ function KatamarosSection() {
                     >
                       <div className="px-4 pb-4 pt-0 border-t border-border/30">
                         <p className="text-xs text-muted-foreground mt-2 mb-3 font-medium">{reading.reference}</p>
-                        <p className="text-sm leading-loose text-foreground whitespace-pre-line font-arabic">
+                        <p className="text-base leading-loose text-foreground whitespace-pre-line font-arabic">
                           {reading.text}
                         </p>
                       </div>
@@ -1283,7 +1283,7 @@ function SaintsVideosSection() {
                       className="overflow-hidden"
                     >
                       <div className="px-4 pb-4 pt-0 border-t border-border/40">
-                        <p className="text-sm leading-loose text-foreground whitespace-pre-line mt-3">
+                        <p className="text-base leading-loose text-foreground whitespace-pre-line mt-3">
                           {section.text}
                         </p>
                       </div>
@@ -1534,7 +1534,7 @@ function DeaconResponsesSection() {
                       className="overflow-hidden"
                     >
                       <div className="p-4 pt-0 border-t border-border/40">
-                        <p className="text-sm text-muted-foreground mt-3 mb-4">{section.description}</p>
+                        <p className="text-base text-muted-foreground mt-3 mb-4">{section.description}</p>
                         <div className="space-y-4">
                           {section.responses.map((resp, ri) => (
                             <motion.div
@@ -1554,14 +1554,14 @@ function DeaconResponsesSection() {
                                     {resp.arabic}
                                   </p>
                                   {resp.coptic && (
-                                    <p className="text-sm font-mono text-muted-foreground mb-1 leading-relaxed break-all">
+                                    <p className="text-base font-mono text-muted-foreground mb-1 leading-relaxed break-all">
                                       {resp.coptic}
                                     </p>
                                   )}
                                   <Badge variant="outline" className={`text-xs mb-2 ${c.text} border-current`}>
                                     {resp.meaning}
                                   </Badge>
-                                  <p className="text-xs text-muted-foreground leading-relaxed">
+                                  <p className="text-sm text-muted-foreground leading-relaxed">
                                     {resp.usage}
                                   </p>
                                 </div>
@@ -1718,7 +1718,7 @@ function CreedSection() {
                     >
                       <div className="mt-4 pt-4 border-t border-border/40 space-y-3">
                         {topic.content.map((para, pi) => (
-                          <p key={pi} className="text-sm text-foreground leading-relaxed">
+                          <p key={pi} className="text-base text-foreground leading-relaxed">
                             {para}
                           </p>
                         ))}
@@ -1805,13 +1805,13 @@ function HistorySection() {
                       className="overflow-hidden"
                     >
                       <div className="p-4 border-t border-border/30">
-                        <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{era.summary}</p>
+                        <p className="text-base text-muted-foreground mb-3 leading-relaxed">{era.summary}</p>
                         <h4 className="text-xs font-bold text-foreground mb-2 uppercase tracking-wide">أبرز الأحداث</h4>
                         <ul className="space-y-2">
                           {era.events.map((ev, ei) => (
                             <li key={ei} className="flex items-start gap-2.5">
                               <span className={`w-1.5 h-1.5 rounded-full ${c.dot} flex-shrink-0 mt-1.5`} />
-                              <span className="text-sm text-foreground leading-relaxed">{ev}</span>
+                              <span className="text-base text-foreground leading-relaxed">{ev}</span>
                             </li>
                           ))}
                         </ul>
@@ -1924,7 +1924,7 @@ function QASection() {
                         <div className="mt-3 pt-3 border-t border-border/40">
                           <div className="flex items-start gap-3">
                             <span className="text-emerald-500 font-bold text-lg leading-none flex-shrink-0">ج</span>
-                            <p className="text-sm text-foreground leading-relaxed">{item.answer}</p>
+                            <p className="text-base text-foreground leading-relaxed">{item.answer}</p>
                           </div>
                           {item.source && (
                             <p className="text-xs text-muted-foreground mt-2 mr-6">— {item.source}</p>
@@ -2023,7 +2023,7 @@ function FiguresSection() {
                       className="overflow-hidden"
                     >
                       <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
-                        <p className="text-sm text-foreground leading-relaxed">{figure.description}</p>
+                        <p className="text-base text-foreground leading-relaxed">{figure.description}</p>
                         <div className="mt-2 p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20">
                           <p className="text-xs font-semibold text-rose-700 dark:text-rose-300 mb-1">الإرث والأثر</p>
                           <p className="text-xs text-foreground leading-relaxed">{figure.legacy}</p>
@@ -2155,7 +2155,7 @@ function BibleCommentarySection() {
                       className="overflow-hidden"
                     >
                       <div className="px-4 pb-4 pt-0 border-t border-border/40">
-                        <p className="text-sm leading-loose text-foreground whitespace-pre-line mt-3">
+                        <p className="text-base leading-loose text-foreground whitespace-pre-line mt-3">
                           {section.text}
                         </p>
                       </div>
@@ -2348,7 +2348,7 @@ function BookReaderSection() {
               {paragraphs.map((para, i) => (
                 <p
                   key={i}
-                  className={`text-sm leading-8 text-foreground/90 ${
+                  className={`text-base leading-9 text-foreground/90 ${
                     para.startsWith('**') && para.endsWith('**')
                       ? 'font-bold text-foreground'
                       : ''
@@ -3278,78 +3278,78 @@ export default function Orthodox() {
 
           <Tabs defaultValue="synaxarium" className="w-full">
             {/* صف التبويبات الأول */}
-            <TabsList className="w-full grid grid-cols-4 mb-1.5 h-10">
-              <TabsTrigger value="synaxarium" className="text-xs py-1.5" data-testid="tab-synaxarium">
-                <Calendar className="w-3 h-3 ml-1" />
+            <TabsList className="w-full grid grid-cols-4 mb-1.5 h-12">
+              <TabsTrigger value="synaxarium" className="text-sm py-2" data-testid="tab-synaxarium">
+                <Calendar className="w-3.5 h-3.5 ml-1" />
                 السنكسار
               </TabsTrigger>
-              <TabsTrigger value="agpeya" className="text-xs py-1.5" data-testid="tab-agpeya">
-                <BookOpen className="w-3 h-3 ml-1" />
+              <TabsTrigger value="agpeya" className="text-sm py-2" data-testid="tab-agpeya">
+                <BookOpen className="w-3.5 h-3.5 ml-1" />
                 الأجبية
               </TabsTrigger>
-              <TabsTrigger value="liturgy" className="text-xs py-1.5" data-testid="tab-liturgy">
-                <Church className="w-3 h-3 ml-1" />
+              <TabsTrigger value="liturgy" className="text-sm py-2" data-testid="tab-liturgy">
+                <Church className="w-3.5 h-3.5 ml-1" />
                 الخولاجي
               </TabsTrigger>
-              <TabsTrigger value="deacon" className="text-xs py-1.5" data-testid="tab-deacon">
-                <Mic2 className="w-3 h-3 ml-1" />
+              <TabsTrigger value="deacon" className="text-sm py-2" data-testid="tab-deacon">
+                <Mic2 className="w-3.5 h-3.5 ml-1" />
                 المردات
               </TabsTrigger>
             </TabsList>
             {/* صف التبويبات الثاني */}
-            <TabsList className="w-full grid grid-cols-4 mb-1.5 h-10">
-              <TabsTrigger value="hymns" className="text-xs py-1.5" data-testid="tab-hymns">
-                <Music className="w-3 h-3 ml-1" />
+            <TabsList className="w-full grid grid-cols-4 mb-1.5 h-12">
+              <TabsTrigger value="hymns" className="text-sm py-2" data-testid="tab-hymns">
+                <Music className="w-3.5 h-3.5 ml-1" />
                 الألحان
               </TabsTrigger>
-              <TabsTrigger value="katameros" className="text-xs py-1.5" data-testid="tab-katameros">
-                <Calendar className="w-3 h-3 ml-1" />
+              <TabsTrigger value="katameros" className="text-sm py-2" data-testid="tab-katameros">
+                <Calendar className="w-3.5 h-3.5 ml-1" />
                 القطمارس
               </TabsTrigger>
-              <TabsTrigger value="saints" className="text-xs py-1.5" data-testid="tab-saints">
-                <Video className="w-3 h-3 ml-1" />
+              <TabsTrigger value="saints" className="text-sm py-2" data-testid="tab-saints">
+                <Video className="w-3.5 h-3.5 ml-1" />
                 القديسون
               </TabsTrigger>
-              <TabsTrigger value="creed" className="text-xs py-1.5" data-testid="tab-creed">
-                <BookMarked className="w-3 h-3 ml-1" />
+              <TabsTrigger value="creed" className="text-sm py-2" data-testid="tab-creed">
+                <BookMarked className="w-3.5 h-3.5 ml-1" />
                 عقيدة
               </TabsTrigger>
             </TabsList>
             {/* صف التبويبات الثالث */}
-            <TabsList className="w-full grid grid-cols-4 mb-1.5 h-10">
-              <TabsTrigger value="history" className="text-xs py-1.5" data-testid="tab-history">
-                <History className="w-3 h-3 ml-1" />
+            <TabsList className="w-full grid grid-cols-4 mb-1.5 h-12">
+              <TabsTrigger value="history" className="text-sm py-2" data-testid="tab-history">
+                <History className="w-3.5 h-3.5 ml-1" />
                 تاريخ
               </TabsTrigger>
-              <TabsTrigger value="books" className="text-xs py-1.5" data-testid="tab-books">
-                <BookOpen className="w-3 h-3 ml-1" />
+              <TabsTrigger value="books" className="text-sm py-2" data-testid="tab-books">
+                <BookOpen className="w-3.5 h-3.5 ml-1" />
                 كتب
               </TabsTrigger>
-              <TabsTrigger value="qa" className="text-xs py-1.5" data-testid="tab-qa">
-                <HelpCircle className="w-3 h-3 ml-1" />
+              <TabsTrigger value="qa" className="text-sm py-2" data-testid="tab-qa">
+                <HelpCircle className="w-3.5 h-3.5 ml-1" />
                 أسئلة
               </TabsTrigger>
-              <TabsTrigger value="figures" className="text-xs py-1.5" data-testid="tab-figures">
-                <Users className="w-3 h-3 ml-1" />
+              <TabsTrigger value="figures" className="text-sm py-2" data-testid="tab-figures">
+                <Users className="w-3.5 h-3.5 ml-1" />
                 شخصيات
               </TabsTrigger>
             </TabsList>
             {/* صف التبويبات الرابع — أقسام جديدة */}
-            <TabsList className="w-full grid grid-cols-4 mb-6 h-10">
-              <TabsTrigger value="apocrypha" className="text-xs py-1.5" data-testid="tab-apocrypha">
-                <Scroll className="w-3 h-3 ml-1" />
-                الأسفار القانونية
+            <TabsList className="w-full grid grid-cols-4 mb-6 h-12">
+              <TabsTrigger value="apocrypha" className="text-sm py-2" data-testid="tab-apocrypha">
+                <Scroll className="w-3.5 h-3.5 ml-1" />
+                الأسفار
               </TabsTrigger>
-              <TabsTrigger value="tafseer" className="text-xs py-1.5" data-testid="tab-tafseer">
-                <BookMarked className="w-3 h-3 ml-1" />
+              <TabsTrigger value="tafseer" className="text-sm py-2" data-testid="tab-tafseer">
+                <BookMarked className="w-3.5 h-3.5 ml-1" />
                 تفاسير
               </TabsTrigger>
-              <TabsTrigger value="maps" className="text-xs py-1.5" data-testid="tab-maps">
-                <Map className="w-3 h-3 ml-1" />
+              <TabsTrigger value="maps" className="text-sm py-2" data-testid="tab-maps">
+                <Map className="w-3.5 h-3.5 ml-1" />
                 خرائط
               </TabsTrigger>
-              <TabsTrigger value="pope-qa" className="text-xs py-1.5" data-testid="tab-pope-qa">
-                <MessageCircle className="w-3 h-3 ml-1" />
+              <TabsTrigger value="pope-qa" className="text-sm py-2" data-testid="tab-pope-qa">
+                <MessageCircle className="w-3.5 h-3.5 ml-1" />
                 أسئلة البابا
               </TabsTrigger>
             </TabsList>
