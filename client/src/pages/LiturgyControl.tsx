@@ -210,6 +210,14 @@ export default function LiturgyControl() {
                   <p className="text-white text-sm font-serif whitespace-pre-line leading-relaxed line-clamp-6">
                     {currentSlide.text}
                   </p>
+                  {currentSlide.copticText && (
+                    <div className="mt-3 pt-3 border-t border-gray-700">
+                      <span className="text-xs font-bold text-blue-400 block mb-1">ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ</span>
+                      <p dir="ltr" className="text-blue-300 text-xs font-serif whitespace-pre-line leading-relaxed line-clamp-4">
+                        {currentSlide.copticText}
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               ) : (
                 <div className="text-gray-500 text-sm text-center py-6">لا توجد شرائح</div>
