@@ -110,7 +110,7 @@ function SynaxariumSection() {
             <span className="text-xl flex-shrink-0 mt-0.5">{entryTypeIcon[entry.type]}</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-display font-bold text-foreground leading-snug">{entry.name}</p>
+                <p className="font-display font-bold text-foreground text-lg leading-snug">{entry.name}</p>
                 <Badge variant="secondary" className="text-xs">{entry.type}</Badge>
               </div>
               <AnimatePresence>
@@ -178,7 +178,7 @@ function SynaxariumSection() {
               className={`p-3 cursor-pointer hover:shadow-md transition-shadow text-center ${month.id === todayCoptic.month ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' : ''}`}
               onClick={() => { setSelectedMonth(month.id); setView('days'); }}
             >
-              <p className="font-display font-bold text-foreground">{month.arabicName}</p>
+              <p className="font-display font-bold text-foreground text-base">{month.arabicName}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{month.gregStart}</p>
               {month.id === todayCoptic.month && (
                 <Badge className="mt-1 text-xs bg-amber-500">الشهر الحالي</Badge>
@@ -294,7 +294,7 @@ function AgpeyaSection() {
           <div className="flex items-start gap-3">
             <span className="text-3xl flex-shrink-0">{selectedHour.icon}</span>
             <div className="flex-1">
-              <h2 className="font-display font-bold text-foreground">{selectedHour.name}</h2>
+              <h2 className="font-display font-bold text-foreground text-xl">{selectedHour.name}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">{selectedHour.arabicTime}</p>
               <Badge variant="outline" className={`text-xs mt-2 ${selectedHour.colorText} border-current`}>
                 {selectedHour.memory}
@@ -468,7 +468,7 @@ function AgpeyaSection() {
                       {hour.icon}
                     </div>
                     <div>
-                      <p className="font-display font-bold text-foreground">{hour.name}</p>
+                      <p className="font-display font-bold text-foreground text-base">{hour.name}</p>
                       <p className="text-xs text-muted-foreground">{hour.arabicTime}</p>
                     </div>
                   </div>
@@ -548,7 +548,7 @@ function LiturgySection() {
           <div className="flex items-center gap-3">
             <span className="text-3xl">{selectedLiturgy.icon}</span>
             <div>
-              <h2 className="font-display font-bold text-foreground">{selectedLiturgy.name}</h2>
+              <h2 className="font-display font-bold text-foreground text-xl">{selectedLiturgy.name}</h2>
               <Badge variant="outline" className={`text-xs mt-1 ${selectedLiturgy.colorText} border-current`}>
                 {selectedLiturgy.occasion}
               </Badge>
@@ -693,7 +693,7 @@ function LiturgySection() {
                 <span className="text-3xl flex-shrink-0">{lit.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-display font-bold text-foreground">{lit.name}</h3>
+                    <h3 className="font-display font-bold text-foreground text-lg">{lit.name}</h3>
                     <Badge variant="outline" className={`text-xs ${lit.colorText} border-current`}>
                       {lit.occasion}
                     </Badge>
@@ -796,7 +796,7 @@ function HymnsSection() {
                 onClick={() => toggleSection(sec.id)}
                 data-testid={`hymn-section-${sec.id}`}
               >
-                <span className="font-display font-bold text-foreground text-sm">{sec.title}</span>
+                <span className="font-display font-bold text-foreground text-base">{sec.title}</span>
                 <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${expandedSections.has(sec.id) ? 'rotate-180' : ''}`} />
               </button>
               {expandedSections.has(sec.id) && (
@@ -861,7 +861,7 @@ function HymnsSection() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{hymn.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-display font-bold text-foreground text-sm">{hymn.name}</h3>
+                      <h3 className="font-display font-bold text-foreground text-base">{hymn.name}</h3>
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{hymn.arabicDesc}</p>
                       <span className={`inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full ${selectedCategory.colorBg} ${selectedCategory.colorText} border ${selectedCategory.colorBorder}`}>
                         {hymn.sections.length} {hymn.sections.length === 1 ? 'قسم' : 'أقسام'}
@@ -914,7 +914,7 @@ function HymnsSection() {
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">{cat.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-display font-bold text-foreground mb-1 text-sm">{cat.name}</h3>
+                    <h3 className="font-display font-bold text-foreground mb-1 text-base">{cat.name}</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">{cat.description}</p>
                     <p className={`text-xs mt-2 font-medium ${cat.colorText}`}>{cat.hymns.length} ألحان</p>
                   </div>
@@ -1111,7 +1111,7 @@ function KatamarosSection() {
                       {selectedSeason.icon}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-display font-bold text-foreground text-sm">{day.name}</p>
+                      <p className="font-display font-bold text-foreground text-base">{day.name}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {day.readings.map(r => r.label).join(' · ')}
                       </p>
@@ -1369,7 +1369,7 @@ function SaintsVideosSection() {
                       {saint.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-display font-bold text-foreground text-sm leading-snug">{saint.name}</h4>
+                      <h4 className="font-display font-bold text-foreground text-base leading-snug">{saint.name}</h4>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <Badge variant="outline" className={`text-xs ${saint.colorText} border-current`}>
                           {saint.category}
@@ -1513,7 +1513,7 @@ function DeaconResponsesSection() {
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{section.icon}</span>
                       <div>
-                        <h3 className="font-display font-bold text-foreground">{section.title}</h3>
+                        <h3 className="font-display font-bold text-foreground text-lg">{section.title}</h3>
                         <p className="text-xs text-muted-foreground mt-0.5">{section.responses.length} مردة</p>
                       </div>
                     </div>
@@ -1630,7 +1630,7 @@ function CreedSection() {
             <div className="flex items-center gap-3">
               <span className="text-2xl">📜</span>
               <div>
-                <h3 className="font-display font-bold text-foreground">قانون الإيمان النيقاوي</h3>
+                <h3 className="font-display font-bold text-foreground text-lg">قانون الإيمان النيقاوي</h3>
                 <p className="text-xs text-muted-foreground">صِيغ في مجمع نيقية 325م — يُتلى في كل قداس إلهي</p>
               </div>
             </div>
@@ -1696,7 +1696,7 @@ function CreedSection() {
                     <span className="text-2xl flex-shrink-0">{topic.icon}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className="font-display font-bold text-foreground text-sm">{topic.title}</h3>
+                        <h3 className="font-display font-bold text-foreground text-base">{topic.title}</h3>
                         <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{topic.category}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">{topic.summary}</p>
@@ -1786,7 +1786,7 @@ function HistorySection() {
                       <span className="text-2xl">{era.icon}</span>
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-display font-bold text-foreground">{era.era}</h3>
+                          <h3 className="font-display font-bold text-foreground text-lg">{era.era}</h3>
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.badge}`}>{era.period}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{era.summary}</p>
@@ -1904,7 +1904,7 @@ function QASection() {
                   <div className="flex items-start gap-3">
                     <span className="text-violet-500 font-bold text-lg leading-none flex-shrink-0">س</span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-display font-semibold text-foreground text-sm leading-snug">{item.question}</p>
+                      <p className="font-display font-semibold text-foreground text-base leading-snug">{item.question}</p>
                       <Badge variant="outline" className="text-xs mt-1 text-violet-600 border-violet-300">{item.category}</Badge>
                     </div>
                     {expandedQ === item.id
@@ -2001,7 +2001,7 @@ function FiguresSection() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-display font-bold text-foreground text-sm">{figure.name}</h3>
+                        <h3 className="font-display font-bold text-foreground text-base">{figure.name}</h3>
                         <Badge variant="outline" className="text-xs text-rose-600 border-rose-300">{figure.category}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{figure.title}</p>
@@ -2097,7 +2097,7 @@ function BibleCommentarySection() {
           <div className="flex items-start gap-3">
             <span className="text-3xl flex-shrink-0">{selectedFather.icon}</span>
             <div className="flex-1">
-              <h2 className="font-display font-bold text-foreground text-sm">{selectedFather.name}</h2>
+              <h2 className="font-display font-bold text-foreground text-base">{selectedFather.name}</h2>
               <p className="text-xs text-muted-foreground">{selectedFather.fullTitle}</p>
               <Badge variant="outline" className={`text-xs mt-1.5 ${selectedFather.colorText} border-current`}>
                 {selectedFather.century}
@@ -2235,7 +2235,7 @@ function BibleCommentarySection() {
                     {father.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-display font-bold text-foreground text-sm">{father.name}</h3>
+                    <h3 className="font-display font-bold text-foreground text-base">{father.name}</h3>
                     <p className="text-xs text-muted-foreground">{father.fullTitle}</p>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <Badge variant="outline" className={`text-xs ${father.colorText} border-current`}>
@@ -2427,7 +2427,7 @@ function BookReaderSection() {
           </div>
         </div>
 
-        <h3 className="font-display font-bold text-foreground text-sm mb-2">
+        <h3 className="font-display font-bold text-foreground text-base mb-2">
           الفصول ({selectedBook.chapters.length})
         </h3>
         <div className="space-y-2">
@@ -2506,7 +2506,7 @@ function BookReaderSection() {
                       {book.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-display font-bold text-foreground text-sm leading-snug">{book.title}</h3>
+                      <h3 className="font-display font-bold text-foreground text-base leading-snug">{book.title}</h3>
                       <p className={`text-xs mt-0.5 font-medium ${c.text}`}>{book.era}</p>
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{book.description}</p>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -2728,13 +2728,13 @@ function BibleMapsSection() {
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 className="font-display font-bold text-foreground">{selectedLocation.name}</h3>
+                  <h3 className="font-display font-bold text-foreground text-lg">{selectedLocation.name}</h3>
                   <Badge style={{background: TESTAMENT_COLORS[selectedLocation.testament] + '20', color: TESTAMENT_COLORS[selectedLocation.testament], border: 'none'}} className="text-xs font-semibold">
                     {selectedLocation.testament === 'قديم' ? 'العهد القديم' : selectedLocation.testament === 'جديد' ? 'العهد الجديد' : 'العهدان'}
                   </Badge>
                   <Badge variant="outline" className="text-xs">{CATEGORY_ICONS[selectedLocation.category]} {selectedLocation.category}</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">{selectedLocation.description}</p>
+                <p className="text-base text-muted-foreground leading-relaxed">{selectedLocation.description}</p>
                 {selectedLocation.verse && (
                   <p className="text-xs text-teal-600 dark:text-teal-400 mt-2 font-medium">📖 {selectedLocation.verse}</p>
                 )}
@@ -2876,7 +2876,7 @@ function PopeShenoudaQASection() {
                               <span className="w-5 h-5 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">
                                 {qi + 1}
                               </span>
-                              <span className="flex-1 text-xs font-medium text-foreground leading-relaxed text-right">{qa.q}</span>
+                              <span className="flex-1 text-sm font-medium text-foreground leading-relaxed text-right">{qa.q}</span>
                               {isOpen
                                 ? <ChevronUp className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
                                 : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -2892,7 +2892,7 @@ function PopeShenoudaQASection() {
                                   className="overflow-hidden"
                                 >
                                   <div className="px-4 py-3 bg-white dark:bg-card border-t border-amber-100 dark:border-amber-900/30">
-                                    <p className="text-xs text-muted-foreground leading-relaxed text-right">{qa.summary}</p>
+                                    <p className="text-sm text-muted-foreground leading-relaxed text-right">{qa.summary}</p>
                                   </div>
                                 </motion.div>
                               )}
@@ -3067,7 +3067,7 @@ function ApocryphaSection() {
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{selectedBook.icon}</span>
                   <div>
-                    <p className="font-display font-bold text-foreground">{selectedBook.name}</p>
+                    <p className="font-display font-bold text-foreground text-base">{selectedBook.name}</p>
                     <p className="text-xs text-muted-foreground">{selectedBook.description}</p>
                   </div>
                 </div>
