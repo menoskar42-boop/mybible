@@ -383,7 +383,7 @@ function AgpeyaSection() {
                         {prayer.role}
                       </span>
                     )}
-                    <span className="text-sm font-medium text-foreground truncate">{prayer.title}</span>
+                    <span className="text-base font-medium text-foreground truncate">{prayer.title}</span>
                   </div>
                   {expandedPrayers.has(prayer.id)
                     ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -597,7 +597,7 @@ function LiturgySection() {
                         {part.role}
                       </span>
                     )}
-                    <span className="text-sm font-medium text-foreground truncate">{part.title}</span>
+                    <span className="text-base font-medium text-foreground truncate">{part.title}</span>
                   </div>
                   {expandedParts.has(part.id)
                     ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -1268,7 +1268,7 @@ function SaintsVideosSection() {
                 data-testid={`saint-section-${section.id}`}
               >
                 <div className="flex items-center justify-between gap-3 p-3">
-                  <p className="text-sm font-bold text-foreground">{section.title}</p>
+                  <p className="text-base font-bold text-foreground">{section.title}</p>
                   {expandedSections.has(section.id)
                     ? <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     : <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
@@ -1648,7 +1648,7 @@ function CreedSection() {
             >
               <div className="p-5 border-t border-amber-100 dark:border-amber-800">
                 {niceneCreed.split('\n\n').map((para, i) => (
-                  <p key={i} className="text-sm text-foreground leading-loose mb-3 font-display">
+                  <p key={i} className="text-base text-foreground leading-loose mb-3 font-display">
                     {para}
                   </p>
                 ))}
@@ -2136,7 +2136,7 @@ function BibleCommentarySection() {
               >
                 <div className="flex items-center justify-between gap-3 p-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground">{section.title}</p>
+                    <p className="text-base font-bold text-foreground">{section.title}</p>
                     {section.verses && (
                       <p className="text-xs text-muted-foreground mt-0.5">📖 {section.verses}</p>
                     )}
@@ -2445,7 +2445,7 @@ function BookReaderSection() {
                 <span className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${colors.badge}`}>
                   {i + 1}
                 </span>
-                <span className="text-sm text-foreground leading-snug text-right flex-1">{ch.title}</span>
+                <span className="text-base text-foreground leading-snug text-right flex-1">{ch.title}</span>
                 <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 flex-shrink-0" />
               </Card>
             </motion.button>
@@ -2809,7 +2809,7 @@ function PopeShenoudaQASection() {
                 <span className="text-2xl flex-shrink-0">{video.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-sm text-foreground leading-snug">{video.title}</h3>
+                    <h3 className="font-bold text-base text-foreground leading-snug">{video.title}</h3>
                     <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 flex-shrink-0">{video.category}</Badge>
                   </div>
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{video.subtitle}</p>
@@ -3043,7 +3043,7 @@ function ApocryphaSection() {
                 {book.category}
               </Badge>
             </div>
-            <p className={`font-display font-bold text-sm leading-tight ${selectedBook?.id === book.id ? 'text-white' : 'text-foreground'}`}>
+            <p className={`font-display font-bold text-base leading-tight ${selectedBook?.id === book.id ? 'text-white' : 'text-foreground'}`}>
               {book.name}
             </p>
             <p className={`text-[11px] mt-0.5 ${selectedBook?.id === book.id ? 'text-white/70' : 'text-muted-foreground'}`}>
