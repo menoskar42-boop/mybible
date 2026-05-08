@@ -617,6 +617,14 @@ function LiturgySection() {
                         <p className="text-sm leading-loose text-foreground whitespace-pre-line font-arabic mt-3">
                           {part.text}
                         </p>
+                        {part.copticText && (
+                          <div className="mt-3 pt-3 border-t border-border/30">
+                            <span className="text-xs font-bold text-blue-500 dark:text-blue-400 mb-1 block">ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ — القبطية</span>
+                            <p dir="ltr" className="text-sm leading-loose text-blue-700 dark:text-blue-300 whitespace-pre-line mt-1" style={{ fontFamily: 'serif' }}>
+                              {part.copticText}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}
