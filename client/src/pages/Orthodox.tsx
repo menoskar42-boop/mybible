@@ -400,7 +400,7 @@ function AgpeyaSection() {
                       className="overflow-hidden"
                     >
                       <div className="px-4 pb-4 pt-0 border-t border-border/40">
-                        <p className="text-sm leading-loose text-foreground whitespace-pre-line mt-3">
+                        <p className="text-base leading-loose text-foreground whitespace-pre-line mt-3">
                           {prayer.text}
                         </p>
                       </div>
@@ -614,13 +614,13 @@ function LiturgySection() {
                       className="overflow-hidden"
                     >
                       <div className="px-4 pb-4 pt-0 border-t border-border/40">
-                        <p className="text-sm leading-loose text-foreground whitespace-pre-line font-arabic mt-3">
+                        <p className="text-base leading-loose text-foreground whitespace-pre-line font-arabic mt-3">
                           {part.text}
                         </p>
                         {part.copticText && (
                           <div className="mt-3 pt-3 border-t border-border/30">
                             <span className="text-xs font-bold text-blue-500 dark:text-blue-400 mb-1 block">ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ — القبطية</span>
-                            <p dir="ltr" className="text-sm leading-loose text-blue-700 dark:text-blue-300 whitespace-pre-line mt-1" style={{ fontFamily: 'serif' }}>
+                            <p dir="ltr" className="text-base leading-loose text-blue-700 dark:text-blue-300 whitespace-pre-line mt-1" style={{ fontFamily: 'serif' }}>
                               {part.copticText}
                             </p>
                           </div>
