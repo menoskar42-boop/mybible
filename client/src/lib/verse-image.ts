@@ -88,11 +88,11 @@ function createVerseCanvas(verseText: string, reference: string): HTMLCanvasElem
 
   const maxTextWidth = WIDTH - PADDING * 2;
 
-  ctx.font = `bold 48px ${FONT_FAMILY}`;
+  ctx.font = `bold 66px ${FONT_FAMILY}`;
   ctx.fillStyle = colors.text;
   const lines = wrapText(ctx, verseText, maxTextWidth);
 
-  const lineHeight = 80;
+  const lineHeight = 104;
   const totalTextHeight = lines.length * lineHeight;
   const startY = (HEIGHT - totalTextHeight) / 2 - 20;
 
@@ -101,7 +101,7 @@ function createVerseCanvas(verseText: string, reference: string): HTMLCanvasElem
   }
 
   const refY = startY + totalTextHeight + 50;
-  ctx.font = `36px ${FONT_FAMILY}`;
+  ctx.font = `44px ${FONT_FAMILY}`;
   ctx.fillStyle = colors.refColor;
   ctx.fillText(`─── ${reference} ───`, WIDTH / 2, refY);
 
