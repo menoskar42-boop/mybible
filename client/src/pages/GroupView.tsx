@@ -272,7 +272,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
       }
       const n = parseInt(trimmed);
       return isNaN(n) ? [] : [n];
-    }).flat();
+    }).reduce((acc: number[], arr: number[]) => acc.concat(arr), []);
 
     if (chapters.length === 0) {
       toast.error('أدخل أرقام الإصحاحات بشكل صحيح (مثال: 1,2,3 أو 1-5)');

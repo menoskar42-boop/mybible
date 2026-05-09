@@ -127,7 +127,9 @@ function getCachedOg(key: string): Buffer | null {
 
 function setCachedOg(key: string, buf: Buffer) {
   if (ogCache.size >= OG_CACHE_MAX) {
-    const oldest = [...ogCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+    const entries: Array<[string, { buf: Buffer; ts: number }]> = [];
+    ogCache.forEach((v, k) => entries.push([k, v]));
+    const oldest = entries.sort((a, b) => a[1].ts - b[1].ts)[0];
     if (oldest) ogCache.delete(oldest[0]);
   }
   ogCache.set(key, { buf, ts: Date.now() });
