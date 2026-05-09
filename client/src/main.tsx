@@ -1,3 +1,4 @@
+import "./polyfills";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
@@ -13,11 +14,16 @@ class ErrorBoundary extends React.Component<
   }
   render() {
     if (this.state.error) {
+      const err = this.state.error as Error;
       return (
         <div style={{ textAlign: "center", padding: "40px", fontFamily: "Arial, sans-serif", direction: "rtl" }}>
           <h2 style={{ color: "#8B5E3C" }}>الكتاب المقدس رفيقي</h2>
           <p>عذراً، حدث خطأ في تحميل الصفحة.</p>
           <p>يرجى تحديث الصفحة أو استخدام متصفح أحدث.</p>
+          <details style={{ marginTop: "12px", fontSize: "11px", color: "#666", textAlign: "left", direction: "ltr", background: "#f5f5f5", padding: "8px", borderRadius: "4px" }}>
+            <summary style={{ cursor: "pointer" }}>Error details</summary>
+            <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{err && (err.message + "\n" + err.stack)}</pre>
+          </details>
           <button
             onClick={() => window.location.reload()}
             style={{ marginTop: "16px", padding: "8px 24px", background: "#8B5E3C", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "16px" }}
