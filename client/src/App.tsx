@@ -33,6 +33,10 @@ import Challenge from '@/pages/Challenge';
 import TopicPage from '@/pages/TopicPage';
 import VideoPage from '@/pages/VideoPage';
 import Orthodox from '@/pages/Orthodox';
+import OrthodoxAgpeya from '@/pages/OrthodoxAgpeya';
+import OrthodoxAgpeyaHour from '@/pages/OrthodoxAgpeyaHour';
+import OrthodoxSynaxarium from '@/pages/OrthodoxSynaxarium';
+import OrthodoxSynaxariumDay from '@/pages/OrthodoxSynaxariumDay';
 import LiturgyControl from '@/pages/LiturgyControl';
 import LiturgyDisplay from '@/pages/LiturgyDisplay';
 import ExitIntelligence from '@/pages/ExitIntelligence';
@@ -74,6 +78,10 @@ function Router() {
       <Route path="/challenge" component={Challenge} />
       <Route path="/topics/:slug" component={TopicPage} />
       <Route path="/video/:id" component={VideoPage} />
+      <Route path="/orthodox/agpeya/:hour" component={OrthodoxAgpeyaHour} />
+      <Route path="/orthodox/agpeya" component={OrthodoxAgpeya} />
+      <Route path="/orthodox/synaxarium/:monthId/:day" component={OrthodoxSynaxariumDay} />
+      <Route path="/orthodox/synaxarium" component={OrthodoxSynaxarium} />
       <Route path="/orthodox" component={Orthodox} />
       <Route path="/admin/exit" component={ExitIntelligence} />
       <Route path="/share/:type/:id" component={SharePage} />

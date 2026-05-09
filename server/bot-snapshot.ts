@@ -4,6 +4,8 @@ import { generateFAQSchema, generateBibleChapterTitle, generateBibleBookTitle } 
 import { getInternalLinks, buildInternalLinksHtml } from "./internal-links";
 import { extractKeywords } from "./seo-topics";
 import { getVideoSeoById } from "./video-seo-data";
+import { agpeyaHoursFull, commonOpeningPrayers } from "../client/src/lib/agpeya-content";
+import { synaxariumMonths, getMonthById, getDayEntries, entryTypeIcon } from "../client/src/lib/synaxarium-content";
 
 const BOT_UA_PATTERN = /Googlebot|bingbot|GPTBot|ClaudeBot|PerplexityBot|Applebot|DuckDuckBot|YandexBot|Baiduspider|Slurp|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp/i;
 
@@ -708,6 +710,132 @@ ${bookLink}
 
     const html = wrapHtml(title, description, canonical, body, schema);
     return cacheAndServe(res, cacheKey, html);
+  }
+
+  // ── Agpeya index: /orthodox/agpeya ───────────────────────────────────────
+  if (path === "/orthodox/agpeya") {
+    const cacheKey = "ag:index";
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/agpeya`;
+    const title = "كتاب الأجبية القبطي — ساعات الصلاة السبع | الكتاب المقدس رفيقي";
+    const description = "الأجبية كتاب الصلوات اليومية القبطي الأرثوذكسي، يحتوي على سبع ساعات صلاة يرتلها المؤمنون منذ القرن الرابع الميلادي.";
+    const hoursHtml = agpeyaHoursFull.map(h =>
+      `<li><a href="${SITE}/orthodox/agpeya/${h.id}">${esc(h.name)} — ${esc(h.arabicTime)}</a></li>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      "name": "الأجبية",
+      "inLanguage": "ar",
+      "about": "الكنيسة القبطية الأرثوذكسية",
+      "url": canonical,
+      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+    };
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; الأجبية</nav>
+<h1>كتاب الأجبية — ساعات الصلاة السبع</h1>
+<p>${esc(description)}</p>
+<nav><h2>الساعات السبع</h2><ul>${hoursHtml}</ul></nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+  }
+
+  // ── Agpeya hour: /orthodox/agpeya/:hourId ────────────────────────────────
+  const agpeyaHourMatch = path.match(/^\/orthodox\/agpeya\/([^/]+)$/);
+  if (agpeyaHourMatch) {
+    const hourId = agpeyaHourMatch[1];
+    const hour = agpeyaHoursFull.find(h => h.id === hourId);
+    if (!hour) return next();
+    const cacheKey = `ag:${hourId}`;
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/agpeya/${hourId}`;
+    const title = `${hour.name} — الأجبية القبطية | الكتاب المقدس رفيقي`;
+    const description = `${hour.name}: ${hour.description} مزامير: ${hour.psalms}. إنجيل: ${hour.gospel}.`;
+    const allPrayers = [...commonOpeningPrayers, ...hour.prayers];
+    const prayersHtml = allPrayers.map(p =>
+      `<section><h2>${esc(p.title)}${p.role ? ` (${esc(p.role)})` : ""}</h2><p>${esc(p.text.substring(0, 500))}${p.text.length > 500 ? "..." : ""}</p></section>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": title,
+      "description": description,
+      "inLanguage": "ar",
+      "url": canonical,
+      "isPartOf": { "@type": "Book", "name": "الأجبية", "url": `${SITE}/orthodox/agpeya` }
+    };
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/orthodox/agpeya">الأجبية</a> &rsaquo; ${esc(hour.name)}</nav>
+<h1>${esc(hour.name)}</h1>
+<p>${esc(description)}</p>
+${prayersHtml}
+<nav><a href="${SITE}/orthodox/agpeya">← جميع ساعات الأجبية</a></nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+  }
+
+  // ── Synaxarium index: /orthodox/synaxarium ────────────────────────────────
+  if (path === "/orthodox/synaxarium") {
+    const cacheKey = "sx:index";
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/synaxarium`;
+    const title = "السنكسار القبطي الأرثوذكسي — سير القديسين والشهداء | الكتاب المقدس رفيقي";
+    const description = "السنكسار كتاب سير القديسين والشهداء والأعياد في الكنيسة القبطية الأرثوذكسية، مرتّباً حسب التقويم القبطي (13 شهراً).";
+    const monthsHtml = synaxariumMonths.map(m =>
+      `<li><a href="${SITE}/orthodox/synaxarium/${m.id}/1">${esc(m.arabicName)} (${esc(m.copticName)}) — ${esc(m.gregStart)}</a></li>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      "name": "السنكسار القبطي",
+      "inLanguage": "ar",
+      "about": "سير القديسين الأقباط",
+      "url": canonical,
+      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+    };
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; السنكسار</nav>
+<h1>السنكسار القبطي الأرثوذكسي</h1>
+<p>${esc(description)}</p>
+<nav><h2>الأشهر القبطية</h2><ul>${monthsHtml}</ul></nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+  }
+
+  // ── Synaxarium day: /orthodox/synaxarium/:monthId/:day ────────────────────
+  const synaxariumDayMatch = path.match(/^\/orthodox\/synaxarium\/(\d+)\/(\d+)$/);
+  if (synaxariumDayMatch) {
+    const monthId = parseInt(synaxariumDayMatch[1], 10);
+    const day = parseInt(synaxariumDayMatch[2], 10);
+    const month = getMonthById(monthId);
+    if (!month || day < 1 || day > 30) return next();
+    const cacheKey = `sx:${monthId}:${day}`;
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/synaxarium/${monthId}/${day}`;
+    const entries = getDayEntries(monthId, day);
+    const title = `سنكسار ${month.arabicName} ${day} — ${entries.map(e => e.name).slice(0, 2).join("، ")} | الكتاب المقدس رفيقي`;
+    const description = entries.length > 0
+      ? `سنكسار ${month.arabicName} ${day}: ${entries.map(e => `${e.name} — ${e.description.substring(0, 80)}`).join(". ")}.`
+      : `سنكسار ${month.arabicName} ${day} — ${month.copticName} ${day}.`;
+    const entriesHtml = entries.map(e =>
+      `<article><h2>${entryTypeIcon(e.type)} ${esc(e.name)} <span>(${esc(e.type)})</span></h2><p>${esc(e.description)}</p></article>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": title,
+      "description": description,
+      "inLanguage": "ar",
+      "url": canonical,
+      "datePublished": month.gregStart,
+      "isPartOf": { "@type": "Book", "name": "السنكسار القبطي", "url": `${SITE}/orthodox/synaxarium` }
+    };
+    const prevDay = day > 1 ? `<a href="${SITE}/orthodox/synaxarium/${monthId}/${day - 1}">${esc(month.arabicName)} ${day - 1}</a>` : "";
+    const nextDay = day < month.days.length ? `<a href="${SITE}/orthodox/synaxarium/${monthId}/${day + 1}">${esc(month.arabicName)} ${day + 1}</a>` : "";
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/orthodox/synaxarium">السنكسار</a> &rsaquo; ${esc(month.arabicName)} ${day}</nav>
+<h1>سنكسار ${esc(month.arabicName)} ${day}</h1>
+<p>${esc(description)}</p>
+${entriesHtml}
+<nav>${prevDay} | <a href="${SITE}/orthodox/synaxarium">جميع الأشهر</a> | ${nextDay}</nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
   }
 
   const staticSnapshot = buildStaticPageSnapshot(path);

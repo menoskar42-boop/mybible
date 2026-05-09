@@ -1,6 +1,8 @@
 import { storage } from "./storage";
 import type { Request, Response } from "express";
 import { getAllVideoSeoEntries } from "./video-seo-data";
+import { agpeyaHoursFull } from "../client/src/lib/agpeya-content";
+import { synaxariumMonths } from "../client/src/lib/synaxarium-content";
 
 const SITE = "https://mybible.oscardevs.com";
 
@@ -68,6 +70,8 @@ async function generateSitemapXml(): Promise<string> {
     { path: "/privacy",  changefreq: "monthly", priority: "0.4" },
     { path: "/daily-verse", changefreq: "daily", priority: "0.8" },
     { path: "/orthodox", changefreq: "daily", priority: "0.8" },
+    { path: "/orthodox/agpeya", changefreq: "monthly", priority: "0.8" },
+    { path: "/orthodox/synaxarium", changefreq: "daily", priority: "0.8" },
   ];
   for (const page of staticPages) {
     const loc = page.path === "/" ? SITE : `${SITE}${page.path}`;
@@ -145,6 +149,21 @@ async function generateSitemapXml(): Promise<string> {
     }
   }
 
+  // ── Agpeya hours (7 pages, priority 0.7) ─────────────────────────────────
+  for (const hour of agpeyaHoursFull) {
+    urls.push(buildUrl(`${SITE}/orthodox/agpeya/${hour.id}`, "monthly", "0.7", today));
+  }
+
+  // ── Synaxarium days — 13 months × up to 30 days (priority 0.7) ───────────
+  for (const month of synaxariumMonths) {
+    for (const dayEntry of month.days) {
+      urls.push(buildUrl(
+        `${SITE}/orthodox/synaxarium/${month.id}/${dayEntry.day}`,
+        "monthly", "0.7", today
+      ));
+    }
+  }
+
   // ── Daily verse archive — last 30 days (priority 0.7) ─────────────────
   for (const date of lastNDays(30)) {
     urls.push(buildUrl(`${SITE}/daily-verse/${date}`, "daily", "0.7", date));
@@ -198,8 +217,12 @@ Allow: /listen/
 Allow: /daily-verse
 Allow: /daily-verse/
 Allow: /orthodox
+Allow: /orthodox/
 
 Disallow: /api/
+Disallow: /liturgy-control
+Disallow: /liturgy-display
+Disallow: /admin
 
 Sitemap: ${SITE}/sitemap.xml
 `;
