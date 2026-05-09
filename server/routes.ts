@@ -17,6 +17,19 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // 301 redirect: /bible?book=X&chapter=Y → /bible/X/Y (path-based canonical)
+  app.get('/bible', (req, res, next) => {
+    const { book, chapter } = req.query;
+    if (typeof book === 'string' && book) {
+      const encodedBook = encodeURIComponent(book);
+      if (typeof chapter === 'string' && chapter) {
+        return res.redirect(301, `/bible/${encodedBook}/${chapter}`);
+      }
+      return res.redirect(301, `/bible/${encodedBook}`);
+    }
+    next();
+  });
+
   // Video SEO metadata endpoint
   app.get('/api/video-seo/:youtubeId', (req, res) => {
     const { youtubeId } = req.params;

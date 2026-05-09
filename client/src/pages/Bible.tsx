@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
-import { useSearch, useLocation } from 'wouter';
+import { useSearch, useLocation, useParams } from 'wouter';
 import { motion } from 'framer-motion';
 import { Book, ChevronDown, ChevronLeft, ChevronRight, Highlighter, Check, Volume2, BookText, BookOpen, X, Loader2, GraduationCap, Share2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -37,9 +37,12 @@ export default function Bible() {
   useExitTracker('/bible');
   const searchString = useSearch();
   const [, navigate] = useLocation();
+  const pathParams = useParams<{ book?: string; chapter?: string }>();
   const urlParams = new URLSearchParams(searchString);
-  const urlBook = urlParams.get('book');
-  const urlChapter = urlParams.get('chapter');
+  // Path params take priority over query string params
+  const urlBook = pathParams.book ? decodeURIComponent(pathParams.book) : urlParams.get('book');
+  const urlChapter = pathParams.chapter ? pathParams.chapter : urlParams.get('chapter');
+  const isPathBased = !!pathParams.book;
   const initialLoadDone = useRef(false);
 
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
@@ -109,8 +112,14 @@ export default function Bible() {
     }
     
     initialLoadDone.current = true;
-    navigate('/bible', { replace: true });
-  }, [urlBook, urlChapter, oldTestamentBooks, newTestamentBooks, navigate, allBooks]);
+    // For query-string URLs, redirect to path-based canonical URL
+    if (!isPathBased) {
+      const targetPath = urlChapter
+        ? `/bible/${encodeURIComponent(foundBook?.name || urlBook!)}/${urlChapter}`
+        : `/bible/${encodeURIComponent(foundBook?.name || urlBook!)}`;
+      navigate(targetPath, { replace: true });
+    }
+  }, [urlBook, urlChapter, oldTestamentBooks, newTestamentBooks, navigate, allBooks, isPathBased]);
 
   const { data: chapters } = useQuery({
     queryKey: ['chapters', selectedBook?.id],

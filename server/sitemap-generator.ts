@@ -76,11 +76,11 @@ async function generateSitemapXml(): Promise<string> {
 
   // ── Bible books + chapters (priority 0.9 / 0.8) ───────────────────────
   for (const book of books) {
-    const bookLoc = `${SITE}/bible?book=${encodeURIComponent(book.name)}`;
+    const bookLoc = `${SITE}/bible/${encodeURIComponent(book.name)}`;
     urls.push(buildUrl(bookLoc, "weekly", "0.9", today));
 
     for (let ch = 1; ch <= book.chaptersCount; ch++) {
-      const loc = `${SITE}/bible?book=${encodeURIComponent(book.name)}&chapter=${ch}`;
+      const loc = `${SITE}/bible/${encodeURIComponent(book.name)}/${ch}`;
       urls.push(buildUrl(loc, "monthly", "0.8", today));
     }
   }
@@ -184,6 +184,7 @@ export async function robotsHandler(_req: Request, res: Response) {
   const txt = `User-agent: *
 Allow: /
 Allow: /bible
+Allow: /bible/
 Allow: /plans
 Allow: /emotions
 Allow: /kids

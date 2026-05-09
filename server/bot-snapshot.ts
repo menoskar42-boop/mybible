@@ -81,7 +81,7 @@ ${bodyContent}
 function buildChapterSnapshot(bookName: string, chapter: number, verses: Array<{ verse: number; text: string }>, allBooks: Array<{ name: string; chaptersCount: number }>): string {
   const title = generateBibleChapterTitle(bookName, chapter, verses.length);
   const description = `اقرأ ${bookName} الإصحاح ${chapter} كامل (${verses.length} آية) مع إمكانية الاستماع والمشاركة. الكتاب المقدس باللغة العربية.`;
-  const canonical = `${SITE}/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter}`;
+  const canonical = `${SITE}/bible/${encodeURIComponent(bookName)}/${chapter}`;
 
   const versesHtml = verses.map(v =>
     `<p><strong>${v.verse}</strong> ${esc(v.text)}</p>`
@@ -91,16 +91,16 @@ function buildChapterSnapshot(bookName: string, chapter: number, verses: Array<{
   const currentBook = allBooks.find(b => b.name === bookName);
   if (currentBook) {
     if (chapter > 1)
-      relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter - 1}">تفسير ${esc(bookName)} ${chapter - 1}</a>`);
+      relatedLinks.push(`<a href="/bible/${encodeURIComponent(bookName)}/${chapter - 1}">تفسير ${esc(bookName)} ${chapter - 1}</a>`);
     if (chapter < currentBook.chaptersCount)
-      relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter + 1}">تفسير ${esc(bookName)} ${chapter + 1}</a>`);
+      relatedLinks.push(`<a href="/bible/${encodeURIComponent(bookName)}/${chapter + 1}">تفسير ${esc(bookName)} ${chapter + 1}</a>`);
   }
-  relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(bookName)}">تفسير ${esc(bookName)} كامل</a>`);
+  relatedLinks.push(`<a href="/bible/${encodeURIComponent(bookName)}">تفسير ${esc(bookName)} كامل</a>`);
   const bookIdx = allBooks.findIndex(b => b.name === bookName);
   if (bookIdx > 0)
-    relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(allBooks[bookIdx - 1].name)}">تفسير ${esc(allBooks[bookIdx - 1].name)}</a>`);
+    relatedLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx - 1].name)}">تفسير ${esc(allBooks[bookIdx - 1].name)}</a>`);
   if (bookIdx < allBooks.length - 1)
-    relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)}</a>`);
+    relatedLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)}</a>`);
 
   // Contextual internal links for SEO
   const seoLinks = getInternalLinks(`${bookName} ${chapter}`, 4);
@@ -153,19 +153,19 @@ ${relatedLinks.length > 0 ? `<nav><h2>أصحاحات ذات صلة</h2><ul>${rel
 function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Array<{ name: string; chaptersCount: number }>): string {
   const title = generateBibleBookTitle(bookName, chaptersCount);
   const description = `تفسير ${bookName} كامل مع مقدمة عن السفر، قراءة مباشرة، واستماع صوتي لكل إصحاح. يحتوي على ${chaptersCount} إصحاح.`;
-  const canonical = `${SITE}/bible?book=${encodeURIComponent(bookName)}`;
+  const canonical = `${SITE}/bible/${encodeURIComponent(bookName)}`;
 
   const chapterLinks = [];
   for (let ch = 1; ch <= chaptersCount; ch++) {
-    chapterLinks.push(`<li><a href="/bible?book=${encodeURIComponent(bookName)}&chapter=${ch}">تفسير ${esc(bookName)} الإصحاح ${ch}</a></li>`);
+    chapterLinks.push(`<li><a href="/bible/${encodeURIComponent(bookName)}/${ch}">تفسير ${esc(bookName)} الإصحاح ${ch}</a></li>`);
   }
 
   const adjacentLinks: string[] = [];
   const bookIdx = allBooks.findIndex(b => b.name === bookName);
   if (bookIdx > 0)
-    adjacentLinks.push(`<a href="/bible?book=${encodeURIComponent(allBooks[bookIdx - 1].name)}">تفسير ${esc(allBooks[bookIdx - 1].name)} كامل</a>`);
+    adjacentLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx - 1].name)}">تفسير ${esc(allBooks[bookIdx - 1].name)} كامل</a>`);
   if (bookIdx < allBooks.length - 1)
-    adjacentLinks.push(`<a href="/bible?book=${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)} كامل</a>`);
+    adjacentLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)} كامل</a>`);
 
   const schema = {
     "@context": "https://schema.org",
@@ -308,6 +308,55 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
   const bookParam = req.query.book as string | undefined;
   const chapterParam = req.query.chapter as string | undefined;
 
+  // ── Path-based: /bible/:book/:chapter ────────────────────────────────────
+  const bibleChapterPath = path.match(/^\/bible\/([^/]+)\/(\d+)$/);
+  if (bibleChapterPath) {
+    try {
+      const bookName = decodeURIComponent(bibleChapterPath[1]);
+      const chapter = parseInt(bibleChapterPath[2], 10);
+      const books = await ensureBooks();
+      const book = books.find(b => b.name === bookName);
+      if (!book || isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) return next();
+
+      const cacheKey = `ch:${bookName}:${chapter}`;
+      if (serveCached(res, cacheKey)) return;
+
+      const verses = await storage.getVersesByBook(book.id, chapter);
+      if (!verses || verses.length === 0) return next();
+
+      const html = buildChapterSnapshot(
+        book.name, chapter,
+        verses.map(v => ({ verse: v.verse, text: v.text })),
+        books
+      );
+      return cacheAndServe(res, cacheKey, html);
+    } catch (err) {
+      console.error("[bot-snapshot] Error:", err);
+      return next();
+    }
+  }
+
+  // ── Path-based: /bible/:book ──────────────────────────────────────────────
+  const bibleBookPath = path.match(/^\/bible\/([^/]+)$/);
+  if (bibleBookPath) {
+    try {
+      const bookName = decodeURIComponent(bibleBookPath[1]);
+      const books = await ensureBooks();
+      const book = books.find(b => b.name === bookName);
+      if (!book) return next();
+
+      const cacheKey = `bk:${bookName}`;
+      if (serveCached(res, cacheKey)) return;
+
+      const html = buildBookSnapshot(book.name, book.chaptersCount, books);
+      return cacheAndServe(res, cacheKey, html);
+    } catch (err) {
+      console.error("[bot-snapshot] Error:", err);
+      return next();
+    }
+  }
+
+  // ── Legacy query-string: /bible?book=X&chapter=Y (redirect bots to path-based) ──
   if (path === "/bible" && bookParam) {
     try {
       const books = await ensureBooks();
@@ -317,25 +366,9 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
       if (chapterParam) {
         const chapter = parseInt(chapterParam, 10);
         if (isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) return next();
-
-        const cacheKey = `ch:${bookParam}:${chapter}`;
-        if (serveCached(res, cacheKey)) return;
-
-        const verses = await storage.getVersesByBook(book.id, chapter);
-        if (!verses || verses.length === 0) return next();
-
-        const html = buildChapterSnapshot(
-          book.name, chapter,
-          verses.map(v => ({ verse: v.verse, text: v.text })),
-          books
-        );
-        return cacheAndServe(res, cacheKey, html);
+        return res.redirect(301, `/bible/${encodeURIComponent(book.name)}/${chapter}`);
       } else {
-        const cacheKey = `bk:${bookParam}`;
-        if (serveCached(res, cacheKey)) return;
-
-        const html = buildBookSnapshot(book.name, book.chaptersCount, books);
-        return cacheAndServe(res, cacheKey, html);
+        return res.redirect(301, `/bible/${encodeURIComponent(book.name)}`);
       }
     } catch (err) {
       console.error("[bot-snapshot] Error:", err);
@@ -581,14 +614,14 @@ ${bookLink}
 
       const body = `
 <nav aria-label="breadcrumb">
-  <a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/bible?book=${encodeURIComponent(bookName)}">${esc(bookName)}</a> &rsaquo; استماع الإصحاح ${chapter}
+  <a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/bible/${encodeURIComponent(bookName)}">${esc(bookName)}</a> &rsaquo; استماع الإصحاح ${chapter}
 </nav>
 <h1>${esc(title)}</h1>
 <p><em>${esc(description)}</em></p>
 <nav>
   <ul>
-    <li><a href="${SITE}/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter}">📖 قراءة ${esc(bookName)} ${chapter}</a></li>
-    <li><a href="${SITE}/bible?book=${encodeURIComponent(bookName)}">📚 جميع إصحاحات ${esc(bookName)}</a></li>
+    <li><a href="${SITE}/bible/${encodeURIComponent(bookName)}/${chapter}">📖 قراءة ${esc(bookName)} ${chapter}</a></li>
+    <li><a href="${SITE}/bible/${encodeURIComponent(bookName)}">📚 جميع إصحاحات ${esc(bookName)}</a></li>
     ${chapter > 1 ? `<li><a href="${SITE}/listen/${encodeURIComponent(bookName)}/${chapter - 1}">🔊 الإصحاح ${chapter - 1}</a></li>` : ""}
     <li><a href="${SITE}/listen/${encodeURIComponent(bookName)}/${chapter + 1}">🔊 الإصحاح ${chapter + 1}</a></li>
   </ul>

@@ -48,6 +48,8 @@ function Router() {
       <Route path="/liturgy-display" component={LiturgyDisplay} />
       <Route path="/liturgy-control" component={LiturgyControl} />
       <Route path="/" component={Home} />
+      <Route path="/bible/:book/:chapter" component={Bible} />
+      <Route path="/bible/:book" component={Bible} />
       <Route path="/bible" component={Bible} />
       <Route path="/plans" component={Plans} />
       <Route path="/emotions" component={Emotions} />
