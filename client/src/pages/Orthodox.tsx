@@ -1904,7 +1904,7 @@ function QASection() {
                   <div className="flex items-start gap-3">
                     <span className="text-violet-500 font-bold text-lg leading-none flex-shrink-0">س</span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-display font-semibold text-foreground text-base leading-snug">{item.question}</p>
+                      <p className="font-display font-semibold text-foreground text-lg md:text-xl leading-snug">{item.question}</p>
                       <Badge variant="outline" className="text-xs mt-1 text-violet-600 border-violet-300">{item.category}</Badge>
                     </div>
                     {expandedQ === item.id
