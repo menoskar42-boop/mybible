@@ -10,7 +10,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { autoSeedIfNeeded } from "./auto-seed";
 import { botSnapshotMiddleware } from "./bot-snapshot";
-import { sitemapHandler, robotsHandler } from "./sitemap-generator";
+import { sitemapHandler, robotsHandler, sitemapBibleHandler, sitemapOrthodoxHandler, sitemapPagesHandler, sitemapTopicsHandler, sitemapVideosHandler, sitemapListenHandler } from "./sitemap-generator";
 
 const app = express();
 const httpServer = createServer(app);
@@ -122,6 +122,12 @@ app.use((req, res, next) => {
   });
 
   app.get("/sitemap.xml", sitemapHandler);
+  app.get("/sitemap-pages.xml", sitemapPagesHandler);
+  app.get("/sitemap-bible.xml", sitemapBibleHandler);
+  app.get("/sitemap-orthodox.xml", sitemapOrthodoxHandler);
+  app.get("/sitemap-topics.xml", sitemapTopicsHandler);
+  app.get("/sitemap-videos.xml", sitemapVideosHandler);
+  app.get("/sitemap-listen.xml", sitemapListenHandler);
   app.get("/robots.txt", robotsHandler);
 
   app.use(botSnapshotMiddleware);

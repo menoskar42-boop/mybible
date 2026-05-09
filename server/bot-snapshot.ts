@@ -128,6 +128,18 @@ function buildChapterSnapshot(bookName: string, chapter: number, verses: Array<{
     }
   };
 
+  // BreadcrumbList schema
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE },
+      { "@type": "ListItem", "position": 2, "name": "الكتاب المقدس", "item": `${SITE}/bible` },
+      { "@type": "ListItem", "position": 3, "name": bookName, "item": `${SITE}/bible/${encodeURIComponent(bookName)}` },
+      { "@type": "ListItem", "position": 4, "name": `الإصحاح ${chapter}`, "item": canonical }
+    ]
+  };
+
   // FAQ schema — uses first 3 verses as answers
   const faqVerses = verses.slice(0, 3).map(v => ({
     bookName,
@@ -136,7 +148,7 @@ function buildChapterSnapshot(bookName: string, chapter: number, verses: Array<{
     text: v.text,
   }));
   const faqSchema = generateFAQSchema(bookName, faqVerses);
-  const schemas: object[] = [webPageSchema];
+  const schemas: object[] = [webPageSchema, breadcrumbSchema];
   if (faqSchema) schemas.push(faqSchema);
 
   const body = `<h1>تفسير ${esc(bookName)} الإصحاح ${chapter}</h1>
@@ -169,20 +181,27 @@ function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Ar
   if (bookIdx < allBooks.length - 1)
     adjacentLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)} كامل</a>`);
 
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "Book",
-    "name": bookName,
-    "inLanguage": "ar",
-    "about": "الكتاب المقدس",
-    "numberOfPages": chaptersCount,
-    "url": canonical,
-    "publisher": {
-      "@type": "Organization",
-      "name": "الكتاب المقدس رفيقي",
-      "url": SITE
+  const schema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      "name": bookName,
+      "inLanguage": "ar",
+      "about": "الكتاب المقدس",
+      "numberOfPages": chaptersCount,
+      "url": canonical,
+      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE },
+        { "@type": "ListItem", "position": 2, "name": "الكتاب المقدس", "item": `${SITE}/bible` },
+        { "@type": "ListItem", "position": 3, "name": bookName, "item": canonical }
+      ]
     }
-  };
+  ];
 
   const body = `<h1>تفسير ${esc(bookName)} كامل</h1>
 <section>
@@ -198,11 +217,14 @@ ${adjacentLinks.length > 0 ? `<nav><h2>أسفار ذات صلة</h2><ul>${adjace
 }
 
 function buildStaticPageSnapshot(path: string): string | null {
-  const pages: Record<string, { title: string; desc: string; schema: object }> = {
+  const pages: Record<string, { title: string; desc: string; schema: object | object[] }> = {
     "/": {
       title: "الكتاب المقدس رفيقي | قراءة يومية، تفسير، خطط روحية",
       desc: "موقع الكتاب المقدس العربي للقراءة اليومية مع التفسير، خطط القراءة، آيات حسب المشاعر، وقسم قصص الأطفال. رفيقك الروحي اليومي.",
-      schema: { "@context": "https://schema.org", "@type": "WebApplication", "name": "الكتاب المقدس رفيقي", "applicationCategory": "ReligiousApplication", "operatingSystem": "Web", "inLanguage": "ar", "url": SITE }
+      schema: [
+        { "@context": "https://schema.org", "@type": "WebApplication", "name": "الكتاب المقدس رفيقي", "applicationCategory": "ReligiousApplication", "operatingSystem": "Web", "inLanguage": "ar", "url": SITE },
+        { "@context": "https://schema.org", "@type": "WebSite", "name": "الكتاب المقدس رفيقي", "url": SITE, "potentialAction": { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${SITE}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" } }
+      ]
     },
     "/bible": {
       title: "الكتاب المقدس كاملاً بالعربية | العهد القديم والجديد مع التفسير",

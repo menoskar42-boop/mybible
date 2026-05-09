@@ -5,8 +5,6 @@ import { agpeyaHoursFull } from "../client/src/lib/agpeya-content";
 import { synaxariumMonths } from "../client/src/lib/synaxarium-content";
 
 const SITE = "https://mybible.oscardevs.com";
-
-let sitemapCache: { xml: string; ts: number } | null = null;
 const CACHE_TTL = 12 * 60 * 60 * 1000;
 
 // Known emotion types (Arabic slugs)
@@ -15,12 +13,25 @@ const EMOTION_TYPES = [
   "وحدة", "إيمان", "صبر", "حكمة", "محبة", "شفاء",
 ];
 
-// Children story IDs (static — matches children-stories-data.ts)
 const KIDS_STORY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-// Reading plan IDs
 const PLAN_IDS = [1, 2, 3, 4, 5, 6];
 
+// ── Cache store ───────────────────────────────────────────────────────────────
+const caches = new Map<string, { xml: string; ts: number }>();
+
+function getCache(key: string): string | null {
+  const c = caches.get(key);
+  return c && Date.now() - c.ts < CACHE_TTL ? c.xml : null;
+}
+function setCache(key: string, xml: string) {
+  caches.set(key, { xml, ts: Date.now() });
+}
+
+export function invalidateSitemapCache() {
+  caches.clear();
+}
+
+// ── XML helpers ───────────────────────────────────────────────────────────────
 function xmlEscape(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -39,7 +50,13 @@ function buildUrl(loc: string, changefreq: string, priority: string, lastmod: st
   </url>`;
 }
 
-// Build last N days as ISO date strings (for daily-verse archive)
+function wrapUrlset(urls: string[]): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.join("\n")}
+</urlset>`;
+}
+
 function lastNDays(n: number): string[] {
   const dates: string[] = [];
   for (let i = 0; i < n; i++) {
@@ -50,13 +67,45 @@ function lastNDays(n: number): string[] {
   return dates;
 }
 
-async function generateSitemapXml(): Promise<string> {
-  const books = await storage.getAllBooks();
-  const today = new Date().toISOString().split("T")[0];
+function sendXml(res: Response, xml: string) {
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=43200");
+  res.send(xml);
+}
 
+// ── Sitemap Index ─────────────────────────────────────────────────────────────
+export async function sitemapIndexHandler(_req: Request, res: Response) {
+  const cacheKey = "index";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
+
+  const today = new Date().toISOString().split("T")[0];
+  const sitemaps = [
+    "sitemap-pages.xml",
+    "sitemap-bible.xml",
+    "sitemap-orthodox.xml",
+    "sitemap-topics.xml",
+    "sitemap-videos.xml",
+    "sitemap-listen.xml",
+  ];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemaps.map(s => `  <sitemap>\n    <loc>${SITE}/${s}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`).join("\n")}
+</sitemapindex>`;
+
+  setCache(cacheKey, xml);
+  sendXml(res, xml);
+}
+
+// ── sitemap-pages.xml: static + emotions + plans + kids + daily ───────────────
+export async function sitemapPagesHandler(_req: Request, res: Response) {
+  const cacheKey = "pages";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
+
+  const today = new Date().toISOString().split("T")[0];
   const urls: string[] = [];
 
-  // ── Static pages ─────────────────────────────────────────────────────────
   const staticPages = [
     { path: "/",         changefreq: "daily",   priority: "1.0" },
     { path: "/bible",    changefreq: "weekly",  priority: "0.9" },
@@ -69,7 +118,7 @@ async function generateSitemapXml(): Promise<string> {
     { path: "/contact",  changefreq: "monthly", priority: "0.5" },
     { path: "/privacy",  changefreq: "monthly", priority: "0.4" },
     { path: "/daily-verse", changefreq: "daily", priority: "0.8" },
-    { path: "/orthodox", changefreq: "daily", priority: "0.8" },
+    { path: "/orthodox", changefreq: "daily",   priority: "0.8" },
     { path: "/orthodox/agpeya", changefreq: "monthly", priority: "0.8" },
     { path: "/orthodox/synaxarium", changefreq: "daily", priority: "0.8" },
   ];
@@ -78,127 +127,152 @@ async function generateSitemapXml(): Promise<string> {
     urls.push(buildUrl(loc, page.changefreq, page.priority, today));
   }
 
-  // ── Bible books + chapters (priority 0.9 / 0.8) ───────────────────────
-  for (const book of books) {
-    const bookLoc = `${SITE}/bible/${encodeURIComponent(book.name)}`;
-    urls.push(buildUrl(bookLoc, "weekly", "0.9", today));
+  for (const emotion of EMOTION_TYPES) {
+    urls.push(buildUrl(`${SITE}/emotions/${encodeURIComponent(emotion)}`, "weekly", "0.8", today));
+  }
+  for (const planId of PLAN_IDS) {
+    urls.push(buildUrl(`${SITE}/plans/${planId}`, "weekly", "0.7", today));
+  }
+  for (const storyId of KIDS_STORY_IDS) {
+    urls.push(buildUrl(`${SITE}/kids/story/${storyId}`, "weekly", "0.7", today));
+  }
+  for (const date of lastNDays(30)) {
+    urls.push(buildUrl(`${SITE}/daily-verse/${date}`, "daily", "0.7", date));
+  }
 
-    for (let ch = 1; ch <= book.chaptersCount; ch++) {
-      const loc = `${SITE}/bible/${encodeURIComponent(book.name)}/${ch}`;
-      urls.push(buildUrl(loc, "monthly", "0.8", today));
+  // Auto-boost: high-scoring pages
+  try {
+    const topScores = await storage.getTopPageScores(20);
+    for (const ps of topScores) {
+      if (ps.score < 50) continue;
+      const priority = ps.score >= 200 ? "1.0" : ps.score >= 100 ? "0.95" : "0.9";
+      const pageUrl = ps.pageUrl.startsWith('/') ? ps.pageUrl : `/${ps.pageUrl}`;
+      urls.push(buildUrl(`${SITE}${pageUrl}`, "daily", priority, today));
+    }
+  } catch (_) { /* table may not exist */ }
+
+  const xml = wrapUrlset(urls);
+  setCache(cacheKey, xml);
+  sendXml(res, xml);
+}
+
+// ── sitemap-bible.xml: books + chapters ──────────────────────────────────────
+export async function sitemapBibleHandler(_req: Request, res: Response) {
+  const cacheKey = "bible";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
+
+  try {
+    const books = await storage.getAllBooks();
+    const today = new Date().toISOString().split("T")[0];
+    const urls: string[] = [];
+
+    for (const book of books) {
+      urls.push(buildUrl(`${SITE}/bible/${encodeURIComponent(book.name)}`, "weekly", "0.9", today));
+      for (let ch = 1; ch <= book.chaptersCount; ch++) {
+        urls.push(buildUrl(`${SITE}/bible/${encodeURIComponent(book.name)}/${ch}`, "monthly", "0.8", today));
+      }
+    }
+
+    const xml = wrapUrlset(urls);
+    setCache(cacheKey, xml);
+    sendXml(res, xml);
+  } catch (err) {
+    console.error("[sitemap-bible] Error:", err);
+    res.status(500).send("Error generating bible sitemap");
+  }
+}
+
+// ── sitemap-orthodox.xml: agpeya + synaxarium ─────────────────────────────────
+export function sitemapOrthodoxHandler(_req: Request, res: Response) {
+  const cacheKey = "orthodox";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
+
+  const today = new Date().toISOString().split("T")[0];
+  const urls: string[] = [];
+
+  for (const hour of agpeyaHoursFull) {
+    urls.push(buildUrl(`${SITE}/orthodox/agpeya/${hour.id}`, "monthly", "0.7", today));
+  }
+  for (const month of synaxariumMonths) {
+    for (const dayEntry of month.days) {
+      urls.push(buildUrl(`${SITE}/orthodox/synaxarium/${month.id}/${dayEntry.day}`, "monthly", "0.7", today));
     }
   }
 
-  // ── SEO topic pages (priority 0.8) ────────────────────────────────────
+  const xml = wrapUrlset(urls);
+  setCache(cacheKey, xml);
+  sendXml(res, xml);
+}
+
+// ── sitemap-topics.xml: SEO topic pages ──────────────────────────────────────
+export async function sitemapTopicsHandler(_req: Request, res: Response) {
+  const cacheKey = "topics";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
+
+  const urls: string[] = [];
   try {
     const topics = await storage.getAllSeoTopicSlugs();
     for (const t of topics) {
       const lastmod = t.updatedAt.toISOString().split("T")[0];
       urls.push(buildUrl(`${SITE}/topics/${t.slug}`, "weekly", "0.8", lastmod));
     }
-  } catch (_) {
-    // table may not exist yet
-  }
+  } catch (_) { /* table may not exist */ }
 
-  // ── Auto-boost: load high-scoring pages from behavioral metrics ───────
-  let boostedUrls: Set<string> = new Set();
-  try {
-    const topScores = await storage.getTopPageScores(20);
-    const SCORE_BOOST_THRESHOLD = 50; // pages with score >= 50 get boosted
-    for (const ps of topScores) {
-      if (ps.score < SCORE_BOOST_THRESHOLD) continue;
-      const priority = ps.score >= 200 ? "1.0" : ps.score >= 100 ? "0.95" : "0.9";
-      const pageUrl = ps.pageUrl.startsWith('/') ? ps.pageUrl : `/${ps.pageUrl}`;
-      const fullUrl = `${SITE}${pageUrl}`;
-      urls.push(buildUrl(fullUrl, "daily", priority, today));
-      boostedUrls.add(fullUrl);
-    }
-  } catch (_) {
-    // table may not exist yet — skip
-  }
+  const xml = wrapUrlset(urls);
+  setCache(cacheKey, xml);
+  sendXml(res, xml);
+}
 
-  // ── Emotion type pages (priority 0.8) ─────────────────────────────────
-  for (const emotion of EMOTION_TYPES) {
-    urls.push(buildUrl(
-      `${SITE}/emotions/${encodeURIComponent(emotion)}`,
-      "weekly", "0.8", today
-    ));
-  }
+// ── sitemap-videos.xml: video pages ──────────────────────────────────────────
+export function sitemapVideosHandler(_req: Request, res: Response) {
+  const cacheKey = "videos";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
 
-  // ── Reading plan pages (priority 0.7) ─────────────────────────────────
-  for (const planId of PLAN_IDS) {
-    urls.push(buildUrl(`${SITE}/plans/${planId}`, "weekly", "0.7", today));
-  }
-
-  // ── Kids story pages (priority 0.7) ────────────────────────────────────
-  for (const storyId of KIDS_STORY_IDS) {
-    urls.push(buildUrl(`${SITE}/kids/story/${storyId}`, "weekly", "0.7", today));
-  }
-
-  // ── Video pages — Daoud Lamei + kids (priority 0.8) ───────────────────
+  const today = new Date().toISOString().split("T")[0];
   const videoEntries = getAllVideoSeoEntries();
-  for (const v of videoEntries) {
-    urls.push(buildUrl(`${SITE}/video/${v.youtubeId}`, "monthly", "0.8", today));
-  }
+  const urls = videoEntries.map(v =>
+    buildUrl(`${SITE}/video/${v.youtubeId}`, "monthly", "0.8", today)
+  );
 
-  // ── Listen pages (priority 0.6) ─────────────────────────────────────
-  for (const book of books) {
-    for (let ch = 1; ch <= book.chaptersCount; ch++) {
-      const loc = `${SITE}/listen/${encodeURIComponent(book.name)}/${ch}`;
-      urls.push(buildUrl(loc, "monthly", "0.6", today));
-    }
-  }
-
-  // ── Agpeya hours (7 pages, priority 0.7) ─────────────────────────────────
-  for (const hour of agpeyaHoursFull) {
-    urls.push(buildUrl(`${SITE}/orthodox/agpeya/${hour.id}`, "monthly", "0.7", today));
-  }
-
-  // ── Synaxarium days — 13 months × up to 30 days (priority 0.7) ───────────
-  for (const month of synaxariumMonths) {
-    for (const dayEntry of month.days) {
-      urls.push(buildUrl(
-        `${SITE}/orthodox/synaxarium/${month.id}/${dayEntry.day}`,
-        "monthly", "0.7", today
-      ));
-    }
-  }
-
-  // ── Daily verse archive — last 30 days (priority 0.7) ─────────────────
-  for (const date of lastNDays(30)) {
-    urls.push(buildUrl(`${SITE}/daily-verse/${date}`, "daily", "0.7", date));
-  }
-
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join("\n")}
-</urlset>`;
+  const xml = wrapUrlset(urls);
+  setCache(cacheKey, xml);
+  sendXml(res, xml);
 }
 
-export function invalidateSitemapCache() {
-  sitemapCache = null;
-}
+// ── sitemap-listen.xml: audio listen pages ────────────────────────────────────
+export async function sitemapListenHandler(_req: Request, res: Response) {
+  const cacheKey = "listen";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
 
-export async function sitemapHandler(_req: Request, res: Response) {
   try {
-    if (sitemapCache && Date.now() - sitemapCache.ts < CACHE_TTL) {
-      res.set("Content-Type", "application/xml; charset=utf-8");
-      res.set("Cache-Control", "public, max-age=43200");
-      return res.send(sitemapCache.xml);
+    const books = await storage.getAllBooks();
+    const today = new Date().toISOString().split("T")[0];
+    const urls: string[] = [];
+
+    for (const book of books) {
+      for (let ch = 1; ch <= book.chaptersCount; ch++) {
+        urls.push(buildUrl(`${SITE}/listen/${encodeURIComponent(book.name)}/${ch}`, "monthly", "0.6", today));
+      }
     }
 
-    const xml = await generateSitemapXml();
-    sitemapCache = { xml, ts: Date.now() };
-
-    res.set("Content-Type", "application/xml; charset=utf-8");
-    res.set("Cache-Control", "public, max-age=43200");
-    res.send(xml);
+    const xml = wrapUrlset(urls);
+    setCache(cacheKey, xml);
+    sendXml(res, xml);
   } catch (err) {
-    console.error("[sitemap] Error generating sitemap:", err);
-    res.status(500).send("Error generating sitemap");
+    console.error("[sitemap-listen] Error:", err);
+    res.status(500).send("Error generating listen sitemap");
   }
 }
 
+// ── Legacy: /sitemap.xml now returns the index ────────────────────────────────
+export const sitemapHandler = sitemapIndexHandler;
+
+// ── robots.txt ────────────────────────────────────────────────────────────────
 export async function robotsHandler(_req: Request, res: Response) {
   const txt = `User-agent: *
 Allow: /
