@@ -403,3 +403,12 @@
 .animate-glow {
   animation: glow 3s ease-in-out infinite;
 }
+
+/* تغميق نص التابات الغير نشطة */
+[role="tablist"] [role="tab"][data-state="inactive"] {
+  color: hsl(var(--foreground) / 0.75);
+  font-weight: 500;
+}
+[role="tablist"] [role="tab"][data-state="active"] {
+  font-weight: 700;
+}
