@@ -1,5 +1,29 @@
 /* Polyfills for iOS 12, Samsung 2017, Chrome 70 */
 
+// MediaQueryList.addEventListener — iOS < 14 uses addListener/removeListener instead
+if (typeof window !== "undefined" && window.matchMedia) {
+  try {
+    const testMql = window.matchMedia("(min-width: 0px)");
+    if (testMql && typeof testMql.addEventListener !== "function") {
+      const _orig = window.matchMedia.bind(window);
+      (window as any).matchMedia = function (query: string) {
+        const mql: any = _orig(query);
+        if (mql && typeof mql.addEventListener !== "function") {
+          mql.addEventListener = function (_type: string, listener: EventListenerOrEventListenerObject) {
+            return mql.addListener(typeof listener === "function" ? listener : (listener as EventListenerObject).handleEvent.bind(listener));
+          };
+          mql.removeEventListener = function (_type: string, listener: EventListenerOrEventListenerObject) {
+            return mql.removeListener(typeof listener === "function" ? listener : (listener as EventListenerObject).handleEvent.bind(listener));
+          };
+        }
+        return mql;
+      };
+    }
+  } catch (_) {
+    // ignore
+  }
+}
+
 if (!Array.prototype.flat) {
   // eslint-disable-next-line no-extend-native
   (Array.prototype as any).flat = function (depth?: number) {
