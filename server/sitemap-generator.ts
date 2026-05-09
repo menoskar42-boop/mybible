@@ -87,6 +87,7 @@ export async function sitemapIndexHandler(_req: Request, res: Response) {
     "sitemap-topics.xml",
     "sitemap-videos.xml",
     "sitemap-listen.xml",
+    "sitemap-churches.xml",
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -267,6 +268,26 @@ export async function sitemapListenHandler(_req: Request, res: Response) {
     console.error("[sitemap-listen] Error:", err);
     res.status(500).send("Error generating listen sitemap");
   }
+}
+
+// ── sitemap-churches.xml: approved church pages ───────────────────────────────
+export async function sitemapChurchesHandler(_req: Request, res: Response) {
+  const cacheKey = "churches";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
+
+  const today = new Date().toISOString().split("T")[0];
+  const urls: string[] = [];
+  try {
+    const churches = await storage.getApprovedChurches();
+    for (const church of churches) {
+      urls.push(buildUrl(`${SITE}/church/${church.id}`, "weekly", "0.6", today));
+    }
+  } catch (_) { /* DB may not be ready */ }
+
+  const xml = wrapUrlset(urls);
+  setCache(cacheKey, xml);
+  sendXml(res, xml);
 }
 
 // ── Legacy: /sitemap.xml now returns the index ────────────────────────────────

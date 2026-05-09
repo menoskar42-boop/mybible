@@ -6,6 +6,7 @@ import { extractKeywords } from "./seo-topics";
 import { getVideoSeoById } from "./video-seo-data";
 import { agpeyaHoursFull, commonOpeningPrayers } from "../client/src/lib/agpeya-content";
 import { synaxariumMonths, getMonthById, getDayEntries, entryTypeIcon } from "../client/src/lib/synaxarium-content";
+import { buildChapterOgUrl, buildBookOgUrl, buildOrthodoxOgUrl } from "./og-image";
 
 const BOT_UA_PATTERN = /Googlebot|bingbot|GPTBot|ClaudeBot|PerplexityBot|Applebot|DuckDuckBot|YandexBot|Baiduspider|Slurp|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp/i;
 
@@ -38,11 +39,12 @@ function isBot(ua: string): boolean {
   return BOT_UA_PATTERN.test(ua);
 }
 
-function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[]): string {
+function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[], ogImage?: string): string {
   const schemas = Array.isArray(schemaJson) ? schemaJson : [schemaJson];
   const schemaScripts = schemas
     .map(s => `<script type="application/ld+json">\n${JSON.stringify(s)}\n</script>`)
     .join('\n');
+  const img = ogImage || OG_IMAGE;
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -51,17 +53,21 @@ function wrapHtml(title: string, description: string, canonical: string, bodyCon
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${canonical}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="dns-prefetch" href="https://www.youtube.com">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="الكتاب المقدس رفيقي">
-<meta property="og:image" content="${OG_IMAGE}">
+<meta property="og:image" content="${img}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:locale" content="ar_AR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(description)}">
-<meta name="twitter:image" content="${OG_IMAGE}">
+<meta name="twitter:image" content="${img}">
 <meta name="robots" content="index, follow">
 ${schemaScripts}
 </head>
@@ -161,7 +167,7 @@ ${versesHtml}
 ${relatedLinks.length > 0 ? `<nav><h2>أصحاحات ذات صلة</h2><ul>${relatedLinks.map(l => `<li>${l}</li>`).join("")}</ul></nav>` : ""}
 <nav aria-label="مواضيع ذات صلة"><h2>مواضيع ذات صلة</h2><p>${seoLinksHtml}</p></nav>`;
 
-  return wrapHtml(title, description, canonical, body, schemas);
+  return wrapHtml(title, description, canonical, body, schemas, buildChapterOgUrl(bookName, chapter));
 }
 
 function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Array<{ name: string; chaptersCount: number }>): string {
@@ -213,7 +219,7 @@ function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Ar
 </nav>
 ${adjacentLinks.length > 0 ? `<nav><h2>أسفار ذات صلة</h2><ul>${adjacentLinks.map(l => `<li>${l}</li>`).join("")}</ul></nav>` : ""}`;
 
-  return wrapHtml(title, description, canonical, body, schema);
+  return wrapHtml(title, description, canonical, body, schema, buildBookOgUrl(bookName, chaptersCount));
 }
 
 function buildStaticPageSnapshot(path: string): string | null {
@@ -734,6 +740,68 @@ ${bookLink}
     return cacheAndServe(res, cacheKey, html);
   }
 
+  // ── Church pages: /church/:id ─────────────────────────────────────────────
+  const churchMatch = path.match(/^\/church\/(\d+)$/);
+  if (churchMatch) {
+    const churchId = parseInt(churchMatch[1], 10);
+    try {
+      const cacheKey = `ch-loc:${churchId}`;
+      if (serveCached(res, cacheKey)) return;
+
+      const church = await storage.getChurchById(churchId);
+      if (!church || church.status !== 'approved') return next();
+
+      const canonical = `${SITE}/church/${churchId}`;
+      const title = `${church.name} | كنيسة قبطية أرثوذكسية — الكتاب المقدس رفيقي`;
+      const description = `${church.name} — كنيسة قبطية أرثوذكسية في ${church.governorate}. تابع قراءة الكتاب المقدس مع مجتمع كنيستك.`;
+
+      const schema = [
+        {
+          "@context": "https://schema.org",
+          "@type": "Church",
+          "name": church.name,
+          "description": description,
+          "url": canonical,
+          "inLanguage": "ar",
+          "address": {
+            "@type": "PostalAddress",
+            "addressRegion": church.governorate,
+            "addressCountry": "EG"
+          },
+          "denomination": "القبطية الأرثوذكسية"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE },
+            { "@type": "ListItem", "position": 2, "name": "الكنائس", "item": `${SITE}/church` },
+            { "@type": "ListItem", "position": 3, "name": church.name, "item": canonical }
+          ]
+        }
+      ];
+
+      const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/church">الكنائس</a> &rsaquo; ${esc(church.name)}</nav>
+<h1>${esc(church.name)}</h1>
+<p><strong>المحافظة:</strong> ${esc(church.governorate)}</p>
+<p>${esc(description)}</p>
+<nav>
+  <ul>
+    <li><a href="${SITE}/bible">قراءة الكتاب المقدس</a></li>
+    <li><a href="${SITE}/plans">خطط القراءة</a></li>
+    <li><a href="${SITE}/church">جميع الكنائس</a></li>
+  </ul>
+</nav>`;
+
+      const html = wrapHtml(title, description, canonical, body, schema);
+      return cacheAndServe(res, cacheKey, html);
+    } catch (err) {
+      console.error("[bot-snapshot] Church error:", err);
+      return next();
+    }
+  }
+
   // ── Agpeya index: /orthodox/agpeya ───────────────────────────────────────
   if (path === "/orthodox/agpeya") {
     const cacheKey = "ag:index";
@@ -758,7 +826,7 @@ ${bookLink}
 <h1>كتاب الأجبية — ساعات الصلاة السبع</h1>
 <p>${esc(description)}</p>
 <nav><h2>الساعات السبع</h2><ul>${hoursHtml}</ul></nav>`;
-    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema, buildOrthodoxOgUrl("الأجبية القبطية")));
   }
 
   // ── Agpeya hour: /orthodox/agpeya/:hourId ────────────────────────────────
@@ -791,7 +859,7 @@ ${bookLink}
 <p>${esc(description)}</p>
 ${prayersHtml}
 <nav><a href="${SITE}/orthodox/agpeya">← جميع ساعات الأجبية</a></nav>`;
-    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema, buildOrthodoxOgUrl(hour.name, hour.arabicTime)));
   }
 
   // ── Synaxarium index: /orthodox/synaxarium ────────────────────────────────
@@ -818,7 +886,7 @@ ${prayersHtml}
 <h1>السنكسار القبطي الأرثوذكسي</h1>
 <p>${esc(description)}</p>
 <nav><h2>الأشهر القبطية</h2><ul>${monthsHtml}</ul></nav>`;
-    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema, buildOrthodoxOgUrl("السنكسار القبطي")));
   }
 
   // ── Synaxarium day: /orthodox/synaxarium/:monthId/:day ────────────────────

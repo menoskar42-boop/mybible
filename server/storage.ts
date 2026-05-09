@@ -174,6 +174,10 @@ export interface IStorage {
   
   // Smart Search (free, no AI)
   smartSearchVerses(query: string, limit?: number): Promise<SmartSearchResult[]>;
+
+  // Churches
+  getApprovedChurches(): Promise<schema.Church[]>;
+  getChurchById(id: number): Promise<schema.Church | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1170,6 +1174,15 @@ export class DatabaseStorage implements IStorage {
     }));
 
     return { worstPages, topIssues };
+  }
+
+  async getApprovedChurches(): Promise<schema.Church[]> {
+    return this.db.select().from(schema.churches).where(eq(schema.churches.status, 'approved'));
+  }
+
+  async getChurchById(id: number): Promise<schema.Church | undefined> {
+    const [church] = await this.db.select().from(schema.churches).where(eq(schema.churches.id, id));
+    return church;
   }
 }
 
