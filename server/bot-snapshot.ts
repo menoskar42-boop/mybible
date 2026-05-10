@@ -4,6 +4,9 @@ import { generateFAQSchema, generateBibleChapterTitle, generateBibleBookTitle } 
 import { getInternalLinks, buildInternalLinksHtml } from "./internal-links";
 import { extractKeywords } from "./seo-topics";
 import { getVideoSeoById } from "./video-seo-data";
+import { agpeyaHoursFull, commonOpeningPrayers } from "../client/src/lib/agpeya-content";
+import { synaxariumMonths, getMonthById, getDayEntries, entryTypeIcon } from "../client/src/lib/synaxarium-content";
+import { buildChapterOgUrl, buildBookOgUrl, buildOrthodoxOgUrl } from "./og-image";
 
 const BOT_UA_PATTERN = /Googlebot|bingbot|GPTBot|ClaudeBot|PerplexityBot|Applebot|DuckDuckBot|YandexBot|Baiduspider|Slurp|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp/i;
 
@@ -36,11 +39,12 @@ function isBot(ua: string): boolean {
   return BOT_UA_PATTERN.test(ua);
 }
 
-function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[]): string {
+function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[], ogImage?: string): string {
   const schemas = Array.isArray(schemaJson) ? schemaJson : [schemaJson];
   const schemaScripts = schemas
     .map(s => `<script type="application/ld+json">\n${JSON.stringify(s)}\n</script>`)
     .join('\n');
+  const img = ogImage || OG_IMAGE;
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -49,17 +53,21 @@ function wrapHtml(title: string, description: string, canonical: string, bodyCon
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${canonical}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="dns-prefetch" href="https://www.youtube.com">
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="الكتاب المقدس رفيقي">
-<meta property="og:image" content="${OG_IMAGE}">
+<meta property="og:image" content="${img}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:locale" content="ar_AR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(description)}">
-<meta name="twitter:image" content="${OG_IMAGE}">
+<meta name="twitter:image" content="${img}">
 <meta name="robots" content="index, follow">
 ${schemaScripts}
 </head>
@@ -81,7 +89,7 @@ ${bodyContent}
 function buildChapterSnapshot(bookName: string, chapter: number, verses: Array<{ verse: number; text: string }>, allBooks: Array<{ name: string; chaptersCount: number }>): string {
   const title = generateBibleChapterTitle(bookName, chapter, verses.length);
   const description = `اقرأ ${bookName} الإصحاح ${chapter} كامل (${verses.length} آية) مع إمكانية الاستماع والمشاركة. الكتاب المقدس باللغة العربية.`;
-  const canonical = `${SITE}/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter}`;
+  const canonical = `${SITE}/bible/${encodeURIComponent(bookName)}/${chapter}`;
 
   const versesHtml = verses.map(v =>
     `<p><strong>${v.verse}</strong> ${esc(v.text)}</p>`
@@ -91,16 +99,16 @@ function buildChapterSnapshot(bookName: string, chapter: number, verses: Array<{
   const currentBook = allBooks.find(b => b.name === bookName);
   if (currentBook) {
     if (chapter > 1)
-      relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter - 1}">تفسير ${esc(bookName)} ${chapter - 1}</a>`);
+      relatedLinks.push(`<a href="/bible/${encodeURIComponent(bookName)}/${chapter - 1}">تفسير ${esc(bookName)} ${chapter - 1}</a>`);
     if (chapter < currentBook.chaptersCount)
-      relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter + 1}">تفسير ${esc(bookName)} ${chapter + 1}</a>`);
+      relatedLinks.push(`<a href="/bible/${encodeURIComponent(bookName)}/${chapter + 1}">تفسير ${esc(bookName)} ${chapter + 1}</a>`);
   }
-  relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(bookName)}">تفسير ${esc(bookName)} كامل</a>`);
+  relatedLinks.push(`<a href="/bible/${encodeURIComponent(bookName)}">تفسير ${esc(bookName)} كامل</a>`);
   const bookIdx = allBooks.findIndex(b => b.name === bookName);
   if (bookIdx > 0)
-    relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(allBooks[bookIdx - 1].name)}">تفسير ${esc(allBooks[bookIdx - 1].name)}</a>`);
+    relatedLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx - 1].name)}">تفسير ${esc(allBooks[bookIdx - 1].name)}</a>`);
   if (bookIdx < allBooks.length - 1)
-    relatedLinks.push(`<a href="/bible?book=${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)}</a>`);
+    relatedLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)}</a>`);
 
   // Contextual internal links for SEO
   const seoLinks = getInternalLinks(`${bookName} ${chapter}`, 4);
@@ -126,6 +134,18 @@ function buildChapterSnapshot(bookName: string, chapter: number, verses: Array<{
     }
   };
 
+  // BreadcrumbList schema
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE },
+      { "@type": "ListItem", "position": 2, "name": "الكتاب المقدس", "item": `${SITE}/bible` },
+      { "@type": "ListItem", "position": 3, "name": bookName, "item": `${SITE}/bible/${encodeURIComponent(bookName)}` },
+      { "@type": "ListItem", "position": 4, "name": `الإصحاح ${chapter}`, "item": canonical }
+    ]
+  };
+
   // FAQ schema — uses first 3 verses as answers
   const faqVerses = verses.slice(0, 3).map(v => ({
     bookName,
@@ -134,7 +154,7 @@ function buildChapterSnapshot(bookName: string, chapter: number, verses: Array<{
     text: v.text,
   }));
   const faqSchema = generateFAQSchema(bookName, faqVerses);
-  const schemas: object[] = [webPageSchema];
+  const schemas: object[] = [webPageSchema, breadcrumbSchema];
   if (faqSchema) schemas.push(faqSchema);
 
   const body = `<h1>تفسير ${esc(bookName)} الإصحاح ${chapter}</h1>
@@ -147,40 +167,47 @@ ${versesHtml}
 ${relatedLinks.length > 0 ? `<nav><h2>أصحاحات ذات صلة</h2><ul>${relatedLinks.map(l => `<li>${l}</li>`).join("")}</ul></nav>` : ""}
 <nav aria-label="مواضيع ذات صلة"><h2>مواضيع ذات صلة</h2><p>${seoLinksHtml}</p></nav>`;
 
-  return wrapHtml(title, description, canonical, body, schemas);
+  return wrapHtml(title, description, canonical, body, schemas, buildChapterOgUrl(bookName, chapter));
 }
 
 function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Array<{ name: string; chaptersCount: number }>): string {
   const title = generateBibleBookTitle(bookName, chaptersCount);
   const description = `تفسير ${bookName} كامل مع مقدمة عن السفر، قراءة مباشرة، واستماع صوتي لكل إصحاح. يحتوي على ${chaptersCount} إصحاح.`;
-  const canonical = `${SITE}/bible?book=${encodeURIComponent(bookName)}`;
+  const canonical = `${SITE}/bible/${encodeURIComponent(bookName)}`;
 
   const chapterLinks = [];
   for (let ch = 1; ch <= chaptersCount; ch++) {
-    chapterLinks.push(`<li><a href="/bible?book=${encodeURIComponent(bookName)}&chapter=${ch}">تفسير ${esc(bookName)} الإصحاح ${ch}</a></li>`);
+    chapterLinks.push(`<li><a href="/bible/${encodeURIComponent(bookName)}/${ch}">تفسير ${esc(bookName)} الإصحاح ${ch}</a></li>`);
   }
 
   const adjacentLinks: string[] = [];
   const bookIdx = allBooks.findIndex(b => b.name === bookName);
   if (bookIdx > 0)
-    adjacentLinks.push(`<a href="/bible?book=${encodeURIComponent(allBooks[bookIdx - 1].name)}">تفسير ${esc(allBooks[bookIdx - 1].name)} كامل</a>`);
+    adjacentLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx - 1].name)}">تفسير ${esc(allBooks[bookIdx - 1].name)} كامل</a>`);
   if (bookIdx < allBooks.length - 1)
-    adjacentLinks.push(`<a href="/bible?book=${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)} كامل</a>`);
+    adjacentLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)} كامل</a>`);
 
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "Book",
-    "name": bookName,
-    "inLanguage": "ar",
-    "about": "الكتاب المقدس",
-    "numberOfPages": chaptersCount,
-    "url": canonical,
-    "publisher": {
-      "@type": "Organization",
-      "name": "الكتاب المقدس رفيقي",
-      "url": SITE
+  const schema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      "name": bookName,
+      "inLanguage": "ar",
+      "about": "الكتاب المقدس",
+      "numberOfPages": chaptersCount,
+      "url": canonical,
+      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE },
+        { "@type": "ListItem", "position": 2, "name": "الكتاب المقدس", "item": `${SITE}/bible` },
+        { "@type": "ListItem", "position": 3, "name": bookName, "item": canonical }
+      ]
     }
-  };
+  ];
 
   const body = `<h1>تفسير ${esc(bookName)} كامل</h1>
 <section>
@@ -192,15 +219,18 @@ function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Ar
 </nav>
 ${adjacentLinks.length > 0 ? `<nav><h2>أسفار ذات صلة</h2><ul>${adjacentLinks.map(l => `<li>${l}</li>`).join("")}</ul></nav>` : ""}`;
 
-  return wrapHtml(title, description, canonical, body, schema);
+  return wrapHtml(title, description, canonical, body, schema, buildBookOgUrl(bookName, chaptersCount));
 }
 
 function buildStaticPageSnapshot(path: string): string | null {
-  const pages: Record<string, { title: string; desc: string; schema: object }> = {
+  const pages: Record<string, { title: string; desc: string; schema: object | object[] }> = {
     "/": {
       title: "الكتاب المقدس رفيقي | قراءة يومية، تفسير، خطط روحية",
       desc: "موقع الكتاب المقدس العربي للقراءة اليومية مع التفسير، خطط القراءة، آيات حسب المشاعر، وقسم قصص الأطفال. رفيقك الروحي اليومي.",
-      schema: { "@context": "https://schema.org", "@type": "WebApplication", "name": "الكتاب المقدس رفيقي", "applicationCategory": "ReligiousApplication", "operatingSystem": "Web", "inLanguage": "ar", "url": SITE }
+      schema: [
+        { "@context": "https://schema.org", "@type": "WebApplication", "name": "الكتاب المقدس رفيقي", "applicationCategory": "ReligiousApplication", "operatingSystem": "Web", "inLanguage": "ar", "url": SITE },
+        { "@context": "https://schema.org", "@type": "WebSite", "name": "الكتاب المقدس رفيقي", "url": SITE, "potentialAction": { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${SITE}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" } }
+      ]
     },
     "/bible": {
       title: "الكتاب المقدس كاملاً بالعربية | العهد القديم والجديد مع التفسير",
@@ -308,6 +338,55 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
   const bookParam = req.query.book as string | undefined;
   const chapterParam = req.query.chapter as string | undefined;
 
+  // ── Path-based: /bible/:book/:chapter ────────────────────────────────────
+  const bibleChapterPath = path.match(/^\/bible\/([^/]+)\/(\d+)$/);
+  if (bibleChapterPath) {
+    try {
+      const bookName = decodeURIComponent(bibleChapterPath[1]);
+      const chapter = parseInt(bibleChapterPath[2], 10);
+      const books = await ensureBooks();
+      const book = books.find(b => b.name === bookName);
+      if (!book || isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) return next();
+
+      const cacheKey = `ch:${bookName}:${chapter}`;
+      if (serveCached(res, cacheKey)) return;
+
+      const verses = await storage.getVersesByBook(book.id, chapter);
+      if (!verses || verses.length === 0) return next();
+
+      const html = buildChapterSnapshot(
+        book.name, chapter,
+        verses.map(v => ({ verse: v.verse, text: v.text })),
+        books
+      );
+      return cacheAndServe(res, cacheKey, html);
+    } catch (err) {
+      console.error("[bot-snapshot] Error:", err);
+      return next();
+    }
+  }
+
+  // ── Path-based: /bible/:book ──────────────────────────────────────────────
+  const bibleBookPath = path.match(/^\/bible\/([^/]+)$/);
+  if (bibleBookPath) {
+    try {
+      const bookName = decodeURIComponent(bibleBookPath[1]);
+      const books = await ensureBooks();
+      const book = books.find(b => b.name === bookName);
+      if (!book) return next();
+
+      const cacheKey = `bk:${bookName}`;
+      if (serveCached(res, cacheKey)) return;
+
+      const html = buildBookSnapshot(book.name, book.chaptersCount, books);
+      return cacheAndServe(res, cacheKey, html);
+    } catch (err) {
+      console.error("[bot-snapshot] Error:", err);
+      return next();
+    }
+  }
+
+  // ── Legacy query-string: /bible?book=X&chapter=Y (redirect bots to path-based) ──
   if (path === "/bible" && bookParam) {
     try {
       const books = await ensureBooks();
@@ -317,25 +396,9 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
       if (chapterParam) {
         const chapter = parseInt(chapterParam, 10);
         if (isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) return next();
-
-        const cacheKey = `ch:${bookParam}:${chapter}`;
-        if (serveCached(res, cacheKey)) return;
-
-        const verses = await storage.getVersesByBook(book.id, chapter);
-        if (!verses || verses.length === 0) return next();
-
-        const html = buildChapterSnapshot(
-          book.name, chapter,
-          verses.map(v => ({ verse: v.verse, text: v.text })),
-          books
-        );
-        return cacheAndServe(res, cacheKey, html);
+        return res.redirect(301, `/bible/${encodeURIComponent(book.name)}/${chapter}`);
       } else {
-        const cacheKey = `bk:${bookParam}`;
-        if (serveCached(res, cacheKey)) return;
-
-        const html = buildBookSnapshot(book.name, book.chaptersCount, books);
-        return cacheAndServe(res, cacheKey, html);
+        return res.redirect(301, `/bible/${encodeURIComponent(book.name)}`);
       }
     } catch (err) {
       console.error("[bot-snapshot] Error:", err);
@@ -581,14 +644,14 @@ ${bookLink}
 
       const body = `
 <nav aria-label="breadcrumb">
-  <a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/bible?book=${encodeURIComponent(bookName)}">${esc(bookName)}</a> &rsaquo; استماع الإصحاح ${chapter}
+  <a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/bible/${encodeURIComponent(bookName)}">${esc(bookName)}</a> &rsaquo; استماع الإصحاح ${chapter}
 </nav>
 <h1>${esc(title)}</h1>
 <p><em>${esc(description)}</em></p>
 <nav>
   <ul>
-    <li><a href="${SITE}/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter}">📖 قراءة ${esc(bookName)} ${chapter}</a></li>
-    <li><a href="${SITE}/bible?book=${encodeURIComponent(bookName)}">📚 جميع إصحاحات ${esc(bookName)}</a></li>
+    <li><a href="${SITE}/bible/${encodeURIComponent(bookName)}/${chapter}">📖 قراءة ${esc(bookName)} ${chapter}</a></li>
+    <li><a href="${SITE}/bible/${encodeURIComponent(bookName)}">📚 جميع إصحاحات ${esc(bookName)}</a></li>
     ${chapter > 1 ? `<li><a href="${SITE}/listen/${encodeURIComponent(bookName)}/${chapter - 1}">🔊 الإصحاح ${chapter - 1}</a></li>` : ""}
     <li><a href="${SITE}/listen/${encodeURIComponent(bookName)}/${chapter + 1}">🔊 الإصحاح ${chapter + 1}</a></li>
   </ul>
@@ -675,6 +738,194 @@ ${bookLink}
 
     const html = wrapHtml(title, description, canonical, body, schema);
     return cacheAndServe(res, cacheKey, html);
+  }
+
+  // ── Church pages: /church/:id ─────────────────────────────────────────────
+  const churchMatch = path.match(/^\/church\/(\d+)$/);
+  if (churchMatch) {
+    const churchId = parseInt(churchMatch[1], 10);
+    try {
+      const cacheKey = `ch-loc:${churchId}`;
+      if (serveCached(res, cacheKey)) return;
+
+      const church = await storage.getChurchById(churchId);
+      if (!church || church.status !== 'approved') return next();
+
+      const canonical = `${SITE}/church/${churchId}`;
+      const title = `${church.name} | كنيسة قبطية أرثوذكسية — الكتاب المقدس رفيقي`;
+      const description = `${church.name} — كنيسة قبطية أرثوذكسية في ${church.governorate}. تابع قراءة الكتاب المقدس مع مجتمع كنيستك.`;
+
+      const schema = [
+        {
+          "@context": "https://schema.org",
+          "@type": "Church",
+          "name": church.name,
+          "description": description,
+          "url": canonical,
+          "inLanguage": "ar",
+          "address": {
+            "@type": "PostalAddress",
+            "addressRegion": church.governorate,
+            "addressCountry": "EG"
+          },
+          "denomination": "القبطية الأرثوذكسية"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE },
+            { "@type": "ListItem", "position": 2, "name": "الكنائس", "item": `${SITE}/church` },
+            { "@type": "ListItem", "position": 3, "name": church.name, "item": canonical }
+          ]
+        }
+      ];
+
+      const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/church">الكنائس</a> &rsaquo; ${esc(church.name)}</nav>
+<h1>${esc(church.name)}</h1>
+<p><strong>المحافظة:</strong> ${esc(church.governorate)}</p>
+<p>${esc(description)}</p>
+<nav>
+  <ul>
+    <li><a href="${SITE}/bible">قراءة الكتاب المقدس</a></li>
+    <li><a href="${SITE}/plans">خطط القراءة</a></li>
+    <li><a href="${SITE}/church">جميع الكنائس</a></li>
+  </ul>
+</nav>`;
+
+      const html = wrapHtml(title, description, canonical, body, schema);
+      return cacheAndServe(res, cacheKey, html);
+    } catch (err) {
+      console.error("[bot-snapshot] Church error:", err);
+      return next();
+    }
+  }
+
+  // ── Agpeya index: /orthodox/agpeya ───────────────────────────────────────
+  if (path === "/orthodox/agpeya") {
+    const cacheKey = "ag:index";
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/agpeya`;
+    const title = "كتاب الأجبية القبطي — ساعات الصلاة السبع | الكتاب المقدس رفيقي";
+    const description = "الأجبية كتاب الصلوات اليومية القبطي الأرثوذكسي، يحتوي على سبع ساعات صلاة يرتلها المؤمنون منذ القرن الرابع الميلادي.";
+    const hoursHtml = agpeyaHoursFull.map(h =>
+      `<li><a href="${SITE}/orthodox/agpeya/${h.id}">${esc(h.name)} — ${esc(h.arabicTime)}</a></li>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      "name": "الأجبية",
+      "inLanguage": "ar",
+      "about": "الكنيسة القبطية الأرثوذكسية",
+      "url": canonical,
+      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+    };
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; الأجبية</nav>
+<h1>كتاب الأجبية — ساعات الصلاة السبع</h1>
+<p>${esc(description)}</p>
+<nav><h2>الساعات السبع</h2><ul>${hoursHtml}</ul></nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema, buildOrthodoxOgUrl("الأجبية القبطية")));
+  }
+
+  // ── Agpeya hour: /orthodox/agpeya/:hourId ────────────────────────────────
+  const agpeyaHourMatch = path.match(/^\/orthodox\/agpeya\/([^/]+)$/);
+  if (agpeyaHourMatch) {
+    const hourId = agpeyaHourMatch[1];
+    const hour = agpeyaHoursFull.find(h => h.id === hourId);
+    if (!hour) return next();
+    const cacheKey = `ag:${hourId}`;
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/agpeya/${hourId}`;
+    const title = `${hour.name} — الأجبية القبطية | الكتاب المقدس رفيقي`;
+    const description = `${hour.name}: ${hour.description} مزامير: ${hour.psalms}. إنجيل: ${hour.gospel}.`;
+    const allPrayers = [...commonOpeningPrayers, ...hour.prayers];
+    const prayersHtml = allPrayers.map(p =>
+      `<section><h2>${esc(p.title)}${p.role ? ` (${esc(p.role)})` : ""}</h2><p>${esc(p.text.substring(0, 500))}${p.text.length > 500 ? "..." : ""}</p></section>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": title,
+      "description": description,
+      "inLanguage": "ar",
+      "url": canonical,
+      "isPartOf": { "@type": "Book", "name": "الأجبية", "url": `${SITE}/orthodox/agpeya` }
+    };
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/orthodox/agpeya">الأجبية</a> &rsaquo; ${esc(hour.name)}</nav>
+<h1>${esc(hour.name)}</h1>
+<p>${esc(description)}</p>
+${prayersHtml}
+<nav><a href="${SITE}/orthodox/agpeya">← جميع ساعات الأجبية</a></nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema, buildOrthodoxOgUrl(hour.name, hour.arabicTime)));
+  }
+
+  // ── Synaxarium index: /orthodox/synaxarium ────────────────────────────────
+  if (path === "/orthodox/synaxarium") {
+    const cacheKey = "sx:index";
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/synaxarium`;
+    const title = "السنكسار القبطي الأرثوذكسي — سير القديسين والشهداء | الكتاب المقدس رفيقي";
+    const description = "السنكسار كتاب سير القديسين والشهداء والأعياد في الكنيسة القبطية الأرثوذكسية، مرتّباً حسب التقويم القبطي (13 شهراً).";
+    const monthsHtml = synaxariumMonths.map(m =>
+      `<li><a href="${SITE}/orthodox/synaxarium/${m.id}/1">${esc(m.arabicName)} (${esc(m.copticName)}) — ${esc(m.gregStart)}</a></li>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      "name": "السنكسار القبطي",
+      "inLanguage": "ar",
+      "about": "سير القديسين الأقباط",
+      "url": canonical,
+      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+    };
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; السنكسار</nav>
+<h1>السنكسار القبطي الأرثوذكسي</h1>
+<p>${esc(description)}</p>
+<nav><h2>الأشهر القبطية</h2><ul>${monthsHtml}</ul></nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema, buildOrthodoxOgUrl("السنكسار القبطي")));
+  }
+
+  // ── Synaxarium day: /orthodox/synaxarium/:monthId/:day ────────────────────
+  const synaxariumDayMatch = path.match(/^\/orthodox\/synaxarium\/(\d+)\/(\d+)$/);
+  if (synaxariumDayMatch) {
+    const monthId = parseInt(synaxariumDayMatch[1], 10);
+    const day = parseInt(synaxariumDayMatch[2], 10);
+    const month = getMonthById(monthId);
+    if (!month || day < 1 || day > 30) return next();
+    const cacheKey = `sx:${monthId}:${day}`;
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/synaxarium/${monthId}/${day}`;
+    const entries = getDayEntries(monthId, day);
+    const title = `سنكسار ${month.arabicName} ${day} — ${entries.map(e => e.name).slice(0, 2).join("، ")} | الكتاب المقدس رفيقي`;
+    const description = entries.length > 0
+      ? `سنكسار ${month.arabicName} ${day}: ${entries.map(e => `${e.name} — ${e.description.substring(0, 80)}`).join(". ")}.`
+      : `سنكسار ${month.arabicName} ${day} — ${month.copticName} ${day}.`;
+    const entriesHtml = entries.map(e =>
+      `<article><h2>${entryTypeIcon(e.type)} ${esc(e.name)} <span>(${esc(e.type)})</span></h2><p>${esc(e.description)}</p></article>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": title,
+      "description": description,
+      "inLanguage": "ar",
+      "url": canonical,
+      "datePublished": month.gregStart,
+      "isPartOf": { "@type": "Book", "name": "السنكسار القبطي", "url": `${SITE}/orthodox/synaxarium` }
+    };
+    const prevDay = day > 1 ? `<a href="${SITE}/orthodox/synaxarium/${monthId}/${day - 1}">${esc(month.arabicName)} ${day - 1}</a>` : "";
+    const nextDay = day < month.days.length ? `<a href="${SITE}/orthodox/synaxarium/${monthId}/${day + 1}">${esc(month.arabicName)} ${day + 1}</a>` : "";
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/orthodox/synaxarium">السنكسار</a> &rsaquo; ${esc(month.arabicName)} ${day}</nav>
+<h1>سنكسار ${esc(month.arabicName)} ${day}</h1>
+<p>${esc(description)}</p>
+${entriesHtml}
+<nav>${prevDay} | <a href="${SITE}/orthodox/synaxarium">جميع الأشهر</a> | ${nextDay}</nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
   }
 
   const staticSnapshot = buildStaticPageSnapshot(path);

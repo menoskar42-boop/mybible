@@ -218,7 +218,8 @@ export const staticLessonVideos: Record<string, string | string[]> = {
   "نشيد الأنشاد-8": ["4SS_3dYzXOs", "tZ7DDjOsWNk"],
 
   // ──────────────────────────── حزقيال ────────────────────────────
-  "حزقيال-3": "t2fzp1yrx5w",
+  "حزقيال-3":  "t2fzp1yrx5w",
+  "حزقيال-11": "B4oUMbU4UG0",
 
   // ──────────────────────────── متى ────────────────────────────
   "متى-1":  ["znT5IMIAPW0", "qTpk3VSna54"],

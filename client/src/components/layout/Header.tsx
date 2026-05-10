@@ -30,13 +30,13 @@ export function Header({ isPremium = false, onToggleTheme, isDark = false }: Hea
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-3 group" data-testid="link-home">
-            <img src="/logo.png" alt="الكتاب المقدس رفيقي" className="w-10 h-10 rounded-xl shadow-md object-cover" />
+          <Link href="/" className="flex items-center gap-2 group" data-testid="link-home">
+            <img src="/logo.png" alt="الكتاب المقدس رفيقي" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl shadow-md object-cover flex-shrink-0" />
             <div className="flex flex-col">
-              <span className="font-display text-lg font-bold text-foreground leading-tight">
+              <span className="font-display text-base sm:text-lg font-bold text-foreground leading-tight">
                 الكتاب المقدس رفيقي
               </span>
-              <span className="text-[10px] text-muted-foreground -mt-0.5">قراءة • تعزية • دراسة</span>
+              <span className="hidden xs:block text-[10px] text-muted-foreground -mt-0.5">قراءة • تعزية • دراسة</span>
             </div>
           </Link>
 
