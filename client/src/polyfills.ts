@@ -1,5 +1,13 @@
 /* Polyfills for iOS 12, Samsung 2017, Chrome 70 */
 
+// ResizeObserver — not in iOS < 13.4
+if (typeof ResizeObserver === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { ResizeObserver: RO } = require("@juggle/resize-observer");
+  (window as any).ResizeObserver = RO;
+}
+
+
 // MediaQueryList.addEventListener — iOS < 14 uses addListener/removeListener instead
 if (typeof window !== "undefined" && window.matchMedia) {
   try {
