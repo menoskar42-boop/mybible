@@ -146,7 +146,7 @@ export function DailyVerse() {
                 <span className="text-lg">✨</span>
               </div>
               <div>
-                <h2 className="font-display text-xl font-bold text-foreground">آية اليوم</h2>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground">آية اليوم</h2>
                 <p className="text-xs text-muted-foreground">
                   {new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
