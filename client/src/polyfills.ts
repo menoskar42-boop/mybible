@@ -1,5 +1,7 @@
-/* Polyfills for iOS 10-12, Samsung 2017, Chrome 70
-   IMPORTANT: use only ES5-compatible syntax here, no classes, no arrow fat imports */
+/**
+ * Polyfills for iOS 10-12, Samsung 2017, Chrome 70
+ * NO external imports — pure self-contained JS/TS
+ */
 
 // ── Array ─────────────────────────────────────────────────────────────────
 if (!Array.prototype.flat) {
@@ -64,7 +66,7 @@ if (typeof (window as any).globalThis === "undefined") {
 
 // ── AbortController stub — iOS < 12 ──────────────────────────────────────
 if (typeof (window as any).AbortController === "undefined") {
-  (window as any).AbortController = function AbortControllerPolyfill() {
+  (window as any).AbortController = function AbortControllerPolyfill(this: any) {
     this.signal = { aborted: false, addEventListener: function () {}, removeEventListener: function () {} };
   };
   (window as any).AbortController.prototype.abort = function () {
@@ -73,23 +75,50 @@ if (typeof (window as any).AbortController === "undefined") {
 }
 
 // ── ResizeObserver — iOS < 13.4 ──────────────────────────────────────────
-// Loaded via static import below; applied conditionally at runtime
-import { ResizeObserver as JuggleRO } from "@juggle/resize-observer";
+// Polling-based implementation: checks sizes every 200ms
 if (typeof (window as any).ResizeObserver === "undefined") {
-  (window as any).ResizeObserver = JuggleRO;
+  (window as any).ResizeObserver = function ROPolyfill(this: any, callback: any) {
+    this._cb = callback;
+    this._els = [] as Element[];
+    const self = this;
+    this._timer = setInterval(function () {
+      if (!self._els.length) return;
+      const entries: any[] = [];
+      for (let i = 0; i < self._els.length; i++) {
+        const el = self._els[i] as HTMLElement;
+        const rect = el.getBoundingClientRect ? el.getBoundingClientRect() : { width: 0, height: 0 };
+        entries.push({ target: el, contentRect: rect, borderBoxSize: [], contentBoxSize: [] });
+      }
+      try { callback(entries, self); } catch (_) {}
+    }, 200);
+  };
+  (window as any).ResizeObserver.prototype.observe = function (el: Element) {
+    if (this._els.indexOf(el) === -1) this._els.push(el);
+    // Fire immediately once so layout is calculated right away
+    const rect = (el as HTMLElement).getBoundingClientRect ? (el as HTMLElement).getBoundingClientRect() : { width: 0, height: 0 };
+    try { this._cb([{ target: el, contentRect: rect, borderBoxSize: [], contentBoxSize: [] }], this); } catch (_) {}
+  };
+  (window as any).ResizeObserver.prototype.unobserve = function (el: Element) {
+    const i = this._els.indexOf(el);
+    if (i > -1) this._els.splice(i, 1);
+  };
+  (window as any).ResizeObserver.prototype.disconnect = function () {
+    clearInterval(this._timer);
+    this._els = [];
+  };
 }
 
 // ── IntersectionObserver — iOS < 12.2 ────────────────────────────────────
-// Stub: framer-motion only needs it for whileInView; safe to no-op
+// Stub: fires "intersecting = true" immediately so whileInView content shows
 if (typeof (window as any).IntersectionObserver === "undefined") {
-  (window as any).IntersectionObserver = function IOPolyfill(cb: any) {
-    this._cb = cb;
-    this._els = [];
+  (window as any).IntersectionObserver = function IOPolyfill(this: any, callback: any) {
+    this._cb = callback;
   };
-  (window as any).IntersectionObserver.prototype.observe = function (el: any) {
-    this._els.push(el);
-    // immediately fire as "intersecting" so content shows
-    try { this._cb([{ isIntersecting: true, target: el, intersectionRatio: 1 }], this); } catch (_) {}
+  (window as any).IntersectionObserver.prototype.observe = function (el: Element) {
+    const self = this;
+    setTimeout(function () {
+      try { self._cb([{ isIntersecting: true, target: el, intersectionRatio: 1 }], self); } catch (_) {}
+    }, 0);
   };
   (window as any).IntersectionObserver.prototype.unobserve = function () {};
   (window as any).IntersectionObserver.prototype.disconnect = function () {};
