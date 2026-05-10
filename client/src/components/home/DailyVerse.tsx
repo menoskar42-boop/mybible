@@ -159,7 +159,7 @@ export function DailyVerse() {
 
           <blockquote className="relative mb-6">
             <span className="absolute -top-4 -right-2 text-6xl text-primary/10 font-display">"</span>
-            <p className="font-display text-lg sm:text-xl md:text-2xl leading-relaxed text-foreground pr-4 sm:pr-6" data-testid="text-daily-verse">
+            <p className="font-display text-2xl sm:text-3xl leading-relaxed text-foreground pr-4 sm:pr-6" data-testid="text-daily-verse">
               {dailyVerse.verse.text}
             </p>
             <span className="absolute -bottom-8 -left-2 text-6xl text-primary/10 font-display rotate-180">"</span>
