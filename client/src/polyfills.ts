@@ -90,3 +90,39 @@ if (typeof (window as any).queueMicrotask === "undefined") {
 if (typeof globalThis === "undefined") {
   (window as any).globalThis = window;
 }
+
+// IntersectionObserver — not in iOS < 12.2 (used by framer-motion whileInView)
+if (typeof IntersectionObserver === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require("intersection-observer");
+}
+
+// AbortController — not in iOS < 12 (used by fetch/React Query)
+if (typeof AbortController === "undefined") {
+  (window as any).AbortController = class AbortController {
+    signal = { aborted: false, addEventListener: () => {}, removeEventListener: () => {} };
+    abort() { this.signal.aborted = true; }
+  };
+}
+
+// URLSearchParams — not in iOS < 10.3
+if (typeof URLSearchParams === "undefined") {
+  (window as any).URLSearchParams = class URLSearchParams {
+    private params: Record<string, string> = {};
+    constructor(init?: string) {
+      if (init) {
+        init.replace(/^\?/, "").split("&").forEach((p) => {
+          const [k, v] = p.split("=");
+          if (k) this.params[decodeURIComponent(k)] = decodeURIComponent(v || "");
+        });
+      }
+    }
+    get(key: string) { return this.params[key] ?? null; }
+    set(key: string, value: string) { this.params[key] = value; }
+    has(key: string) { return key in this.params; }
+    toString() {
+      return Object.entries(this.params).map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+    }
+  };
+}
+
