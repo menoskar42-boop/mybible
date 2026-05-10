@@ -35,9 +35,9 @@ export function BottomNav() {
                   'p-1.5 rounded-lg transition-colors',
                   isActive && 'bg-primary/10'
                 )}>
-                  <Icon className={cn('w-5 h-5', isActive && 'stroke-[2.5]')} />
+                  <Icon className={cn('w-6 h-6', isActive && 'stroke-[2.5]')} />
                 </div>
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-xs font-semibold">{item.label}</span>
               </button>
             </Link>
           );

@@ -139,7 +139,7 @@ export function DailyVerse() {
         <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 right-0 w-40 h-40 bg-accent/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
         
-        <div className="relative p-6 sm:p-8">
+        <div className="relative p-4 sm:p-6 md:p-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
@@ -159,7 +159,7 @@ export function DailyVerse() {
 
           <blockquote className="relative mb-6">
             <span className="absolute -top-4 -right-2 text-6xl text-primary/10 font-display">"</span>
-            <p className="font-display text-xl sm:text-2xl leading-relaxed text-foreground pr-6" data-testid="text-daily-verse">
+            <p className="font-display text-lg sm:text-xl md:text-2xl leading-relaxed text-foreground pr-4 sm:pr-6" data-testid="text-daily-verse">
               {dailyVerse.verse.text}
             </p>
             <span className="absolute -bottom-8 -left-2 text-6xl text-primary/10 font-display rotate-180">"</span>
