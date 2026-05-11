@@ -48,7 +48,7 @@ export default function Bible() {
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number>(1);
   const [skipChapterReset, setSkipChapterReset] = useState<boolean>(false);
-  const [readerDialogOpen, setReaderDialogOpen] = useState(false);
+  const [bibleViewMode, setBibleViewMode] = useState<'browse' | 'chapter'>('browse');
   const [selectedVerseForHighlight, setSelectedVerseForHighlight] = useState<number | null>(null);
   const [tafsirDialogOpen, setTafsirDialogOpen] = useState(false);
   const [tafsirDialogType, setTafsirDialogType] = useState<'intro' | 'chapter' | 'verse'>('chapter');
@@ -108,9 +108,9 @@ export default function Bible() {
           setSelectedChapter(parsedChapter);
         }
       }
-      setReaderDialogOpen(true);
+      setBibleViewMode('chapter');
     }
-    
+
     initialLoadDone.current = true;
     // For query-string URLs, redirect to path-based canonical URL
     if (!isPathBased) {
@@ -130,7 +130,7 @@ export default function Bible() {
   const { data: verses, isLoading: versesLoading } = useQuery({
     queryKey: ['verses', selectedBook?.id, selectedChapter],
     queryFn: () => api.verses.getByBook(selectedBook!.id, selectedChapter),
-    enabled: !!selectedBook && readerDialogOpen,
+    enabled: !!selectedBook && bibleViewMode === 'chapter',
   });
 
   const { data: highlights } = useQuery({
@@ -198,7 +198,7 @@ export default function Bible() {
 
   const handleChapterClick = (chapter: number) => {
     setSelectedChapter(chapter);
-    setReaderDialogOpen(true);
+    setBibleViewMode('chapter');
   };
 
   const handleListenClick = () => {
@@ -366,7 +366,7 @@ export default function Bible() {
           </div>
         </div>
 
-        <Tabs defaultValue="old" className="mb-6">
+        {bibleViewMode === 'browse' && <Tabs defaultValue="old" className="mb-6">
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="old" data-testid="tab-old-testament">العهد القديم</TabsTrigger>
             <TabsTrigger value="new" data-testid="tab-new-testament">العهد الجديد</TabsTrigger>
@@ -425,9 +425,9 @@ export default function Bible() {
               </ScrollArea>
             )}
           </TabsContent>
-        </Tabs>
+        </Tabs>}
 
-        {selectedBook && (
+        {bibleViewMode === 'browse' && selectedBook && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -443,7 +443,7 @@ export default function Bible() {
                 {chapters?.map((chapter) => (
                   <Button
                     key={chapter}
-                    variant={selectedChapter === chapter && readerDialogOpen ? 'default' : 'ghost'}
+                    variant="ghost"
                     size="sm"
                     className="w-10 h-10 p-0 text-base"
                     onClick={() => handleChapterClick(chapter)}
@@ -457,23 +457,34 @@ export default function Bible() {
           </motion.div>
         )}
 
-      <Dialog open={readerDialogOpen} onOpenChange={(open) => { setReaderDialogOpen(open); }}>
-        <DialogContent className="max-w-2xl flex flex-col p-0" style={{ maxHeight: (window.innerHeight - 130) + 'px' }} data-testid="dialog-bible-reader">
-          <DialogHeader className="p-4 pb-2 border-b">
-            <div className="flex items-center justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setReaderDialogOpen(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-              <DialogTitle className="font-display text-lg" data-testid="text-bible-reader-title">
-                {selectedBook ? `${selectedBook.name} - الإصحاح ${selectedChapter}` : ''}
-              </DialogTitle>
+      {bibleViewMode === 'chapter' && (
+        <motion.div
+          key="chapter-view"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setBibleViewMode('browse')}
+            className="mb-4"
+            data-testid="button-back-to-browse"
+          >
+            <ChevronLeft className="w-4 h-4 ml-1" />
+            رجوع للكتاب المقدس
+          </Button>
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-4">
               <div className="text-xs text-muted-foreground">
                 {selectedBook ? `${selectedChapter} / ${selectedBook.chaptersCount}` : ''}
               </div>
+              <h2 className="font-display text-xl font-bold text-center text-foreground" data-testid="text-bible-reader-title">
+                {selectedBook ? `${selectedBook.name} - الإصحاح ${selectedChapter}` : ''}
+              </h2>
+              <div className="w-8" />
             </div>
-          </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-4" dir="rtl">
+            <div dir="rtl">
             {versesLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -668,8 +679,9 @@ export default function Bible() {
               <ChevronLeft className="w-4 h-4 mr-2" />
             </Button>
           </div>
-        </DialogContent>
-      </Dialog>
+          </Card>
+        </motion.div>
+      )}
 
         <Dialog open={tafsirDialogOpen} onOpenChange={setTafsirDialogOpen}>
           <DialogContent className="max-w-md flex flex-col" style={{ maxHeight: (window.innerHeight - 100) + 'px' }} data-testid="dialog-commentary">
