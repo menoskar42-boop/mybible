@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CalendarDays, ChevronLeft, ChevronRight, BookOpen, CheckCircle2, Circle, Play, ArrowLeft, ArrowRight, Plus, Trash2, Star, PartyPopper, Volume2, BookText, X, Loader2, GraduationCap } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, BookOpen, CheckCircle2, Circle, Play, ArrowLeft, ArrowRight, Plus, Trash2, Star, PartyPopper, Volume2, BookText, Loader2, GraduationCap } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -89,7 +89,6 @@ export default function Plans() {
   const [customReadingIndex, setCustomReadingIndex] = useState(sess?.customReadingIndex ?? 0);
   const [showCustomChapter, setShowCustomChapter] = useState(sess?.showCustomChapter ?? false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [tafsirDialogOpen, setTafsirDialogOpen] = useState(false);
   const [tafsirDialogType, setTafsirDialogType] = useState<'intro' | 'chapter' | 'verse'>('chapter');
   const [tafsirVerseNum, setTafsirVerseNum] = useState<number>(0);
   const [tafsirText, setTafsirText] = useState<string | null>(null);
@@ -108,7 +107,6 @@ export default function Plans() {
     }
   });
 
-  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
   const [currentVideoBookName, setCurrentVideoBookName] = useState<string>('');
   const [currentVideoChapter, setCurrentVideoChapter] = useState<number>(1);
@@ -117,7 +115,7 @@ export default function Plans() {
   const [customChapterOverride, setCustomChapterOverride] = useState<number | null>(null);
   const [videoSource, setVideoSource] = useState<'plan' | 'custom'>('plan');
 
-  const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
+  const [chapterSubView, setChapterSubView] = useState<'verses' | 'tafsir' | 'lesson' | 'video'>('verses');
   const [lessonParts, setLessonParts] = useState<{ videoId: string; partNum: number; title: string }[]>([]);
   const [lessonLoading, setLessonLoading] = useState(false);
   const [lessonVideoId, setLessonVideoId] = useState<string | null>(null);
@@ -142,7 +140,7 @@ export default function Plans() {
   }, [viewMode, selectedPlan, selectedDay, currentReadingIndex, activeTab, showCustomChapter, customReadingIndex]);
 
   const dynamicSEO = useMemo(() => {
-    if (tafsirDialogOpen && tafsirBookName) {
+    if (chapterSubView === 'tafsir' && tafsirBookName) {
       if (tafsirDialogType === 'chapter') {
         return getTafsirSEO(tafsirBookName, tafsirChapter);
       } else if (tafsirDialogType === 'verse') {
@@ -152,7 +150,7 @@ export default function Plans() {
       }
     }
     return null;
-  }, [tafsirDialogOpen, tafsirDialogType, tafsirBookName, tafsirChapter, tafsirVerseNum]);
+  }, [chapterSubView, tafsirDialogType, tafsirBookName, tafsirChapter, tafsirVerseNum]);
 
   const handleListenClick = (bookName: string, chapter: number, source: 'plan' | 'custom' = 'plan') => {
     const videoId = getVideoId(bookName, chapter);
@@ -165,7 +163,7 @@ export default function Plans() {
     } else {
       setVideoReadingIndex(customReadingIndex);
     }
-    setVideoModalOpen(true);
+    setChapterSubView('video');
   };
 
   const getVideoReadingsList = () => {
@@ -328,6 +326,7 @@ export default function Plans() {
     if (dayData && currentReadingIndex < dayData.readings.length - 1) {
       setCurrentReadingIndex(currentReadingIndex + 1);
       setPlanChapterOverride(null);
+      setChapterSubView('verses');
     } else if (dayData && currentReadingIndex === dayData.readings.length - 1) {
       markDayCompleted();
     }
@@ -337,6 +336,7 @@ export default function Plans() {
     if (currentReadingIndex > 0) {
       setCurrentReadingIndex(currentReadingIndex - 1);
       setPlanChapterOverride(null);
+      setChapterSubView('verses');
     }
   };
 
@@ -375,6 +375,7 @@ export default function Plans() {
     if (customReadingIndex < customReadings.length - 1) {
       setCustomReadingIndex(customReadingIndex + 1);
       setCustomChapterOverride(null);
+      setChapterSubView('verses');
     }
   };
 
@@ -382,6 +383,7 @@ export default function Plans() {
     if (customReadingIndex > 0) {
       setCustomReadingIndex(customReadingIndex - 1);
       setCustomChapterOverride(null);
+      setChapterSubView('verses');
     }
   };
 
@@ -391,7 +393,7 @@ export default function Plans() {
     setLessonVideoId(null);
     setLessonParts([]);
     setLessonLoading(true);
-    setLessonDialogOpen(true);
+    setChapterSubView('lesson');
     try {
       const parts = await getDaoudLameiLessons(bookName, chapter);
       if (parts.length === 1) {
@@ -771,7 +773,7 @@ export default function Plans() {
               onClick={() => {
                 setTafsirDialogType('intro');
                 setTafsirBookName(currentReading.book);
-                setTafsirDialogOpen(true);
+                setChapterSubView('tafsir');
                 setTafsirText(null);
                 setTafsirLoading(true);
                 fetchBookIntro(currentReading.book)
@@ -791,7 +793,7 @@ export default function Plans() {
                 setTafsirDialogType('chapter');
                 setTafsirBookName(currentReading.book);
                 setTafsirChapter(planEffectiveChapter);
-                setTafsirDialogOpen(true);
+                setChapterSubView('tafsir');
                 setTafsirText(null);
                 setTafsirLoading(true);
                 fetchChapterTafsir(currentReading.book, planEffectiveChapter)
@@ -805,85 +807,199 @@ export default function Plans() {
             </Button>
           </div>
 
-          <div className="mb-6">
-            {versesLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-              </div>
-            ) : chapterVerses && chapterVerses.length > 0 ? (
-              <div className="space-y-4 p-2" dir="rtl">
-                {chapterVerses.map((verse) => (
-                  <div key={verse.id} className="group">
-                    <div className="flex gap-2">
-                      <span className="text-primary font-bold text-sm min-w-[2rem]">
-                        {verse.verse}
-                      </span>
-                      <p className="font-display text-xl md:text-2xl leading-loose text-foreground flex-1">
-                        {verse.text}
-                      </p>
-                      <button
-                        className="mt-2 px-3 py-1.5 rounded text-sm font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors shrink-0 whitespace-nowrap"
-                        onClick={() => {
-                          if (!currentReading) return;
-                          setTafsirDialogType('verse');
-                          setTafsirVerseNum(verse.verse);
-                          setTafsirBookName(currentReading.book);
-                          setTafsirChapter(planEffectiveChapter);
-                          setTafsirDialogOpen(true);
-                          setTafsirText(null);
-                          setTafsirLoading(true);
-                          fetchVerseTafsir(currentReading.book, planEffectiveChapter, verse.verse)
-                            .then(text => { setTafsirText(text); setTafsirLoading(false); })
-                            .catch(() => setTafsirLoading(false));
-                        }}
-                        data-testid={`button-verse-tafsir-${verse.verse}`}
-                      >
-                        تفسير الآية
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-12">
-                لا توجد آيات متاحة
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between gap-4 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={goToPrevReading}
-              disabled={currentReadingIndex === 0}
-              className="flex-1"
-              data-testid="button-prev-chapter"
-            >
-              <ArrowRight className="w-4 h-4 ml-2" />
-              السابق
+          {chapterSubView !== 'verses' && (
+            <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mb-4 w-full border-primary text-primary font-semibold">
+              <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
             </Button>
+          )}
 
-            {isLastReading ? (
-              <Button
-                onClick={goToNextReading}
-                disabled={isCompleted}
-                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                data-testid="button-finish-day"
-              >
-                <CheckCircle2 className="w-4 h-4 ml-2" />
-                {isCompleted ? 'مكتمل' : 'إنهاء اليوم'}
+          {chapterSubView === 'verses' && (
+            <div className="mb-6">
+              {versesLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                </div>
+              ) : chapterVerses && chapterVerses.length > 0 ? (
+                <div className="space-y-4 p-2" dir="rtl">
+                  {chapterVerses.map((verse) => (
+                    <div key={verse.id} className="group">
+                      <div className="flex gap-2">
+                        <span className="text-primary font-bold text-sm min-w-[2rem]">
+                          {verse.verse}
+                        </span>
+                        <p className="font-display text-xl md:text-2xl leading-loose text-foreground flex-1">
+                          {verse.text}
+                        </p>
+                        <button
+                          className="mt-2 px-3 py-1.5 rounded text-sm font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors shrink-0 whitespace-nowrap"
+                          onClick={() => {
+                            if (!currentReading) return;
+                            setTafsirDialogType('verse');
+                            setTafsirVerseNum(verse.verse);
+                            setTafsirBookName(currentReading.book);
+                            setTafsirChapter(planEffectiveChapter);
+                            setChapterSubView('tafsir');
+                            setTafsirText(null);
+                            setTafsirLoading(true);
+                            fetchVerseTafsir(currentReading.book, planEffectiveChapter, verse.verse)
+                              .then(text => { setTafsirText(text); setTafsirLoading(false); })
+                              .catch(() => setTafsirLoading(false));
+                          }}
+                          data-testid={`button-verse-tafsir-${verse.verse}`}
+                        >
+                          تفسير الآية
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-12">
+                  لا توجد آيات متاحة
+                </p>
+              )}
+            </div>
+          )}
+
+          {chapterSubView === 'tafsir' && (
+            <div className="mt-2" dir="rtl">
+              <h3 className="font-display text-lg font-semibold mb-4 text-center" data-testid="text-commentary-title">
+                {tafsirDialogType === 'intro'
+                  ? `مقدمة عن سفر ${tafsirBookName}`
+                  : tafsirDialogType === 'verse'
+                  ? `تفسير ${tafsirBookName} ${tafsirChapter}:${tafsirVerseNum}`
+                  : `تفسير ${tafsirBookName} - الإصحاح ${tafsirChapter}`}
+              </h3>
+              {tafsirLoading ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="mr-2 text-sm text-muted-foreground">جاري تحميل التفسير...</span>
+                </div>
+              ) : tafsirText ? (
+                <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" data-testid="text-tafsir-content">
+                  <TafsirText text={tafsirText} />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center p-4" data-testid="text-no-tafsir">لا يوجد تفسير متاح حاليًا.</p>
+              )}
+              <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
               </Button>
-            ) : (
+            </div>
+          )}
+
+          {chapterSubView === 'lesson' && (
+            <div className="mt-2">
+              <div className="flex items-center gap-2 mb-4">
+                <GraduationCap className="w-5 h-5 text-amber-500" />
+                <h3 className="font-display text-lg font-semibold">درس كتاب — {lessonBookName} {lessonChapterNum}</h3>
+              </div>
+              {lessonLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                </div>
+              ) : lessonVideoId && lessonParts.length === 0 ? (
+                <YouTubeCard videoId={lessonVideoId} title={lessonVideoTitle} />
+              ) : lessonParts.length > 1 && !lessonVideoId ? (
+                <div className="space-y-3 py-2">
+                  <p className="text-right text-sm text-muted-foreground font-display">اختر الجزء:</p>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {lessonParts.map((part, idx) => (
+                      <Button key={part.videoId} onClick={() => { setLessonVideoId(part.videoId); setLessonVideoTitle(part.title); setLessonParts([]); }}
+                        className="bg-gradient-to-r from-amber-600 to-amber-500 text-white min-w-[120px]"
+                        style={{ background: '#b45309', color: '#ffffff' }}
+                        data-testid={`button-plans-lesson-part-${idx + 1}`}>
+                        <GraduationCap className="w-4 h-4 ml-1" />الجزء {part.partNum}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground font-display space-y-3">
+                  <GraduationCap className="w-10 h-10 mx-auto text-amber-400 opacity-60" />
+                  <p className="text-base">لا يوجد شرح متاح حالياً</p>
+                </div>
+              )}
+              <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
+              </Button>
+            </div>
+          )}
+
+          {chapterSubView === 'video' && (
+            <div className="mt-2">
+              <h3 className="font-display text-lg font-semibold mb-4 text-center">
+                استمع للإصحاح — {currentVideoBookName} {currentVideoChapter}
+              </h3>
+              {currentVideoId ? (
+                <YouTubeCard videoId={currentVideoId} />
+              ) : (
+                <div className="aspect-video flex items-center justify-center bg-muted rounded-lg">
+                  <p className="text-muted-foreground text-center p-8 font-display">لا توجد ملفات صوتية أو مرئية لهذا الإصحاح</p>
+                </div>
+              )}
+              <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
+              </Button>
+              <div className="flex items-center justify-between gap-3 pt-3 mt-3 border-t">
+                <Button variant="outline" onClick={goToVideoPrevReading} disabled={videoReadingIndex <= 0} className="flex-1" data-testid="button-video-prev-reading">
+                  <ChevronRight className="w-4 h-4 ml-2" />السابق
+                </Button>
+                <span className="text-xs text-muted-foreground shrink-0">{currentVideoBookName} {currentVideoChapter}</span>
+                {videoSource === 'plan' && videoReadingIndex >= getVideoReadingsList().length - 1 ? (
+                  <Button
+                    onClick={() => { markDayCompleted(); setChapterSubView('verses'); setCurrentVideoId(null); }}
+                    disabled={selectedPlan ? getProgressForPlan(selectedPlan.id)?.completedDays.includes(selectedDay) : false}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600"
+                    data-testid="button-video-finish-day"
+                  >
+                    <CheckCircle2 className="w-4 h-4 ml-2" />
+                    {selectedPlan && getProgressForPlan(selectedPlan.id)?.completedDays.includes(selectedDay) ? 'مكتمل' : 'إنهاء اليوم'}
+                  </Button>
+                ) : (
+                  <Button onClick={goToVideoNextReading} disabled={videoReadingIndex >= getVideoReadingsList().length - 1} className="flex-1" data-testid="button-video-next-reading">
+                    التالي<ChevronLeft className="w-4 h-4 mr-2" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {chapterSubView === 'verses' && (
+            <div className="flex items-center justify-between gap-4 pt-4 border-t">
               <Button
-                onClick={goToNextReading}
+                variant="outline"
+                onClick={goToPrevReading}
+                disabled={currentReadingIndex === 0}
                 className="flex-1"
-                data-testid="button-next-chapter"
+                data-testid="button-prev-chapter"
               >
-                التالي
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowRight className="w-4 h-4 ml-2" />
+                السابق
               </Button>
-            )}
-          </div>
+
+              {isLastReading ? (
+                <Button
+                  onClick={goToNextReading}
+                  disabled={isCompleted}
+                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                  data-testid="button-finish-day"
+                >
+                  <CheckCircle2 className="w-4 h-4 ml-2" />
+                  {isCompleted ? 'مكتمل' : 'إنهاء اليوم'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={goToNextReading}
+                  className="flex-1"
+                  data-testid="button-next-chapter"
+                >
+                  التالي
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                </Button>
+              )}
+            </div>
+          )}
         </Card>
       </motion.div>
     );
@@ -947,7 +1063,7 @@ export default function Plans() {
                 onClick={() => {
                   setTafsirDialogType('intro');
                   setTafsirBookName(customCurrentReading.bookName);
-                  setTafsirDialogOpen(true);
+                  setChapterSubView('tafsir');
                   setTafsirText(null);
                   setTafsirLoading(true);
                   fetchBookIntro(customCurrentReading.bookName)
@@ -966,7 +1082,7 @@ export default function Plans() {
                   setTafsirDialogType('chapter');
                   setTafsirBookName(customCurrentReading.bookName);
                   setTafsirChapter(customEffectiveChapter);
-                  setTafsirDialogOpen(true);
+                  setChapterSubView('tafsir');
                   setTafsirText(null);
                   setTafsirLoading(true);
                   fetchChapterTafsir(customCurrentReading.bookName, customEffectiveChapter)
@@ -980,72 +1096,174 @@ export default function Plans() {
               </Button>
             </div>
 
-            <div className="mb-6">
-              {customVersesLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-                </div>
-              ) : customChapterVerses && customChapterVerses.length > 0 ? (
-                <div className="space-y-4 p-2" dir="rtl">
-                  {customChapterVerses.map((verse) => (
-                    <div key={verse.id} className="group">
-                      <div className="flex gap-2">
-                        <span className="text-primary font-bold text-sm min-w-[2rem]">
-                          {verse.verse}
-                        </span>
-                        <p className="font-display text-xl md:text-2xl leading-loose text-foreground flex-1">
-                          {verse.text}
-                        </p>
-                        <button
-                          className="mt-2 px-3 py-1.5 rounded text-sm font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors shrink-0 whitespace-nowrap"
-                          onClick={() => {
-                            if (!customCurrentReading) return;
-                            setTafsirDialogType('verse');
-                            setTafsirVerseNum(verse.verse);
-                            setTafsirBookName(customCurrentReading.bookName);
-                            setTafsirChapter(customEffectiveChapter);
-                            setTafsirDialogOpen(true);
-                            setTafsirText(null);
-                            setTafsirLoading(true);
-                            fetchVerseTafsir(customCurrentReading.bookName, customEffectiveChapter, verse.verse)
-                              .then(text => { setTafsirText(text); setTafsirLoading(false); })
-                              .catch(() => setTafsirLoading(false));
-                          }}
-                          data-testid={`button-custom-verse-tafsir-${verse.verse}`}
-                        >
-                          تفسير الآية
-                        </button>
+            {chapterSubView !== 'verses' && (
+              <Button variant="ghost" size="sm" onClick={() => setChapterSubView('verses')} className="mb-4 text-primary">
+                <ChevronLeft className="w-4 h-4 ml-1" />رجوع للآيات
+              </Button>
+            )}
+
+            {chapterSubView === 'verses' && (
+              <div className="mb-6">
+                {customVersesLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : customChapterVerses && customChapterVerses.length > 0 ? (
+                  <div className="space-y-4 p-2" dir="rtl">
+                    {customChapterVerses.map((verse) => (
+                      <div key={verse.id} className="group">
+                        <div className="flex gap-2">
+                          <span className="text-primary font-bold text-sm min-w-[2rem]">
+                            {verse.verse}
+                          </span>
+                          <p className="font-display text-xl md:text-2xl leading-loose text-foreground flex-1">
+                            {verse.text}
+                          </p>
+                          <button
+                            className="mt-2 px-3 py-1.5 rounded text-sm font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors shrink-0 whitespace-nowrap"
+                            onClick={() => {
+                              if (!customCurrentReading) return;
+                              setTafsirDialogType('verse');
+                              setTafsirVerseNum(verse.verse);
+                              setTafsirBookName(customCurrentReading.bookName);
+                              setTafsirChapter(customEffectiveChapter);
+                              setChapterSubView('tafsir');
+                              setTafsirText(null);
+                              setTafsirLoading(true);
+                              fetchVerseTafsir(customCurrentReading.bookName, customEffectiveChapter, verse.verse)
+                                .then(text => { setTafsirText(text); setTafsirLoading(false); })
+                                .catch(() => setTafsirLoading(false));
+                            }}
+                            data-testid={`button-custom-verse-tafsir-${verse.verse}`}
+                          >
+                            تفسير الآية
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground py-12">
+                    لا توجد آيات متاحة
+                  </p>
+                )}
+              </div>
+            )}
+
+            {chapterSubView === 'tafsir' && (
+              <div className="mt-2" dir="rtl">
+                <h3 className="font-display text-lg font-semibold mb-4 text-center" data-testid="text-commentary-title">
+                  {tafsirDialogType === 'intro'
+                    ? `مقدمة عن سفر ${tafsirBookName}`
+                    : tafsirDialogType === 'verse'
+                    ? `تفسير ${tafsirBookName} ${tafsirChapter}:${tafsirVerseNum}`
+                    : `تفسير ${tafsirBookName} - الإصحاح ${tafsirChapter}`}
+                </h3>
+                {tafsirLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <span className="mr-2 text-sm text-muted-foreground">جاري تحميل التفسير...</span>
+                  </div>
+                ) : tafsirText ? (
+                  <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" data-testid="text-tafsir-content">
+                    <TafsirText text={tafsirText} />
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center p-4" data-testid="text-no-tafsir">لا يوجد تفسير متاح حاليًا.</p>
+                )}
+                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                  <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
+                </Button>
+              </div>
+            )}
+
+            {chapterSubView === 'lesson' && (
+              <div className="mt-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <GraduationCap className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-display text-lg font-semibold">درس كتاب — {lessonBookName} {lessonChapterNum}</h3>
                 </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-12">
-                  لا توجد آيات متاحة
-                </p>
-              )}
-            </div>
+                {lessonLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                  </div>
+                ) : lessonVideoId && lessonParts.length === 0 ? (
+                  <YouTubeCard videoId={lessonVideoId} title={lessonVideoTitle} />
+                ) : lessonParts.length > 1 && !lessonVideoId ? (
+                  <div className="space-y-3 py-2">
+                    <p className="text-right text-sm text-muted-foreground font-display">اختر الجزء:</p>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                      {lessonParts.map((part, idx) => (
+                        <Button key={part.videoId} onClick={() => { setLessonVideoId(part.videoId); setLessonVideoTitle(part.title); setLessonParts([]); }}
+                          className="bg-gradient-to-r from-amber-600 to-amber-500 text-white min-w-[120px]"
+                          style={{ background: '#b45309', color: '#ffffff' }}
+                          data-testid={`button-plans-lesson-part-${idx + 1}`}>
+                          <GraduationCap className="w-4 h-4 ml-1" />الجزء {part.partNum}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-muted-foreground font-display space-y-3">
+                    <GraduationCap className="w-10 h-10 mx-auto text-amber-400 opacity-60" />
+                    <p className="text-base">لا يوجد شرح متاح حالياً</p>
+                  </div>
+                )}
+                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                  <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
+                </Button>
+              </div>
+            )}
 
-            <div className="flex items-center justify-between gap-4 pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={goToPrevCustomReading}
-                disabled={customReadingIndex === 0}
-                className="flex-1"
-              >
-                <ArrowRight className="w-4 h-4 ml-2" />
-                السابق
-              </Button>
+            {chapterSubView === 'video' && (
+              <div className="mt-2">
+                <h3 className="font-display text-lg font-semibold mb-4 text-center">
+                  استمع للإصحاح — {currentVideoBookName} {currentVideoChapter}
+                </h3>
+                {currentVideoId ? (
+                  <YouTubeCard videoId={currentVideoId} />
+                ) : (
+                  <div className="aspect-video flex items-center justify-center bg-muted rounded-lg">
+                    <p className="text-muted-foreground text-center p-8 font-display">لا توجد ملفات صوتية أو مرئية لهذا الإصحاح</p>
+                  </div>
+                )}
+                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                  <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
+                </Button>
+                <div className="flex items-center justify-between gap-3 pt-3 mt-3 border-t">
+                  <Button variant="outline" onClick={goToVideoPrevReading} disabled={videoReadingIndex <= 0} className="flex-1" data-testid="button-video-prev-reading">
+                    <ChevronRight className="w-4 h-4 ml-2" />السابق
+                  </Button>
+                  <span className="text-xs text-muted-foreground shrink-0">{currentVideoBookName} {currentVideoChapter}</span>
+                  <Button onClick={goToVideoNextReading} disabled={videoReadingIndex >= getVideoReadingsList().length - 1} className="flex-1" data-testid="button-video-next-reading">
+                    التالي<ChevronLeft className="w-4 h-4 mr-2" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
-              <Button
-                onClick={goToNextCustomReading}
-                disabled={customReadingIndex >= customReadings.length - 1}
-                className="flex-1"
-              >
-                التالي
-                <ArrowLeft className="w-4 h-4 mr-2" />
-              </Button>
-            </div>
+            {chapterSubView === 'verses' && (
+              <div className="flex items-center justify-between gap-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={goToPrevCustomReading}
+                  disabled={customReadingIndex === 0}
+                  className="flex-1"
+                >
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                  السابق
+                </Button>
+
+                <Button
+                  onClick={goToNextCustomReading}
+                  disabled={customReadingIndex >= customReadings.length - 1}
+                  className="flex-1"
+                >
+                  التالي
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                </Button>
+              </div>
+            )}
           </Card>
         </motion.div>
       ) : (
@@ -1206,154 +1424,6 @@ export default function Plans() {
         </Tabs>
       </motion.div>
 
-      <Dialog open={tafsirDialogOpen} onOpenChange={setTafsirDialogOpen}>
-        <DialogContent className="max-w-md flex flex-col overflow-hidden" style={{ top: '48px', transform: 'translateX(-50%)', maxHeight: (window.innerHeight - 80) + 'px' }} data-testid="dialog-commentary">
-          <DialogHeader>
-            <DialogTitle className="text-right font-display" data-testid="text-commentary-title">
-              {tafsirDialogType === 'intro'
-                ? `مقدمة عن سفر ${tafsirBookName}`
-                : tafsirDialogType === 'verse'
-                ? `تفسير ${tafsirBookName} ${tafsirChapter}:${tafsirVerseNum}`
-                : `تفسير ${tafsirBookName} - الإصحاح ${tafsirChapter}`}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-right flex-1 overflow-hidden flex flex-col">
-            {tafsirLoading ? (
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                <span className="mr-2 text-sm text-muted-foreground">جاري تحميل التفسير...</span>
-              </div>
-            ) : tafsirText ? (
-              <div className="flex-1 overflow-y-auto min-h-0" style={{ maxHeight: (window.innerHeight - 220) + 'px', WebkitOverflowScrolling: 'touch' }}>
-                <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" dir="rtl" data-testid="text-tafsir-content">
-                    <TafsirText text={tafsirText} />
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center p-4" data-testid="text-no-tafsir">
-                لا يوجد تفسير متاح حاليًا.
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Daoud Lamei Lesson Dialog */}
-      <Dialog open={lessonDialogOpen} onOpenChange={(open) => { setLessonDialogOpen(open); if (!open) { setLessonVideoId(null); setLessonParts([]); } }}>
-        <DialogContent className="max-w-3xl overflow-y-auto" style={{ top: '48px', transform: 'translateX(-50%)', maxHeight: (window.innerHeight - 80) + 'px' }} data-testid="dialog-lesson-plans">
-          <DialogHeader>
-            <DialogTitle className="text-right font-display">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-amber-500" />
-                درس كتاب — {lessonBookName} الإصحاح {lessonChapterNum}
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-
-          {lessonLoading && (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-            </div>
-          )}
-
-          {!lessonLoading && !lessonVideoId && lessonParts.length === 0 && (
-            <div className="py-8 text-center text-muted-foreground font-display space-y-3">
-              <GraduationCap className="w-10 h-10 mx-auto text-amber-400 opacity-60" />
-              <p className="text-base">لا يوجد شرح متاح حالياً</p>
-              <p className="text-sm opacity-60">قد يكون الدرس غير منشور بعد أو خارج نطاق آخر تحديث</p>
-            </div>
-          )}
-
-          {!lessonLoading && lessonVideoId && lessonParts.length === 0 && (
-            <YouTubeCard videoId={lessonVideoId} title={lessonVideoTitle} />
-          )}
-
-          {!lessonLoading && lessonParts.length > 1 && !lessonVideoId && (
-            <div className="space-y-3 py-2">
-              <p className="text-right text-sm text-muted-foreground font-display">اختر الجزء الذي تريد مشاهدته:</p>
-              <div className="flex flex-wrap gap-3 justify-center">
-                {lessonParts.map((part, idx) => (
-                  <Button
-                    key={part.videoId}
-                    onClick={() => { setLessonVideoId(part.videoId); setLessonVideoTitle(part.title); setLessonParts([]); }}
-                    className="bg-gradient-to-r from-amber-600 to-amber-500 text-white min-w-[120px]"
-                    data-testid={`button-plans-lesson-part-${idx + 1}`}
-                  >
-                    <GraduationCap className="w-4 h-4 ml-1" />
-                    الجزء {part.partNum}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={videoModalOpen} onOpenChange={(open) => { setVideoModalOpen(open); if (!open) setCurrentVideoId(null); }}>
-        <DialogContent className="max-w-3xl overflow-y-auto" style={{ top: '48px', transform: 'translateX(-50%)', maxHeight: (window.innerHeight - 80) + 'px' }}>
-          <DialogHeader>
-            <DialogTitle className="text-right font-display flex items-center justify-between">
-              <span>استمع للإصحاح - {currentVideoBookName} {currentVideoChapter}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setVideoModalOpen(false)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
-          {currentVideoId ? (
-            <YouTubeCard videoId={currentVideoId} />
-          ) : (
-            <div className="aspect-video flex items-center justify-center bg-muted rounded-lg">
-              <p className="text-muted-foreground text-center p-8 font-display">
-                لا توجد ملفات صوتية أو مرئية لهذا الإصحاح حالياً
-              </p>
-            </div>
-          )}
-          <div className="flex items-center justify-between gap-3 pt-3 border-t">
-            <Button
-              variant="outline"
-              onClick={goToVideoPrevReading}
-              disabled={videoReadingIndex <= 0}
-              className="flex-1"
-              data-testid="button-video-prev-reading"
-            >
-              <ChevronRight className="w-4 h-4 ml-2" />
-              السابق
-            </Button>
-            <span className="text-sm text-muted-foreground font-medium shrink-0 text-center leading-tight">
-              {currentVideoBookName} {currentVideoChapter}
-            </span>
-            {videoSource === 'plan' && videoReadingIndex >= getVideoReadingsList().length - 1 ? (
-              <Button
-                onClick={() => {
-                  markDayCompleted();
-                  setVideoModalOpen(false);
-                  setCurrentVideoId(null);
-                }}
-                disabled={selectedPlan ? getProgressForPlan(selectedPlan.id)?.completedDays.includes(selectedDay) : false}
-                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                data-testid="button-video-finish-day"
-              >
-                <CheckCircle2 className="w-4 h-4 ml-2" />
-                {selectedPlan && getProgressForPlan(selectedPlan.id)?.completedDays.includes(selectedDay) ? 'مكتمل' : 'إنهاء اليوم'}
-              </Button>
-            ) : (
-              <Button
-                onClick={goToVideoNextReading}
-                disabled={videoReadingIndex >= getVideoReadingsList().length - 1}
-                className="flex-1"
-                data-testid="button-video-next-reading"
-              >
-                التالي
-                <ChevronLeft className="w-4 h-4 mr-2" />
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
