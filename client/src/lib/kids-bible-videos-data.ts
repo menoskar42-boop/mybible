@@ -488,6 +488,13 @@ const kidsHymns: KidsVideo[] = [
     keywords: ["ترنيمة", "ميلاد يسوع", "الكريسماس", "بالحركات", "عيد"],
     category: "ترانيم للأطفال",
   },
+  {
+    id: "hymn-yousef-el-najjar",
+    title: "يوسف النجار ده كان نجار (كرتون)",
+    youtubeId: "RYu1cvQL9eo",
+    keywords: ["ترنيمة", "يوسف النجار", "نجار", "كرتون", "TaranemToon"],
+    category: "ترانيم للأطفال",
+  },
 ];
 
 // Combined list: hymns first, then stories/videos
