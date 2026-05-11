@@ -458,7 +458,7 @@ export default function Bible() {
         )}
 
       <Dialog open={readerDialogOpen} onOpenChange={(open) => { setReaderDialogOpen(open); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0" style={{ maxHeight: 'calc(90vh - 70px)' }} data-testid="dialog-bible-reader">
+        <DialogContent className="max-w-2xl flex flex-col p-0" style={{ maxHeight: (window.innerHeight - 130) + 'px' }} data-testid="dialog-bible-reader">
           <DialogHeader className="p-4 pb-2 border-b">
             <div className="flex items-center justify-between">
               <Button variant="ghost" size="sm" onClick={() => setReaderDialogOpen(false)}>
@@ -672,7 +672,7 @@ export default function Bible() {
       </Dialog>
 
         <Dialog open={tafsirDialogOpen} onOpenChange={setTafsirDialogOpen}>
-          <DialogContent className="max-w-md max-h-[85vh] flex flex-col" data-testid="dialog-commentary">
+          <DialogContent className="max-w-md flex flex-col" style={{ maxHeight: (window.innerHeight - 100) + 'px' }} data-testid="dialog-commentary">
             <DialogHeader>
               <DialogTitle className="text-right font-display" data-testid="text-commentary-title">
                 {tafsirDialogType === 'intro'
@@ -689,7 +689,7 @@ export default function Bible() {
                   <span className="mr-2 text-sm text-muted-foreground">جاري تحميل التفسير...</span>
                 </div>
               ) : tafsirText ? (
-                <div className="flex-1 overflow-y-auto min-h-0" style={{ maxHeight: '60vh' }}>
+                <div className="flex-1 overflow-y-auto min-h-0" style={{ maxHeight: (window.innerHeight - 220) + 'px' }}>
                   <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" dir="rtl" data-testid="text-tafsir-content">
                     <TafsirText text={tafsirText} />
                   </div>
@@ -705,7 +705,7 @@ export default function Bible() {
 
         {/* Daoud Lamei Lesson Dialog */}
         <Dialog open={lessonDialogOpen} onOpenChange={(open) => { setLessonDialogOpen(open); if (!open) { setLessonVideoId(null); setLessonParts([]); } }}>
-          <DialogContent className="max-w-3xl" data-testid="dialog-lesson">
+          <DialogContent className="max-w-3xl overflow-y-auto" style={{ maxHeight: (window.innerHeight - 100) + 'px' }} data-testid="dialog-lesson">
             <DialogHeader>
               <DialogTitle className="text-right font-display flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -768,7 +768,7 @@ export default function Bible() {
         </Dialog>
 
         <Dialog open={videoModalOpen} onOpenChange={(open) => { setVideoModalOpen(open); if (!open) setCurrentVideoId(null); }}>
-          <DialogContent className="max-w-3xl" data-testid="dialog-bible-video">
+          <DialogContent className="max-w-3xl overflow-y-auto" style={{ maxHeight: (window.innerHeight - 100) + 'px' }} data-testid="dialog-bible-video">
             <DialogHeader>
               <DialogTitle className="text-right font-display flex items-center justify-between">
                 <span>استمع للإصحاح - {selectedBook?.name} {selectedChapter}</span>
