@@ -483,13 +483,12 @@ export default function Bible() {
 
             {chapterSubView !== 'verses' && (
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
                 onClick={() => setChapterSubView('verses')}
-                className="mb-4 text-primary"
+                className="mb-4 w-full border-primary text-primary font-semibold"
                 data-testid="button-back-to-verses"
               >
-                <ChevronLeft className="w-4 h-4 ml-1" />
+                <ChevronLeft className="w-5 h-5 ml-1" />
                 رجوع للآيات
               </Button>
             )}
@@ -687,6 +686,9 @@ export default function Bible() {
                 ) : (
                   <p className="text-sm text-muted-foreground text-center p-4" data-testid="text-no-tafsir">لا يوجد تفسير متاح حاليًا.</p>
                 )}
+                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                  <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
+                </Button>
               </div>
             )}
 
@@ -731,6 +733,9 @@ export default function Bible() {
                     <p className="text-base">لا يوجد شرح متاح حالياً</p>
                   </div>
                 )}
+                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                  <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
+                </Button>
               </div>
             )}
 
@@ -747,6 +752,9 @@ export default function Bible() {
                     <p className="text-muted-foreground text-center p-8 font-display">لا توجد ملفات صوتية أو مرئية لهذا الإصحاح</p>
                   </div>
                 )}
+                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                  <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
+                </Button>
                 <div className="flex items-center justify-between gap-3 pt-3 mt-3 border-t">
                   <Button variant="outline" onClick={goToVideoPrevChapter} disabled={!!isFirstChapterOfFirstBook} className="flex-1" data-testid="button-video-prev-chapter">
                     <ChevronRight className="w-4 h-4 ml-2" />السابق
