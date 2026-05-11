@@ -1207,7 +1207,7 @@ export default function Plans() {
       </motion.div>
 
       <Dialog open={tafsirDialogOpen} onOpenChange={setTafsirDialogOpen}>
-        <DialogContent className="max-w-md flex flex-col" style={{ maxHeight: (window.innerHeight - 100) + 'px' }} data-testid="dialog-commentary">
+        <DialogContent className="max-w-md flex flex-col overflow-hidden" style={{ top: '48px', transform: 'translateX(-50%)', maxHeight: (window.innerHeight - 80) + 'px' }} data-testid="dialog-commentary">
           <DialogHeader>
             <DialogTitle className="text-right font-display" data-testid="text-commentary-title">
               {tafsirDialogType === 'intro'
@@ -1224,7 +1224,7 @@ export default function Plans() {
                 <span className="mr-2 text-sm text-muted-foreground">جاري تحميل التفسير...</span>
               </div>
             ) : tafsirText ? (
-              <div className="flex-1 overflow-y-auto min-h-0" style={{ maxHeight: (window.innerHeight - 220) + 'px' }}>
+              <div className="flex-1 overflow-y-auto min-h-0" style={{ maxHeight: (window.innerHeight - 220) + 'px', WebkitOverflowScrolling: 'touch' }}>
                 <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" dir="rtl" data-testid="text-tafsir-content">
                     <TafsirText text={tafsirText} />
                 </div>
@@ -1240,7 +1240,7 @@ export default function Plans() {
 
       {/* Daoud Lamei Lesson Dialog */}
       <Dialog open={lessonDialogOpen} onOpenChange={(open) => { setLessonDialogOpen(open); if (!open) { setLessonVideoId(null); setLessonParts([]); } }}>
-        <DialogContent className="max-w-3xl overflow-y-auto" style={{ maxHeight: (window.innerHeight - 100) + 'px' }} data-testid="dialog-lesson-plans">
+        <DialogContent className="max-w-3xl overflow-y-auto" style={{ top: '48px', transform: 'translateX(-50%)', maxHeight: (window.innerHeight - 80) + 'px' }} data-testid="dialog-lesson-plans">
           <DialogHeader>
             <DialogTitle className="text-right font-display">
               <div className="flex items-center gap-2">
@@ -1290,7 +1290,7 @@ export default function Plans() {
       </Dialog>
 
       <Dialog open={videoModalOpen} onOpenChange={(open) => { setVideoModalOpen(open); if (!open) setCurrentVideoId(null); }}>
-        <DialogContent className="max-w-3xl overflow-y-auto" style={{ maxHeight: (window.innerHeight - 100) + 'px' }}>
+        <DialogContent className="max-w-3xl overflow-y-auto" style={{ top: '48px', transform: 'translateX(-50%)', maxHeight: (window.innerHeight - 80) + 'px' }}>
           <DialogHeader>
             <DialogTitle className="text-right font-display flex items-center justify-between">
               <span>استمع للإصحاح - {currentVideoBookName} {currentVideoChapter}</span>
