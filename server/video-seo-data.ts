@@ -75,7 +75,7 @@ const KIDS_HYMNS: { youtubeId: string; title: string }[] = [
   { youtubeId: "QlcnGtNH7As", title: "صباح الخير يا بابا يسوع - ترنيمة أطفال" },
   { youtubeId: "_tMPWSGEu_U", title: "إنت عظيم - ترنيمة أطفال" },
   { youtubeId: "sOxYBvaGi_s", title: "قصة ميلادك يا يسوع - ترنيمة أطفال" },
-  { youtubeId: "RYu1cvQL9eo", title: "ترنيمة أطفال" },
+  { youtubeId: "RYu1cvQL9eo", title: "يوسف النجار ده كان نجار (كرتون) - ترنيمة أطفال" },
 ];
 
 // Kids Bible story videos
