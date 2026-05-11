@@ -747,6 +747,7 @@ export default function Plans() {
               size="sm"
               onClick={() => handleListenClick(currentReading.book, planEffectiveChapter, 'plan')}
               className="gap-2 bg-gradient-to-r from-primary to-primary/80"
+              style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
               data-testid="button-listen-chapter"
             >
               <Volume2 className="w-4 h-4" />
@@ -757,6 +758,7 @@ export default function Plans() {
               onClick={() => handleLessonClick(currentReading.book, planEffectiveChapter)}
               disabled={lessonLoading}
               className="gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white"
+              style={{ background: '#b45309', color: '#ffffff' }}
               data-testid="button-lesson-plan"
             >
               {lessonLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GraduationCap className="w-4 h-4" />}
@@ -765,6 +767,7 @@ export default function Plans() {
             <Button
               size="sm"
               className="gap-2 bg-gradient-to-r from-primary to-primary/80"
+              style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
               onClick={() => {
                 setTafsirDialogType('intro');
                 setTafsirBookName(currentReading.book);
@@ -783,6 +786,7 @@ export default function Plans() {
             <Button
               size="sm"
               className="gap-2 bg-gradient-to-r from-primary to-primary/80"
+              style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
               onClick={() => {
                 setTafsirDialogType('chapter');
                 setTafsirBookName(currentReading.book);
