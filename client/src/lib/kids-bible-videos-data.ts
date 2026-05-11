@@ -488,6 +488,13 @@ const kidsHymns: KidsVideo[] = [
     keywords: ["ترنيمة", "ميلاد يسوع", "الكريسماس", "بالحركات", "عيد"],
     category: "ترانيم للأطفال",
   },
+  {
+    id: "hymn-RYu1cvQL9eo",
+    title: "ترنيمة أطفال",
+    youtubeId: "RYu1cvQL9eo",
+    keywords: ["ترنيمة", "أطفال", "تسبيح"],
+    category: "ترانيم للأطفال",
+  },
 ];
 
 // Combined list: hymns first, then stories/videos
