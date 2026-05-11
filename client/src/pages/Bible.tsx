@@ -458,7 +458,7 @@ export default function Bible() {
         )}
 
       <Dialog open={readerDialogOpen} onOpenChange={(open) => { setReaderDialogOpen(open); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0" data-testid="dialog-bible-reader">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0" style={{ maxHeight: 'calc(90vh - 70px)' }} data-testid="dialog-bible-reader">
           <DialogHeader className="p-4 pb-2 border-b">
             <div className="flex items-center justify-between">
               <Button variant="ghost" size="sm" onClick={() => setReaderDialogOpen(false)}>
@@ -486,6 +486,7 @@ export default function Bible() {
                     size="sm"
                     onClick={handleListenClick}
                     className="bg-gradient-to-r from-primary to-primary/80"
+                    style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
                     data-testid="button-listen-chapter"
                   >
                     <Volume2 className="w-4 h-4 ml-1" />
@@ -496,6 +497,7 @@ export default function Bible() {
                     onClick={handleLessonClick}
                     disabled={lessonLoading}
                     className="bg-gradient-to-r from-amber-600 to-amber-500 text-white"
+                    style={{ background: '#b45309', color: '#ffffff' }}
                     data-testid="button-lesson-chapter"
                   >
                     {lessonLoading
@@ -517,6 +519,7 @@ export default function Bible() {
                         .catch(() => setTafsirLoading(false));
                     }}
                     className="bg-gradient-to-r from-primary to-primary/80"
+                    style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
                     data-testid="button-book-intro"
                   >
                     <BookOpen className="w-4 h-4 ml-1" />
@@ -535,6 +538,7 @@ export default function Bible() {
                         .catch(() => setTafsirLoading(false));
                     }}
                     className="bg-gradient-to-r from-primary to-primary/80"
+                    style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
                     data-testid="button-chapter-tafsir"
                   >
                     <BookText className="w-4 h-4 ml-1" />
