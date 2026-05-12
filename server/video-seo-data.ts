@@ -79,7 +79,7 @@ const KIDS_HYMNS: { youtubeId: string; title: string }[] = [
   { youtubeId: "zMJNEBXgQkA", title: "يسوع زي السكر (كارتون) - ترنيمة أطفال" },
   { youtubeId: "nvg4WKV-9KY", title: "طول ما الشمس فيها نور (كارتون) - ترنيمة أطفال" },
   { youtubeId: "8Zk560IfbB8", title: "حنته حاجه حلوه قد البندقه (كارتون) - ترنيمة أطفال" },
-  { youtubeId: "_pFl48QUJ1A", title: "كنيستى هى بيتى (كارتون كوجي) - ترنيمة أطفال" },
+  { youtubeId: "6zkkT6OEP1c", title: "كنيستى هى بيتى (كارتون كوجي) - ترنيمة أطفال" },
   { youtubeId: "DqsMQb9VCDw", title: "حبة قش (كارتون كوجي) - ترنيمة أطفال" },
 ];
 

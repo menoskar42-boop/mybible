@@ -519,7 +519,7 @@ const kidsHymns: KidsVideo[] = [
   {
     id: "hymn-keniesty-hiya-beyty",
     title: "كنيستى هى بيتى (كارتون كوجي)",
-    youtubeId: "_pFl48QUJ1A",
+    youtubeId: "6zkkT6OEP1c",
     keywords: ["ترنيمة", "كنيستى", "بيتى", "كوجي", "كارتون"],
     category: "ترانيم للأطفال",
   },
