@@ -495,6 +495,41 @@ const kidsHymns: KidsVideo[] = [
     keywords: ["ترنيمة", "يوسف النجار", "نجار", "كرتون", "TaranemToon"],
     category: "ترانيم للأطفال",
   },
+  {
+    id: "hymn-yesoa-zay-el-sokar",
+    title: "يسوع زي السكر (كارتون)",
+    youtubeId: "zMJNEBXgQkA",
+    keywords: ["ترنيمة", "يسوع زي السكر", "كارتون", "الحياة الأفضل", "محبة"],
+    category: "ترانيم للأطفال",
+  },
+  {
+    id: "hymn-tool-ma-el-shams",
+    title: "طول ما الشمس فيها نور (كارتون)",
+    youtubeId: "nvg4WKV-9KY",
+    keywords: ["ترنيمة", "طول ما الشمس فيها نور", "كارتون", "نور", "شمس"],
+    category: "ترانيم للأطفال",
+  },
+  {
+    id: "hymn-hanta-hagga-helwa",
+    title: "حنته حاجه حلوه قد البندقه (كارتون)",
+    youtubeId: "8Zk560IfbB8",
+    keywords: ["ترنيمة", "حنته", "حاجه حلوه", "البندقه", "كارتون"],
+    category: "ترانيم للأطفال",
+  },
+  {
+    id: "hymn-keniesty-hiya-beyty",
+    title: "كنيستى هى بيتى (كارتون كوجي)",
+    youtubeId: "_pFl48QUJ1A",
+    keywords: ["ترنيمة", "كنيستى", "بيتى", "كوجي", "كارتون"],
+    category: "ترانيم للأطفال",
+  },
+  {
+    id: "hymn-habbet-ash",
+    title: "حبة قش (كارتون كوجي)",
+    youtubeId: "DqsMQb9VCDw",
+    keywords: ["ترنيمة", "حبة قش", "كوجي", "كارتون", "تواضع"],
+    category: "ترانيم للأطفال",
+  },
 ];
 
 // Combined list: hymns first, then stories/videos

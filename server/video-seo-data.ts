@@ -76,6 +76,11 @@ const KIDS_HYMNS: { youtubeId: string; title: string }[] = [
   { youtubeId: "_tMPWSGEu_U", title: "إنت عظيم - ترنيمة أطفال" },
   { youtubeId: "sOxYBvaGi_s", title: "قصة ميلادك يا يسوع - ترنيمة أطفال" },
   { youtubeId: "RYu1cvQL9eo", title: "يوسف النجار ده كان نجار (كرتون) - ترنيمة أطفال" },
+  { youtubeId: "zMJNEBXgQkA", title: "يسوع زي السكر (كارتون) - ترنيمة أطفال" },
+  { youtubeId: "nvg4WKV-9KY", title: "طول ما الشمس فيها نور (كارتون) - ترنيمة أطفال" },
+  { youtubeId: "8Zk560IfbB8", title: "حنته حاجه حلوه قد البندقه (كارتون) - ترنيمة أطفال" },
+  { youtubeId: "_pFl48QUJ1A", title: "كنيستى هى بيتى (كارتون كوجي) - ترنيمة أطفال" },
+  { youtubeId: "DqsMQb9VCDw", title: "حبة قش (كارتون كوجي) - ترنيمة أطفال" },
 ];
 
 // Kids Bible story videos
