@@ -876,7 +876,7 @@ export default function Plans() {
                   <span className="mr-2 text-sm text-muted-foreground">جاري تحميل التفسير...</span>
                 </div>
               ) : tafsirText ? (
-                <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" data-testid="text-tafsir-content">
+                <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" style={{ background: 'rgba(155, 40, 65, 0.06)' }} data-testid="text-tafsir-content">
                   <TafsirText text={tafsirText} />
                 </div>
               ) : (
@@ -1165,7 +1165,7 @@ export default function Plans() {
                     <span className="mr-2 text-sm text-muted-foreground">جاري تحميل التفسير...</span>
                   </div>
                 ) : tafsirText ? (
-                  <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" data-testid="text-tafsir-content">
+                  <div className="p-4 bg-primary/5 rounded-lg whitespace-pre-wrap text-lg leading-loose font-body" style={{ background: 'rgba(155, 40, 65, 0.06)' }} data-testid="text-tafsir-content">
                     <TafsirText text={tafsirText} />
                   </div>
                 ) : (
