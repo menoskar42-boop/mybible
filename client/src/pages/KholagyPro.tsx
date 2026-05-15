@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, BookOpen, List, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, BookOpen, List, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -118,7 +118,7 @@ function SectionReader({ liturgy, section, sectionIdx }: {
       }} />
 
       <div className="max-w-2xl mx-auto pb-24" dir="rtl">
-        {/* شريط التنقل الثابت */}
+        {/* شريط التنقل الثابت — يحتوي الفهرس داخله */}
         <div className="sticky top-0 z-30 bg-background border-b shadow-sm">
           {/* breadcrumb + فهرس */}
           <div className="flex items-center gap-2 px-4 py-2.5 text-sm">
@@ -152,45 +152,47 @@ function SectionReader({ liturgy, section, sectionIdx }: {
               {sectionIdx + 1} / {liturgy.sections.length}
             </span>
           </div>
-        </div>
 
-        {/* قائمة الفهرس المنسدلة */}
-        <AnimatePresence>
-          {tocOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-              className="sticky top-[72px] z-20 bg-background border-b shadow-lg max-h-72 overflow-y-auto"
-            >
-              {liturgy.sections.map((sec, i) => {
-                const bc = roleColors[sec.role] ?? 'bg-slate-100 text-slate-700';
-                const isActive = i === sectionIdx;
-                return (
-                  <button
-                    key={sec.id}
-                    onClick={() => {
-                      navigate(`/kholagy/${liturgy.id}/${sec.id}`, { replace: true });
-                      setTocOpen(false);
-                      window.scrollTo(0, 0);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-right transition-colors ${
-                      isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <span className="text-xs text-muted-foreground w-5 flex-shrink-0">{i + 1}</span>
-                    <span className={`flex-1 text-sm font-medium ${isActive ? 'text-primary' : 'text-foreground'}`}>
-                      {sec.title}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${bc}`}>{sec.role}</span>
-                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
-                  </button>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
+          {/* قائمة الفهرس — داخل الحاوية الثابتة تماماً */}
+          <AnimatePresence>
+            {tocOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.22 }}
+                className="overflow-hidden border-t"
+              >
+                <div className="max-h-72 overflow-y-auto bg-background shadow-inner">
+                  {liturgy.sections.map((sec, i) => {
+                    const bc = roleColors[sec.role] ?? 'bg-slate-100 text-slate-700';
+                    const isActive = i === sectionIdx;
+                    return (
+                      <button
+                        key={sec.id}
+                        onClick={() => {
+                          navigate(`/kholagy/${liturgy.id}/${sec.id}`);
+                          setTocOpen(false);
+                          window.scrollTo(0, 0);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-right transition-colors border-b border-border/40 last:border-0 ${
+                          isActive ? 'bg-primary/10' : 'hover:bg-muted/60'
+                        }`}
+                      >
+                        <span className="text-xs text-muted-foreground w-5 flex-shrink-0">{i + 1}</span>
+                        <span className={`flex-1 text-sm font-medium ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                          {sec.title}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${bc}`}>{sec.role}</span>
+                        {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* عنوان القسم */}
         <div className={`mx-4 mt-5 mb-4 p-4 rounded-xl ${borderClass} bg-muted/30`}>
@@ -244,6 +246,187 @@ function SectionReader({ liturgy, section, sectionIdx }: {
           </Button>
         </div>
       </div>
+
+      {/* شريط البحث العائم */}
+      <KholagySearch liturgy={liturgy} />
+    </>
+  );
+}
+
+// ── شريط البحث الإبداعي
+function KholagySearch({ liturgy }: { liturgy: KholagyLiturgy }) {
+  const [, navigate] = useLocation();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const results = useMemo(() => {
+    const q = query.trim();
+    if (q.length < 2) return [];
+    const qLow = q.toLowerCase();
+    return liturgy.sections
+      .filter(sec =>
+        sec.title.toLowerCase().includes(qLow) ||
+        sec.text.toLowerCase().includes(qLow)
+      )
+      .slice(0, 10)
+      .map(sec => {
+        const textLow = sec.text.toLowerCase();
+        const idx = textLow.indexOf(qLow);
+        const inTitle = sec.title.toLowerCase().includes(qLow);
+        let snippet = '';
+        if (!inTitle && idx !== -1) {
+          const start = Math.max(0, idx - 35);
+          const end = Math.min(sec.text.length, idx + qLow.length + 65);
+          snippet = (start > 0 ? '...' : '') +
+            sec.text.slice(start, end) +
+            (end < sec.text.length ? '...' : '');
+        }
+        return { sec, snippet, inTitle };
+      });
+  }, [query, liturgy]);
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 80);
+  }, [open]);
+
+  // إغلاق عند Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setQuery(''); } };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  const highlightMatch = (text: string, q: string) => {
+    if (!q.trim()) return text;
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="bg-yellow-200 dark:bg-yellow-700/60 text-foreground rounded px-0.5">
+          {text.slice(idx, idx + q.length)}
+        </mark>
+        {text.slice(idx + q.length)}
+      </>
+    );
+  };
+
+  return (
+    <>
+      {/* زر البحث العائم */}
+      <motion.button
+        whileTap={{ scale: 0.92 }}
+        whileHover={{ scale: 1.08 }}
+        onClick={() => setOpen(true)}
+        className="fixed bottom-24 left-4 z-40 w-13 h-13 rounded-full bg-primary text-primary-foreground shadow-xl flex items-center justify-center"
+        style={{ width: 52, height: 52 }}
+      >
+        <Search className="w-5 h-5" />
+      </motion.button>
+
+      {/* Overlay البحث */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
+            transition={{ duration: 0.22 }}
+            className="fixed inset-0 z-50 bg-background/97 backdrop-blur-md overflow-hidden"
+            dir="rtl"
+          >
+            <div className="max-w-2xl mx-auto h-full flex flex-col">
+              {/* رأس الـ overlay */}
+              <div className="px-4 pt-4 pb-3 border-b">
+                <div className="flex items-center gap-3 bg-muted/60 rounded-2xl px-4 py-3 shadow-inner">
+                  <Search className="w-5 h-5 text-primary flex-shrink-0" />
+                  <input
+                    ref={inputRef}
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder={`ابحث في ${liturgy.sections.length} قسماً من ${liturgy.name.split(' — ')[0]}...`}
+                    className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground text-right outline-none text-base"
+                  />
+                  {query && (
+                    <button
+                      onClick={() => setQuery('')}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setOpen(false); setQuery(''); }}
+                    className="text-muted-foreground hover:text-foreground text-sm font-medium px-2 flex-shrink-0"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+
+              {/* النتائج */}
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2.5">
+                {query.length < 2 && (
+                  <div className="text-center py-16">
+                    <Search className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+                    <p className="text-muted-foreground text-sm">ابحث في نصوص وعناوين أقسام القداس</p>
+                    <p className="text-muted-foreground/60 text-xs mt-1">{liturgy.sections.length} قسماً متاحاً</p>
+                  </div>
+                )}
+
+                {query.length >= 2 && results.length === 0 && (
+                  <div className="text-center py-16">
+                    <p className="text-muted-foreground text-sm">لا توجد نتائج لـ "{query}"</p>
+                    <p className="text-muted-foreground/60 text-xs mt-1">جرّب كلمة مختلفة</p>
+                  </div>
+                )}
+
+                {query.length >= 2 && results.length > 0 && (
+                  <p className="text-xs text-muted-foreground pb-1">
+                    {results.length} نتيجة
+                  </p>
+                )}
+
+                {results.map(({ sec, snippet, inTitle }, ri) => {
+                  const badgeClass = roleColors[sec.role] ?? 'bg-slate-100 text-slate-700';
+                  const borderClass = roleBorder[sec.role] ?? 'border-r-4 border-slate-300';
+                  return (
+                    <motion.button
+                      key={sec.id}
+                      initial={{ opacity: 0, x: 12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: ri * 0.04 }}
+                      onClick={() => {
+                        navigate(`/kholagy/${liturgy.id}/${sec.id}`);
+                        setOpen(false);
+                        setQuery('');
+                        window.scrollTo(0, 0);
+                      }}
+                      className={`w-full text-right p-4 rounded-xl bg-muted/40 hover:bg-muted/80 ${borderClass} transition-colors`}
+                    >
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-semibold text-foreground text-sm">
+                          {inTitle
+                            ? highlightMatch(sec.title, query.trim())
+                            : sec.title
+                          }
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>{sec.role}</span>
+                      </div>
+                      {snippet && (
+                        <p className="text-xs text-muted-foreground leading-6 text-right">
+                          {highlightMatch(snippet, query.trim())}
+                        </p>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
@@ -336,6 +519,9 @@ function LiturgySections({ liturgy }: { liturgy: KholagyLiturgy }) {
             );
           })}
         </div>
+
+        {/* شريط البحث العائم */}
+        <KholagySearch liturgy={liturgy} />
       </div>
     </>
   );
