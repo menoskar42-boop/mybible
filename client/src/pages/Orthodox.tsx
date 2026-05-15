@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -3256,6 +3257,7 @@ function ApocryphaSection() {
 
 export default function Orthodox() {
   usePageTracker('/orthodox');
+  const [, navigate] = useLocation();
   useExitTracker('/orthodox');
   return (
     <>
@@ -3287,7 +3289,12 @@ export default function Orthodox() {
                 <BookOpen className="w-3 h-3 ml-1" />
                 الأجبية
               </TabsTrigger>
-              <TabsTrigger value="liturgy" className="text-sm py-1.5" data-testid="tab-liturgy">
+              <TabsTrigger
+                value="liturgy"
+                className="text-sm py-1.5"
+                data-testid="tab-liturgy"
+                onClick={() => navigate('/orthodox/kholagy')}
+              >
                 <Church className="w-3 h-3 ml-1" />
                 الخولاجي
               </TabsTrigger>

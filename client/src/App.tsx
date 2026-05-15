@@ -83,6 +83,9 @@ function Router() {
       <Route path="/kholagy/:liturgyId/:chapterId" component={KholagyPro} />
       <Route path="/kholagy/:liturgyId" component={KholagyPro} />
       <Route path="/kholagy" component={KholagyPro} />
+      <Route path="/orthodox/kholagy/:liturgyId/:chapterId" component={KholagyPro} />
+      <Route path="/orthodox/kholagy/:liturgyId" component={KholagyPro} />
+      <Route path="/orthodox/kholagy" component={KholagyPro} />
       <Route path="/orthodox/agpeya/:hour" component={OrthodoxAgpeyaHour} />
       <Route path="/orthodox/agpeya" component={OrthodoxAgpeya} />
       <Route path="/orthodox/synaxarium/:monthId/:day" component={OrthodoxSynaxariumDay} />
