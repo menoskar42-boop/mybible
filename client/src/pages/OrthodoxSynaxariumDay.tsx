@@ -65,7 +65,7 @@ export default function OrthodoxSynaxariumDay() {
             >
               <Card className="p-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl mt-0.5">{entryTypeIcon(entry.type)}</span>
+                  <span className="text-xl mt-0.5">{entryTypeIcon[entry.type]}</span>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <h2 className="font-semibold text-sm">{entry.name}</h2>
