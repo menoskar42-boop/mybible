@@ -90,6 +90,7 @@ function Router() {
       <Route path="/orthodox/agpeya" component={OrthodoxAgpeya} />
       <Route path="/orthodox/synaxarium/:monthId/:day" component={OrthodoxSynaxariumDay} />
       <Route path="/orthodox/synaxarium" component={OrthodoxSynaxarium} />
+      <Route path="/orthodox/:tab" component={Orthodox} />
       <Route path="/orthodox" component={Orthodox} />
       <Route path="/admin/exit" component={ExitIntelligence} />
       <Route path="/share/:type/:id" component={SharePage} />

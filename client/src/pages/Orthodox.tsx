@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, useParams } from 'wouter';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -3255,10 +3255,31 @@ function ApocryphaSection() {
   );
 }
 
+// التابات التي لها صفحات منفصلة (تتنقّل لصفحاتها الخاصة)
+const ORTHODOX_DEDICATED_ROUTES: Record<string, string> = {
+  liturgy: '/orthodox/kholagy',
+  synaxarium: '/orthodox/synaxarium',
+  agpeya: '/orthodox/agpeya',
+};
+
+// التابات الصالحة كقيم لـ :tab في /orthodox/:tab
+const ORTHODOX_VALID_TABS = new Set([
+  'deacon', 'hymns', 'katameros', 'saints', 'creed', 'history',
+  'books', 'qa', 'figures', 'apocrypha', 'tafseer', 'maps', 'pope-qa',
+]);
+
 export default function Orthodox() {
-  usePageTracker('/orthodox');
+  const params = useParams<{ tab?: string }>();
+  const urlTab = params?.tab && ORTHODOX_VALID_TABS.has(params.tab) ? params.tab : 'synaxarium';
+  const trackPath = params?.tab ? `/orthodox/${params.tab}` : '/orthodox';
+  usePageTracker(trackPath);
   const [, navigate] = useLocation();
-  useExitTracker('/orthodox');
+  useExitTracker(trackPath);
+
+  const navigateToTab = (newTab: string) => {
+    const dedicated = ORTHODOX_DEDICATED_ROUTES[newTab];
+    navigate(dedicated ?? `/orthodox/${newTab}`);
+  };
   return (
     <>
       <SEOHead />
@@ -3278,7 +3299,7 @@ export default function Orthodox() {
             </div>
           </div>
 
-          <Tabs defaultValue="synaxarium" className="w-full">
+          <Tabs value={urlTab} onValueChange={navigateToTab} className="w-full">
             {/* صف التبويبات الأول */}
             <TabsList className="w-full grid grid-cols-4 mb-1.5 h-10">
               <TabsTrigger value="synaxarium" className="text-sm py-1.5" data-testid="tab-synaxarium">
@@ -3289,12 +3310,7 @@ export default function Orthodox() {
                 <BookOpen className="w-3 h-3 ml-1" />
                 الأجبية
               </TabsTrigger>
-              <TabsTrigger
-                value="liturgy"
-                className="text-sm py-1.5"
-                data-testid="tab-liturgy"
-                onClick={() => navigate('/orthodox/kholagy')}
-              >
+              <TabsTrigger value="liturgy" className="text-sm py-1.5" data-testid="tab-liturgy">
                 <Church className="w-3 h-3 ml-1" />
                 الخولاجي
               </TabsTrigger>
