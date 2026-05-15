@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   getSectionsForLiturgy,
   getSplitSlidesForSection,
+  findEquivalentSection,
   getLiturgyLabel,
   getRoleLabel,
   getRoleColor,
@@ -75,8 +76,9 @@ export default function LiturgyControl() {
   }, []);
 
   function switchLiturgy(type: LiturgyType) {
-    const firstSection = getSectionsForLiturgy(type)[0]?.sectionKey ?? 'basil-opening';
-    pushSession({ liturgyType: type, sectionKey: firstSection, slideIndex: 0, deaconOverride: null });
+    const equivalentSection = findEquivalentSection(session.liturgyType, session.sectionKey, type);
+    const fallback = getSectionsForLiturgy(type)[0]?.sectionKey ?? 'basil-opening';
+    pushSession({ liturgyType: type, sectionKey: equivalentSection || fallback, slideIndex: 0, deaconOverride: null });
   }
 
   function switchSection(key: string) {

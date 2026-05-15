@@ -181,6 +181,46 @@ export function getSplitSlidesForSection(
   return result;
 }
 
+// ── مجموعات الأقسام المتكافئة بين القداسات الثلاثة
+// كل سجل يربط الأقسام ذات الدلالة الليتورجية المتماثلة
+const SECTION_GROUPS: Partial<Record<LiturgyType, string>>[] = [
+  { basil: 'basil-veil',           gregory: 'greg-veil',          cyril: 'cyril-veil' },
+  { basil: 'basil-reconciliation', gregory: 'greg-reconcil',      cyril: 'cyril-reconcil' },
+  { basil: 'basil-reconcil2',      gregory: 'greg-reconcil2',     cyril: 'cyril-reconcil2' },
+  { basil: 'basil-anaphora',       gregory: 'greg-anaphora',      cyril: 'cyril-anaphora' },
+  { basil: 'basil-institution',    gregory: 'greg-institution',   cyril: 'cyril-institution' },
+  { basil: 'basil-short-litanies', gregory: 'greg-short-lit',     cyril: 'cyril-litany-3' },
+  { basil: 'basil-commemoration',  gregory: 'greg-commemoration', cyril: 'cyril-commemoration' },
+  { basil: 'basil-fraction',       gregory: 'greg-fraction',      cyril: 'cyril-fraction' },
+  { basil: 'basil-submission',     gregory: 'greg-our-father',    cyril: 'cyril-our-father' },
+  { basil: 'basil-absolution2',    gregory: 'greg-absolution',    cyril: 'cyril-absolution' },
+  { basil: 'basil-confession',     gregory: 'greg-confession',    cyril: 'cyril-confession' },
+  { basil: 'basil-communion',      gregory: 'greg-communion',     cyril: 'cyril-communion' },
+  { basil: 'basil-post-communion', gregory: 'greg-thanksgiving',  cyril: 'cyril-thanksgiving' },
+  { basil: 'basil-laying-hands',   gregory: 'greg-laying-hands',  cyril: 'cyril-thanksgiving' },
+];
+
+// ينقل الموضع من قداس إلى قداس آخر: يبحث أولاً في الأقسام المتكافئة، ثم يقدّر نسبياً
+export function findEquivalentSection(
+  fromType: LiturgyType,
+  sectionKey: string,
+  toType: LiturgyType,
+): string {
+  const group = SECTION_GROUPS.find(g => g[fromType] === sectionKey);
+  if (group?.[toType]) return group[toType]!;
+
+  const fromSections = getSectionsForLiturgy(fromType);
+  const toSections = getSectionsForLiturgy(toType);
+  if (toSections.length === 0) return '';
+
+  const fromIdx = fromSections.findIndex(s => s.sectionKey === sectionKey);
+  if (fromIdx === -1) return toSections[0].sectionKey;
+
+  const ratio = fromIdx / Math.max(fromSections.length - 1, 1);
+  const toIdx = Math.round(ratio * (toSections.length - 1));
+  return toSections[toIdx].sectionKey;
+}
+
 export function getLiturgyLabel(type: LiturgyType): string {
   return { basil: 'الباسيلي', gregory: 'الغريغوري', cyril: 'الكيرلسي' }[type];
 }
