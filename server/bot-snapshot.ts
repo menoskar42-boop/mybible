@@ -906,7 +906,7 @@ ${prayersHtml}
       ? `سنكسار ${month.arabicName} ${day}: ${entries.map(e => `${e.name} — ${e.description.substring(0, 80)}`).join(". ")}.`
       : `سنكسار ${month.arabicName} ${day} — ${month.copticName} ${day}.`;
     const entriesHtml = entries.map(e =>
-      `<article><h2>${entryTypeIcon(e.type)} ${esc(e.name)} <span>(${esc(e.type)})</span></h2><p>${esc(e.description)}</p></article>`
+      `<article><h2>${entryTypeIcon[e.type]} ${esc(e.name)} <span>(${esc(e.type)})</span></h2><p>${esc(e.description)}</p></article>`
     ).join("\n");
     const schema = {
       "@context": "https://schema.org",
