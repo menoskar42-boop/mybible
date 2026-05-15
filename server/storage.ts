@@ -183,6 +183,7 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   private db: ReturnType<typeof drizzle>;
+  private churchNumColumnEnsured = false;
 
   constructor() {
     const pool = new Pool({
@@ -208,18 +209,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async assignChurchNum(userId: string): Promise<number> {
-    const existing = await this.db
-      .select({ n: schema.users.churchNum })
-      .from(schema.users)
-      .where(eq(schema.users.id, userId))
-      .limit(1);
-    if (existing[0]?.n != null) return existing[0].n;
-    const rows = await this.db.execute(sql`
-      UPDATE users SET church_num = (SELECT COALESCE(MAX(church_num), 0) + 1 FROM users)
-      WHERE id = ${userId} AND church_num IS NULL
-      RETURNING church_num
-    `);
-    return (rows.rows[0] as { church_num: number }).church_num;
+    try {
+      if (!this.churchNumColumnEnsured) {
+        await this.db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS church_num INTEGER`);
+        this.churchNumColumnEnsured = true;
+      }
+      const existing = await this.db
+        .select({ n: schema.users.churchNum })
+        .from(schema.users)
+        .where(eq(schema.users.id, userId))
+        .limit(1);
+      if (existing[0]?.n != null) return existing[0].n;
+      const rows = await this.db.execute(sql`
+        UPDATE users SET church_num = (SELECT COALESCE(MAX(church_num), 0) + 1 FROM users)
+        WHERE id = ${userId} AND church_num IS NULL
+        RETURNING church_num
+      `);
+      const num = (rows.rows[0] as { church_num: number } | undefined)?.church_num;
+      if (num != null) return num;
+      // إن لم يُرجع UPDATE صفاً (المستخدم غير موجود في users)، نقع على الـ fallback
+      throw new Error('no row updated');
+    } catch (err) {
+      console.error('[assignChurchNum] falling back to hash:', err);
+      // Fallback ثابت لكل userId — يضمن استمرار عمل النظام حتى بدون DB
+      let hash = 0;
+      for (let i = 0; i < userId.length; i++) {
+        hash = ((hash << 5) - hash + userId.charCodeAt(i)) | 0;
+      }
+      return Math.abs(hash) % 99999 + 1;
+    }
   }
 
   async updateUserPremiumStatus(userId: string, isPremium: boolean, expiryDate?: Date): Promise<User> {

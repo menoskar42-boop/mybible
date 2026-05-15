@@ -79,7 +79,10 @@ export default function LiturgyControl() {
   // جلب الحالة عند الفتح — إن لم يكن في الـ URL slot، يُعاد توجيه تلقائياً
   useEffect(() => {
     fetch('/api/liturgy-session')
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text().catch(() => '')}`);
+        return r.json();
+      })
       .then(data => {
         if (!params?.slot && data.slot) {
           navigate(`/liturgy-control/${data.slot}`, { replace: true });
@@ -92,7 +95,7 @@ export default function LiturgyControl() {
         );
         setSession({ ...data, slideIndex: safeIdx });
       })
-      .catch(() => {});
+      .catch(err => console.error('[LiturgyControl] failed to load session:', err));
   }, []);
 
   function switchLiturgy(type: LiturgyType) {
