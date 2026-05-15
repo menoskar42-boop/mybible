@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   aiUsageCount: integer("ai_usage_count").notNull().default(0),
   aiUsageResetDate: timestamp("ai_usage_reset_date").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  churchNum: integer("church_num"),
 });
 
 // Bible books
