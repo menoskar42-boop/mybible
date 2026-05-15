@@ -40,8 +40,24 @@ function isBot(ua: string): boolean {
   return BOT_UA_PATTERN.test(ua);
 }
 
+function buildFaqSchema(faqs: { q: string; a: string }[]): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a }
+    }))
+  };
+}
+
 function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[], ogImage?: string): string {
-  const schemas = Array.isArray(schemaJson) ? schemaJson : [schemaJson];
+  const today = new Date().toISOString().split('T')[0];
+  const rawSchemas = Array.isArray(schemaJson) ? schemaJson : [schemaJson];
+  const schemas = rawSchemas.map((s: Record<string, unknown>) =>
+    s["dateModified"] === undefined ? { ...s, dateModified: today } : s
+  );
   const schemaScripts = schemas
     .map(s => `<script type="application/ld+json">\n${JSON.stringify(s)}\n</script>`)
     .join('\n');
@@ -236,7 +252,15 @@ function buildStaticPageSnapshot(path: string): string | null {
     "/bible": {
       title: "الكتاب المقدس كاملاً بالعربية | العهد القديم والجديد مع التفسير",
       desc: "اقرأ الكتاب المقدس كاملاً باللغة العربية مع تفسير لكل آية. 66 سفراً من العهد القديم والجديد.",
-      schema: { "@context": "https://schema.org", "@type": "Book", "name": "الكتاب المقدس", "inLanguage": "ar", "bookFormat": "https://schema.org/EBook", "numberOfPages": 1189, "genre": "Religious text" }
+      schema: [
+        { "@context": "https://schema.org", "@type": "Book", "name": "الكتاب المقدس", "inLanguage": "ar", "bookFormat": "https://schema.org/EBook", "numberOfPages": 1189, "genre": "Religious text" },
+        buildFaqSchema([
+          { q: "كم عدد أسفار الكتاب المقدس؟", a: "يتكون الكتاب المقدس من 66 سفراً: 39 سفراً في العهد القديم و27 سفراً في العهد الجديد. تضيف الكنيسة القبطية الأرثوذكسية 7 أسفار ديوتيروكانونية." },
+          { q: "ما هي الترجمة العربية المعتمدة للكتاب المقدس؟", a: "تعتمد الكنيسة القبطية الأرثوذكسية الترجمة العربية الكاثوليكية المشتركة وكذلك ترجمة فانديك الكلاسيكية." },
+          { q: "كيف أقرأ الكتاب المقدس يومياً؟", a: "يمكنك متابعة خطط القراءة اليومية على منصة رفيقي: 30، 60، 90، 180، 365، أو 730 يوماً لقراءة الكتاب المقدس كاملاً." },
+          { q: "ما الفرق بين العهد القديم والجديد؟", a: "العهد القديم يتناول تاريخ شعب إسرائيل والنبوءات، أما العهد الجديد فيتحدث عن حياة يسوع المسيح وتعاليمه ورسائل الرسل." }
+        ])
+      ]
     },
     "/plans": {
       title: "خطط قراءة الكتاب المقدس | 30 إلى 730 يوم",
@@ -290,7 +314,15 @@ function buildStaticPageSnapshot(path: string): string | null {
     "/orthodox/kholagy": {
       title: "الخولاجي المقدس | قداس باسيليوس وغريغوريوس وكيرلس | أرثوذوكسيات",
       desc: "اقرأ نصوص القداسات القبطية الأرثوذكسية الثلاثة: قداس القديس باسيليوس وغريغوريوس وكيرلس بالعربية والقبطية.",
-      schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "الخولاجي المقدس", "inLanguage": "ar", "url": `${SITE}/orthodox/kholagy` }
+      schema: [
+        { "@context": "https://schema.org", "@type": "CollectionPage", "name": "الخولاجي المقدس", "inLanguage": "ar", "url": `${SITE}/orthodox/kholagy` },
+        buildFaqSchema([
+          { q: "ما هو الخولاجي المقدس؟", a: "الخولاجي المقدس هو كتاب القداسات الليتورجية في الكنيسة القبطية الأرثوذكسية، ويتضمن نصوص ثلاث قداسات: قداس القديس باسيليوس الكبير، وقداس القديس غريغوريوس اللاهوتي، وقداس القديس كيرلس." },
+          { q: "كم عدد القداسات في الكنيسة القبطية الأرثوذكسية؟", a: "تحتفل الكنيسة القبطية الأرثوذكسية بثلاث قداسات: قداس القديس باسيليوس (الأكثر استخداماً)، قداس القديس غريغوريوس (في الأعياد الكبرى)، وقداس القديس كيرلس (قداس مارك)." },
+          { q: "ما الفرق بين قداس باسيليوس وقداس غريغوريوس؟", a: "قداس باسيليوس هو القداس الاعتيادي ويُقام أسبوعياً. أما قداس غريغوريوس فيُقام في الأعياد الكبرى كالميلاد والقيامة وله طابع احتفالي وصلواته أكثر تفصيلاً." },
+          { q: "هل يمكن قراءة الخولاجي بالعربية والقبطية معاً؟", a: "نعم، منصة رفيقي تعرض نصوص الخولاجي بالعربية والقبطية جنباً إلى جنب في نظام عرض ثنائي اللغة مخصص لقداسات الكنيسة." }
+        ])
+      ]
     },
     "/orthodox/deacon": {
       title: "مردات الشماس | كيرياليسون، مرد الاعتراف، مردات القداس | أرثوذوكسيات",
@@ -305,7 +337,13 @@ function buildStaticPageSnapshot(path: string): string | null {
     "/orthodox/katameros": {
       title: "القطمارس | القراءات الليتورجية اليومية | أرثوذوكسيات قبطية",
       desc: "القطمارس القبطي الكامل: القراءات الليتورجية اليومية للقداس، البولس، الكاثوليكون، الإبركسيس، المزامير، والإنجيل لكل أيام السنة القبطية.",
-      schema: { "@context": "https://schema.org", "@type": "WebPage", "name": "القطمارس القبطي", "inLanguage": "ar" }
+      schema: [
+        { "@context": "https://schema.org", "@type": "WebPage", "name": "القطمارس القبطي", "inLanguage": "ar" },
+        buildFaqSchema([
+          { q: "ما هو القطمارس؟", a: "القطمارس (أو الكتاب المقدس المرتَّب) هو الكتاب الليتورجي القبطي الذي يحتوي على القراءات اليومية المقررة للقداس الإلهي: رسالة بولس، الكاثوليكون، الإبركسيس، المزامير، والإنجيل لكل يوم في السنة القبطية." },
+          { q: "كيف يختلف القطمارس عن الكتاب المقدس العادي؟", a: "القطمارس يرتب نفس نصوص الكتاب المقدس وفق التقويم القبطي الليتورجي، حيث تُقرأ أجزاء محددة في أيام وأعياد بعينها طوال السنة." }
+        ])
+      ]
     },
     "/orthodox/saints": {
       title: "سير القديسين والشهداء الأقباط | فيديوهات وقصص | أرثوذوكسيات",
@@ -903,15 +941,22 @@ ${bookLink}
     const hoursHtml = agpeyaHoursFull.map(h =>
       `<li><a href="${SITE}/orthodox/agpeya/${h.id}">${esc(h.name)} — ${esc(h.arabicTime)}</a></li>`
     ).join("\n");
-    const schema = {
-      "@context": "https://schema.org",
-      "@type": "Book",
-      "name": "الأجبية",
-      "inLanguage": "ar",
-      "about": "الكنيسة القبطية الأرثوذكسية",
-      "url": canonical,
-      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
-    };
+    const schema = [
+      {
+        "@context": "https://schema.org",
+        "@type": "Book",
+        "name": "الأجبية",
+        "inLanguage": "ar",
+        "about": "الكنيسة القبطية الأرثوذكسية",
+        "url": canonical,
+        "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+      },
+      buildFaqSchema([
+        { q: "ما هي الأجبية القبطية؟", a: "الأجبية هي كتاب الصلوات اليومية للمسيحي القبطي الأرثوذكسي، ويتضمن سبع ساعات صلاة على مدار اليوم والليل: باكر، الثالثة، السادسة، التاسعة، الغروب، النوم، ونصف الليل." },
+        { q: "كم عدد ساعات الصلاة في الأجبية؟", a: "تشمل الأجبية سبع ساعات صلاة: ساعة باكر، الساعة الثالثة، الساعة السادسة، الساعة التاسعة، ساعة الغروب، ساعة النوم، وساعة نصف الليل." },
+        { q: "من أين جاءت الأجبية القبطية؟", a: "الأجبية ترجع في أصولها إلى الصلوات الليتورجية المبكرة للكنيسة القبطية منذ القرن الرابع الميلادي، وهي مستوحاة من المزامير وصلوات الرهبان والآباء الأوائل." }
+      ])
+    ];
     const body = `
 <nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; الأجبية</nav>
 <h1>كتاب الأجبية — ساعات الصلاة السبع</h1>
@@ -963,15 +1008,22 @@ ${prayersHtml}
     const monthsHtml = synaxariumMonths.map(m =>
       `<li><a href="${SITE}/orthodox/synaxarium/${m.id}/1">${esc(m.arabicName)} (${esc(m.copticName)}) — ${esc(m.gregStart)}</a></li>`
     ).join("\n");
-    const schema = {
-      "@context": "https://schema.org",
-      "@type": "Book",
-      "name": "السنكسار القبطي",
-      "inLanguage": "ar",
-      "about": "سير القديسين الأقباط",
-      "url": canonical,
-      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
-    };
+    const schema = [
+      {
+        "@context": "https://schema.org",
+        "@type": "Book",
+        "name": "السنكسار القبطي",
+        "inLanguage": "ar",
+        "about": "سير القديسين الأقباط",
+        "url": canonical,
+        "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+      },
+      buildFaqSchema([
+        { q: "ما هو السنكسار القبطي؟", a: "السنكسار هو كتاب سير القديسين والشهداء في الكنيسة القبطية الأرثوذكسية، مرتَّباً حسب التقويم القبطي (13 شهراً). يُقرأ منه يومياً في القداس الإلهي للتذكر بسير القديسين." },
+        { q: "كم عدد الأشهر في التقويم القبطي؟", a: "التقويم القبطي يتكون من 13 شهراً: 12 شهراً كل منها 30 يوماً، وشهر صغير (نسيء) من 5 إلى 6 أيام." },
+        { q: "من هم أشهر القديسين الأقباط؟", a: "من أشهر القديسين الأقباط: القديس مارك الرسول مؤسس الكرازة، القديسة دميانة، القديس أباكير ويوحنا، الشهيد أبو سيفين، والأنبا أنطونيوس أبو الرهبانية." }
+      ])
+    ];
     const body = `
 <nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; السنكسار</nav>
 <h1>السنكسار القبطي الأرثوذكسي</h1>
