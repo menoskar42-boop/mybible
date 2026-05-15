@@ -39,6 +39,7 @@ import OrthodoxSynaxarium from '@/pages/OrthodoxSynaxarium';
 import OrthodoxSynaxariumDay from '@/pages/OrthodoxSynaxariumDay';
 import LiturgyControl from '@/pages/LiturgyControl';
 import LiturgyDisplay from '@/pages/LiturgyDisplay';
+import Kholagy from '@/pages/Kholagy';
 import ExitIntelligence from '@/pages/ExitIntelligence';
 import SharePage from '@/pages/SharePage';
 import NotFound from '@/pages/not-found';
@@ -78,6 +79,9 @@ function Router() {
       <Route path="/challenge" component={Challenge} />
       <Route path="/topics/:slug" component={TopicPage} />
       <Route path="/video/:id" component={VideoPage} />
+      <Route path="/kholagy/:liturgyId/:chapterId" component={Kholagy} />
+      <Route path="/kholagy/:liturgyId" component={Kholagy} />
+      <Route path="/kholagy" component={Kholagy} />
       <Route path="/orthodox/agpeya/:hour" component={OrthodoxAgpeyaHour} />
       <Route path="/orthodox/agpeya" component={OrthodoxAgpeya} />
       <Route path="/orthodox/synaxarium/:monthId/:day" component={OrthodoxSynaxariumDay} />
