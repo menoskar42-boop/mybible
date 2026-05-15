@@ -3,6 +3,7 @@ import { storage } from "./storage";
 import { generateFAQSchema, generateBibleChapterTitle, generateBibleBookTitle } from "./seo-title";
 import { getInternalLinks, buildInternalLinksHtml } from "./internal-links";
 import { extractKeywords } from "./seo-topics";
+import { liturgies } from "../client/src/lib/liturgy-content";
 import { getVideoSeoById } from "./video-seo-data";
 import { agpeyaHoursFull, commonOpeningPrayers } from "../client/src/lib/agpeya-content";
 import { synaxariumMonths, getMonthById, getDayEntries, entryTypeIcon } from "../client/src/lib/synaxarium-content";
@@ -933,6 +934,128 @@ ${entriesHtml}
     const cacheKey = `st:${path}`;
     if (serveCached(res, cacheKey)) return;
     return cacheAndServe(res, cacheKey, staticSnapshot);
+  }
+
+  // ── Kholagy index: /kholagy ───────────────────────────────────────────────
+  if (path === "/kholagy") {
+    const cacheKey = "kh:index";
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/kholagy`;
+    const title = "الخولاجي المقدس — القداسات القبطية الأرثوذكسية | الكتاب المقدس رفيقي";
+    const description = "اقرأ نصوص القداسات القبطية الأرثوذكسية الثلاثة: قداس القديس باسيليوس وغريغوريوس وكيرلس، بالعربية والقبطية.";
+    const liturgiesHtml = liturgies.map(lit =>
+      `<li><a href="${SITE}/kholagy/${lit.id}">${esc(lit.name)}</a> — ${esc(lit.occasion)}</li>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": "الخولاجي المقدس",
+      "description": description,
+      "inLanguage": "ar",
+      "url": canonical,
+      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+    };
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; الخولاجي المقدس</nav>
+<h1>الخولاجي المقدس</h1>
+<p>${esc(description)}</p>
+<ul>${liturgiesHtml}</ul>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+  }
+
+  // ── Kholagy liturgy index: /kholagy/:liturgyId ───────────────────────────
+  const kholagyLiturgyMatch = path.match(/^\/kholagy\/([^/]+)$/);
+  if (kholagyLiturgyMatch) {
+    const liturgyId = kholagyLiturgyMatch[1];
+    const liturgy = liturgies.find(l => l.id === liturgyId);
+    if (!liturgy) return next();
+    const cacheKey = `kh:${liturgyId}`;
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/kholagy/${liturgyId}`;
+    const title = `${liturgy.name} — الخولاجي المقدس | الكتاب المقدس رفيقي`;
+    const description = liturgy.description;
+    const chaptersHtml = liturgy.chapters.map(ch =>
+      `<li><a href="${SITE}/kholagy/${liturgyId}/${ch.id}">${esc(ch.title)}</a>${ch.description ? ` — ${esc(ch.description.substring(0, 80))}` : ""}</li>`
+    ).join("\n");
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      "name": liturgy.name,
+      "description": description,
+      "inLanguage": "ar",
+      "url": canonical,
+      "numberOfPages": liturgy.chapters.length,
+      "genre": "Liturgy",
+      "about": "القداس القبطي الأرثوذكسي",
+      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+    };
+    const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/kholagy">الخولاجي</a> &rsaquo; ${esc(liturgy.name)}</nav>
+<h1>${esc(liturgy.name)}</h1>
+<p><strong>يُقام في:</strong> ${esc(liturgy.occasion)}</p>
+<p>${esc(description)}</p>
+<nav aria-label="أقسام القداس"><h2>أقسام ${esc(liturgy.name)}</h2><ol>${chaptersHtml}</ol></nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+  }
+
+  // ── Kholagy chapter: /kholagy/:liturgyId/:chapterId ──────────────────────
+  const kholagyChapterMatch = path.match(/^\/kholagy\/([^/]+)\/([^/]+)$/);
+  if (kholagyChapterMatch) {
+    const liturgyId = kholagyChapterMatch[1];
+    const chapterId = kholagyChapterMatch[2];
+    const liturgy = liturgies.find(l => l.id === liturgyId);
+    if (!liturgy) return next();
+    const chapter = liturgy.chapters.find(c => c.id === chapterId);
+    if (!chapter) return next();
+    const cacheKey = `kh:${liturgyId}:${chapterId}`;
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/kholagy/${liturgyId}/${chapterId}`;
+    const title = `${chapter.title} — ${liturgy.name} — الخولاجي | الكتاب المقدس رفيقي`;
+    const description = chapter.description ?? `${chapter.title} من ${liturgy.name} — نص القداس القبطي بالعربية والقبطية`;
+    const partsHtml = chapter.parts.map(p =>
+      `<section>
+        <h3>${esc(p.title)}${p.role ? ` <span>(${esc(p.role)})</span>` : ""}</h3>
+        <p>${esc(p.text.substring(0, 600))}${p.text.length > 600 ? "..." : ""}</p>
+      </section>`
+    ).join("\n");
+    const chapterIdx = liturgy.chapters.findIndex(c => c.id === chapterId);
+    const prevChapter = chapterIdx > 0 ? liturgy.chapters[chapterIdx - 1] : null;
+    const nextChapter = chapterIdx < liturgy.chapters.length - 1 ? liturgy.chapters[chapterIdx + 1] : null;
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": title,
+      "description": description,
+      "inLanguage": "ar",
+      "url": canonical,
+      "isPartOf": { "@type": "Book", "name": liturgy.name, "url": `${SITE}/kholagy/${liturgyId}` },
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE },
+          { "@type": "ListItem", "position": 2, "name": "الخولاجي", "item": `${SITE}/kholagy` },
+          { "@type": "ListItem", "position": 3, "name": liturgy.name, "item": `${SITE}/kholagy/${liturgyId}` },
+          { "@type": "ListItem", "position": 4, "name": chapter.title, "item": canonical }
+        ]
+      }
+    };
+    const body = `
+<nav aria-label="breadcrumb">
+  <a href="${SITE}">الرئيسية</a> &rsaquo;
+  <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo;
+  <a href="${SITE}/kholagy">الخولاجي</a> &rsaquo;
+  <a href="${SITE}/kholagy/${liturgyId}">${esc(liturgy.name)}</a> &rsaquo;
+  ${esc(chapter.title)}
+</nav>
+<h1>${esc(chapter.title)}</h1>
+${chapter.description ? `<p>${esc(chapter.description)}</p>` : ""}
+${partsHtml}
+<nav aria-label="تنقل الأقسام">
+  ${prevChapter ? `<a href="${SITE}/kholagy/${liturgyId}/${prevChapter.id}">← ${esc(prevChapter.title)}</a>` : ""}
+  &nbsp;|&nbsp;
+  ${nextChapter ? `<a href="${SITE}/kholagy/${liturgyId}/${nextChapter.id}">${esc(nextChapter.title)} →</a>` : ""}
+</nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
   }
 
   next();
