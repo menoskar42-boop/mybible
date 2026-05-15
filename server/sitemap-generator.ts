@@ -90,6 +90,7 @@ export async function sitemapIndexHandler(_req: Request, res: Response) {
     "sitemap-videos.xml",
     "sitemap-listen.xml",
     "sitemap-churches.xml",
+    "sitemap-news.xml",
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -139,6 +140,11 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
     { path: "/orthodox/maps", changefreq: "monthly", priority: "0.7" },
     { path: "/orthodox/pope-qa", changefreq: "monthly", priority: "0.7" },
     { path: "/kholagy", changefreq: "monthly", priority: "0.9" },
+    { path: "/sitemap",  changefreq: "monthly", priority: "0.4" },
+    { path: "/terms",    changefreq: "monthly", priority: "0.3" },
+    { path: "/premium",  changefreq: "monthly", priority: "0.6" },
+    { path: "/church",   changefreq: "weekly",  priority: "0.7" },
+    { path: "/challenge", changefreq: "weekly", priority: "0.7" },
   ];
   for (const page of staticPages) {
     const loc = page.path === "/" ? SITE : `${SITE}${page.path}`;
@@ -353,15 +359,61 @@ Allow: /daily-verse
 Allow: /daily-verse/
 Allow: /orthodox
 Allow: /orthodox/
+Allow: /terms
+Allow: /premium
+Allow: /church
+Allow: /church/
+Allow: /challenge
 
 Disallow: /api/
 Disallow: /liturgy-control
 Disallow: /liturgy-display
 Disallow: /admin
+Disallow: /highlights
+Disallow: /groups
+Disallow: /group/
+Disallow: /church-request
+Disallow: /ministry-auth
+Disallow: /share/
 
 Sitemap: ${SITE}/sitemap.xml
 `;
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.set("Cache-Control", "public, max-age=86400");
   res.send(txt);
+}
+
+// ── sitemap-news.xml: daily freshness signal for Google News ──────────────────
+export function sitemapNewsHandler(_req: Request, res: Response) {
+  const today = new Date().toISOString().split("T")[0];
+  const month = today.substring(0, 7);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+  <url>
+    <loc>${SITE}/daily-verse/${today}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>رفيقي — الكتاب المقدس</news:name>
+        <news:language>ar</news:language>
+      </news:publication>
+      <news:publication_date>${today}</news:publication_date>
+      <news:title>آية اليوم — ${today}</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>${SITE}/orthodox/synaxarium</loc>
+    <news:news>
+      <news:publication>
+        <news:name>رفيقي — السنكسار القبطي</news:name>
+        <news:language>ar</news:language>
+      </news:publication>
+      <news:publication_date>${today}</news:publication_date>
+      <news:title>السنكسار القبطي — ${month}</news:title>
+    </news:news>
+  </url>
+</urlset>`;
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600");
+  res.send(xml);
 }
