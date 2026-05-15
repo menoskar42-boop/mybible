@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getSectionsForLiturgy,
@@ -22,6 +23,8 @@ import {
   RefreshCw,
   X,
   BookOpen,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 const LITURGY_TYPES: LiturgyType[] = ['basil', 'gregory', 'cyril'];
@@ -37,10 +40,23 @@ const LITURGY_ACTIVE: Record<LiturgyType, string> = {
 };
 
 export default function LiturgyControl() {
+  const params = useParams<{ slot?: string }>();
+  const [, navigate] = useLocation();
   const [session, setSession] = useState<LiturgySession>(defaultSession as LiturgySession);
+  const [slot, setSlot] = useState<string | null>(params?.slot ?? null);
   const [syncing, setSyncing] = useState(false);
   const [showDeaconPanel, setShowDeaconPanel] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const displayPath = slot ? `/liturgy-display/${slot}` : '/liturgy-display';
+
+  function copyDisplayLink() {
+    navigator.clipboard.writeText(window.location.origin + displayPath).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const currentSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey);
   const currentSlide = currentSlides[session.slideIndex];
@@ -60,11 +76,15 @@ export default function LiturgyControl() {
     finally { setSyncing(false); }
   }, [session]);
 
-  // جلب الحالة عند الفتح
+  // جلب الحالة عند الفتح — إن لم يكن في الـ URL slot، يُعاد توجيه تلقائياً
   useEffect(() => {
     fetch('/api/liturgy-session')
       .then(r => r.json())
       .then(data => {
+        if (!params?.slot && data.slot) {
+          navigate(`/liturgy-control/${data.slot}`, { replace: true });
+        }
+        setSlot(data.slot ?? null);
         const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey);
         const safeIdx = Math.min(
           Math.max(0, data.slideIndex),
@@ -124,7 +144,11 @@ export default function LiturgyControl() {
             لوحة التحكم — القداس الإلهي
           </h1>
           <p className="text-xs text-gray-400 mt-1">
-            افتح <span className="text-amber-300 font-mono">/liturgy-display</span> على شاشة العرض
+            شاشة العرض:{' '}
+            <span className="text-amber-300 font-mono">{displayPath}</span>
+            {slot && (
+              <span className="mr-2 text-gray-500">— {slot}</span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -138,7 +162,17 @@ export default function LiturgyControl() {
             size="sm"
             variant="outline"
             className="text-xs border-gray-600 text-gray-300"
-            onClick={() => window.open('/liturgy-display', '_blank')}
+            onClick={copyDisplayLink}
+            title="نسخ رابط شاشة العرض"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 ml-1 text-green-400" /> : <Copy className="w-3.5 h-3.5 ml-1" />}
+            {copied ? 'تم النسخ' : 'نسخ الرابط'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs border-gray-600 text-gray-300"
+            onClick={() => window.open(displayPath, '_blank')}
           >
             <Monitor className="w-3.5 h-3.5 ml-1" />
             فتح شاشة العرض
