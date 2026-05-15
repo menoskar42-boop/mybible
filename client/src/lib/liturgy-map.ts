@@ -145,8 +145,8 @@ function splitTextIntoPages(text: string, maxChars: number): string[] {
   return pages.length > 0 ? pages : [text];
 }
 
-// الحد الأقصى للأحرف في شريحة واحدة على شاشة التلفزيون
-const SLIDE_MAX_CHARS = 200;
+// الحد الأقصى للأحرف في شريحة واحدة — محسوب للموبايل والتلفزيون معاً
+const SLIDE_MAX_CHARS = 100;
 
 // ── نسخة مقسّمة من getSlidesForSection
 // كل شريحة طويلة تُقسَّم إلى شرائح منفصلة بنفس الدور والعنوان

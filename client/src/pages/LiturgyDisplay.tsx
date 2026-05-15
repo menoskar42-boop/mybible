@@ -105,32 +105,35 @@ export default function LiturgyDisplay() {
       {!deaconSlide && currentSlide && (
         currentSlide.copticText ? (
           /* شاشة مقسومة: عربي على اليمين — قبطي على اليسار */
-          <div className="flex w-full h-full items-center" style={{ maxHeight: '80vh' }}>
+          <div
+            className="flex w-full items-stretch overflow-hidden"
+            style={{ height: '82vh', maxHeight: '82vh' }}
+          >
             {/* الجانب العربي — يمين */}
             <div
               dir="rtl"
-              className="flex-1 flex flex-col items-center justify-center gap-6 px-10 border-r border-white/10 h-full"
+              className="flex-1 flex flex-col items-center justify-center gap-4 px-6 border-r border-white/10 overflow-hidden min-w-0"
             >
-              <div className={`text-xs font-bold tracking-widest uppercase ${getRoleColor(currentSlide.role)}`}>
+              <div className={`text-xs font-bold tracking-widest uppercase flex-shrink-0 ${getRoleColor(currentSlide.role)}`}>
                 {getRoleLabel(currentSlide.role)}
               </div>
               <div
-                className="text-white whitespace-pre-line text-center"
-                style={{ fontSize: 'clamp(1.4rem, 3.5vw, 3rem)', lineHeight: 1.8 }}
+                className="text-white whitespace-pre-line text-center overflow-hidden"
+                style={{ fontSize: 'clamp(1.1rem, 2.8vw, 2.6rem)', lineHeight: 1.75 }}
               >
                 {currentSlide.text}
               </div>
-              <div className="text-white/30 text-sm">{currentSlide.title}</div>
+              <div className="text-white/30 text-xs flex-shrink-0">{currentSlide.title}</div>
             </div>
             {/* الجانب القبطي — يسار */}
             <div
               dir="ltr"
-              className="flex-1 flex flex-col items-center justify-center gap-6 px-10 h-full"
+              className="flex-1 flex flex-col items-center justify-center gap-4 px-6 overflow-hidden min-w-0"
             >
-              <div className="text-blue-300/60 text-xs font-bold tracking-widest uppercase">Coptic</div>
+              <div className="text-blue-300/60 text-xs font-bold tracking-widest uppercase flex-shrink-0">Coptic</div>
               <div
-                className="text-white/90 whitespace-pre-line text-center"
-                style={{ fontSize: 'clamp(1.2rem, 3vw, 2.6rem)', lineHeight: 1.9, fontFamily: 'serif' }}
+                className="text-white/90 whitespace-pre-line text-center overflow-hidden"
+                style={{ fontSize: 'clamp(1rem, 2.5vw, 2.2rem)', lineHeight: 1.85, fontFamily: 'serif' }}
               >
                 {currentSlide.copticText}
               </div>
@@ -138,17 +141,20 @@ export default function LiturgyDisplay() {
           </div>
         ) : (
           /* شاشة عادية بدون قبطي */
-          <div className="flex flex-col items-center gap-8 px-12 max-w-5xl text-center">
-            <div className={`text-xs font-bold tracking-widest uppercase ${getRoleColor(currentSlide.role)}`}>
+          <div
+            className="flex flex-col items-center justify-center gap-6 px-10 text-center overflow-hidden w-full"
+            style={{ height: '82vh', maxHeight: '82vh', maxWidth: '90vw' }}
+          >
+            <div className={`text-xs font-bold tracking-widest uppercase flex-shrink-0 ${getRoleColor(currentSlide.role)}`}>
               {getRoleLabel(currentSlide.role)}
             </div>
             <div
-              className="text-white whitespace-pre-line"
-              style={{ fontSize: 'clamp(1.6rem, 4.5vw, 3.8rem)', lineHeight: 1.8 }}
+              className="text-white whitespace-pre-line overflow-hidden"
+              style={{ fontSize: 'clamp(1.4rem, 3.8vw, 3.4rem)', lineHeight: 1.8 }}
             >
               {currentSlide.text}
             </div>
-            <div className="text-white/30 text-sm">
+            <div className="text-white/30 text-sm flex-shrink-0">
               {currentSlide.title}
             </div>
           </div>
