@@ -90,6 +90,7 @@ export async function sitemapIndexHandler(_req: Request, res: Response) {
     "sitemap-videos.xml",
     "sitemap-listen.xml",
     "sitemap-churches.xml",
+    "sitemap-news.xml",
   ];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -379,4 +380,39 @@ Sitemap: ${SITE}/sitemap.xml
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.set("Cache-Control", "public, max-age=86400");
   res.send(txt);
+}
+
+// ── sitemap-news.xml: daily freshness signal for Google News ──────────────────
+export function sitemapNewsHandler(_req: Request, res: Response) {
+  const today = new Date().toISOString().split("T")[0];
+  const month = today.substring(0, 7);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+  <url>
+    <loc>${SITE}/daily-verse/${today}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>رفيقي — الكتاب المقدس</news:name>
+        <news:language>ar</news:language>
+      </news:publication>
+      <news:publication_date>${today}</news:publication_date>
+      <news:title>آية اليوم — ${today}</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>${SITE}/orthodox/synaxarium</loc>
+    <news:news>
+      <news:publication>
+        <news:name>رفيقي — السنكسار القبطي</news:name>
+        <news:language>ar</news:language>
+      </news:publication>
+      <news:publication_date>${today}</news:publication_date>
+      <news:title>السنكسار القبطي — ${month}</news:title>
+    </news:news>
+  </url>
+</urlset>`;
+  res.set("Content-Type", "application/xml; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=3600");
+  res.send(xml);
 }
