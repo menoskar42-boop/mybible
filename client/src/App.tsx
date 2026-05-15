@@ -51,7 +51,9 @@ const FULL_SCREEN_ROUTES = ['/liturgy-display'];
 function Router() {
   return (
     <Switch>
+      <Route path="/liturgy-display/:slot" component={LiturgyDisplay} />
       <Route path="/liturgy-display" component={LiturgyDisplay} />
+      <Route path="/liturgy-control/:slot" component={LiturgyControl} />
       <Route path="/liturgy-control" component={LiturgyControl} />
       <Route path="/" component={Home} />
       <Route path="/bible/:book/:chapter" component={Bible} />
