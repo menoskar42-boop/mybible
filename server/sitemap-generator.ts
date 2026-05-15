@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { getAllVideoSeoEntries } from "./video-seo-data";
 import { agpeyaHoursFull } from "../client/src/lib/agpeya-content";
 import { synaxariumMonths } from "../client/src/lib/synaxarium-content";
+import { liturgies } from "../client/src/lib/liturgy-content";
 
 const SITE = "https://mybible.oscardevs.com";
 const CACHE_TTL = 12 * 60 * 60 * 1000;
@@ -84,6 +85,7 @@ export async function sitemapIndexHandler(_req: Request, res: Response) {
     "sitemap-pages.xml",
     "sitemap-bible.xml",
     "sitemap-orthodox.xml",
+    "sitemap-kholagy.xml",
     "sitemap-topics.xml",
     "sitemap-videos.xml",
     "sitemap-listen.xml",
@@ -122,6 +124,7 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
     { path: "/orthodox", changefreq: "daily",   priority: "0.8" },
     { path: "/orthodox/agpeya", changefreq: "monthly", priority: "0.8" },
     { path: "/orthodox/synaxarium", changefreq: "daily", priority: "0.8" },
+    { path: "/kholagy", changefreq: "monthly", priority: "0.9" },
   ];
   for (const page of staticPages) {
     const loc = page.path === "/" ? SITE : `${SITE}${page.path}`;
@@ -199,6 +202,29 @@ export function sitemapOrthodoxHandler(_req: Request, res: Response) {
   for (const month of synaxariumMonths) {
     for (const dayEntry of month.days) {
       urls.push(buildUrl(`${SITE}/orthodox/synaxarium/${month.id}/${dayEntry.day}`, "monthly", "0.7", today));
+    }
+  }
+
+  const xml = wrapUrlset(urls);
+  setCache(cacheKey, xml);
+  sendXml(res, xml);
+}
+
+// ── sitemap-kholagy.xml: liturgy pages ───────────────────────────────────────
+export function sitemapKholagyHandler(_req: Request, res: Response) {
+  const cacheKey = "kholagy";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
+
+  const today = new Date().toISOString().split("T")[0];
+  const urls: string[] = [];
+
+  for (const liturgy of liturgies) {
+    // صفحة القداس الكاملة
+    urls.push(buildUrl(`${SITE}/kholagy/${liturgy.id}`, "monthly", "0.9", today));
+    // صفحة كل فصل
+    for (const chapter of liturgy.chapters) {
+      urls.push(buildUrl(`${SITE}/kholagy/${liturgy.id}/${chapter.id}`, "monthly", "0.8", today));
     }
   }
 

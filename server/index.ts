@@ -10,7 +10,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { autoSeedIfNeeded } from "./auto-seed";
 import { botSnapshotMiddleware } from "./bot-snapshot";
-import { sitemapHandler, robotsHandler, sitemapBibleHandler, sitemapOrthodoxHandler, sitemapPagesHandler, sitemapTopicsHandler, sitemapVideosHandler, sitemapListenHandler, sitemapChurchesHandler } from "./sitemap-generator";
+import { sitemapHandler, robotsHandler, sitemapBibleHandler, sitemapOrthodoxHandler, sitemapPagesHandler, sitemapTopicsHandler, sitemapVideosHandler, sitemapListenHandler, sitemapChurchesHandler, sitemapKholagyHandler } from "./sitemap-generator";
 import { ogImageHandler } from "./og-image";
 
 const app = express();
@@ -126,6 +126,7 @@ app.use((req, res, next) => {
   app.get("/sitemap-pages.xml", sitemapPagesHandler);
   app.get("/sitemap-bible.xml", sitemapBibleHandler);
   app.get("/sitemap-orthodox.xml", sitemapOrthodoxHandler);
+  app.get("/sitemap-kholagy.xml", sitemapKholagyHandler);
   app.get("/sitemap-topics.xml", sitemapTopicsHandler);
   app.get("/sitemap-videos.xml", sitemapVideosHandler);
   app.get("/sitemap-listen.xml", sitemapListenHandler);
