@@ -3258,7 +3258,6 @@ function ApocryphaSection() {
 // التابات التي لها صفحات منفصلة (تتنقّل لصفحاتها الخاصة)
 const ORTHODOX_DEDICATED_ROUTES: Record<string, string> = {
   liturgy: '/orthodox/kholagy',
-  synaxarium: '/orthodox/synaxarium',
   agpeya: '/orthodox/agpeya',
 };
 
@@ -3277,6 +3276,12 @@ export default function Orthodox() {
   useExitTracker(trackPath);
 
   const navigateToTab = (newTab: string) => {
+    // السنكسار: ينقل مباشرة لسنكسار اليوم (وليس قائمة الشهور)
+    if (newTab === 'synaxarium') {
+      const t = gregorianToCoptic(new Date());
+      navigate(`/orthodox/synaxarium/${t.month}/${t.day}`);
+      return;
+    }
     const dedicated = ORTHODOX_DEDICATED_ROUTES[newTab];
     navigate(dedicated ?? `/orthodox/${newTab}`);
   };
