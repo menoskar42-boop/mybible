@@ -1022,6 +1022,7 @@ export async function registerRoutes(
           aiUsageResetDate: new Date(),
           subscriptionExpiry: null,
           createdAt: new Date(),
+          churchNum: null,
         };
       } else {
         console.log(`[AI-Route] User found: ${user.id}`);
@@ -1164,29 +1165,46 @@ export async function registerRoutes(
     }
   });
 
-  // ── Liturgy Presentation Session ──────────────────────────────────────────
-  let liturgySession: Record<string, unknown> = {
-    sessionId: 'main',
-    liturgyType: 'basil',
-    sectionKey: 'intro',
-    slideIndex: 0,
-    deaconOverride: null,
-    updatedAt: Date.now(),
+  // ── Liturgy Presentation Session (per-user) ───────────────────────────────
+  type LiturgySessionState = {
+    slot: string; liturgyType: string; sectionKey: string;
+    slideIndex: number; deaconOverride: unknown; updatedAt: number;
   };
 
-  app.get('/api/liturgy-session', (_req, res) => {
-    res.json(liturgySession);
+  const liturgySessions = new Map<string, LiturgySessionState>();
+
+  function makeDefaultSession(slot: string): LiturgySessionState {
+    return { slot, liturgyType: 'basil', sectionKey: 'basil-opening',
+             slideIndex: 0, deaconOverride: null, updatedAt: Date.now() };
+  }
+
+  // GET جلسة المستخدم الحالي (يُعيد slot الخاص به أيضاً)
+  app.get('/api/liturgy-session', async (req, res) => {
+    const num = await storage.assignChurchNum(req.session.userId!);
+    const slot = `user${num}`;
+    res.json(liturgySessions.get(slot) ?? makeDefaultSession(slot));
   });
 
-  app.post('/api/liturgy-session', (req, res) => {
+  // GET by slot — مفتوح لأي جهاز (شاشة العرض)
+  app.get('/api/liturgy-session/:slot', (req, res) => {
+    const slot = req.params.slot;
+    res.json(liturgySessions.get(slot) ?? makeDefaultSession(slot));
+  });
+
+  // POST — يُحدّث جلسة المستخدم الحالي فقط
+  app.post('/api/liturgy-session', async (req, res) => {
+    const num = await storage.assignChurchNum(req.session.userId!);
+    const slot = `user${num}`;
+    const existing = liturgySessions.get(slot) ?? makeDefaultSession(slot);
     const { liturgyType, sectionKey, slideIndex, deaconOverride } = req.body ?? {};
-    const patch: Record<string, unknown> = {};
+    const patch: Partial<LiturgySessionState> = {};
     if (liturgyType !== undefined) patch.liturgyType = liturgyType;
     if (sectionKey !== undefined) patch.sectionKey = sectionKey;
     if (slideIndex !== undefined) patch.slideIndex = slideIndex;
     if (deaconOverride !== undefined) patch.deaconOverride = deaconOverride;
-    liturgySession = { ...liturgySession, ...patch, updatedAt: Date.now() };
-    res.json(liturgySession);
+    const next = { ...existing, ...patch, updatedAt: Date.now() };
+    liturgySessions.set(slot, next);
+    res.json(next);
   });
 
   return httpServer;

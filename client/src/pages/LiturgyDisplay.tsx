@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'wouter';
 import {
   getSectionsForLiturgy,
   getSplitSlidesForSection,
@@ -12,6 +13,8 @@ import {
 } from '@/lib/liturgy-map';
 
 export default function LiturgyDisplay() {
+  const params = useParams<{ slot?: string }>();
+  const slot = params?.slot;
   const [session, setSession] = useState<LiturgySession>(defaultSession as LiturgySession);
   const [currentSlide, setCurrentSlide] = useState<LiturgySlide | null>(null);
   const [deaconSlide, setDeaconSlide] = useState<DeaconResponse | null>(null);
@@ -30,7 +33,8 @@ export default function LiturgyDisplay() {
     let cancelled = false;
     async function poll() {
       try {
-        const res = await fetch('/api/liturgy-session');
+        const url = slot ? `/api/liturgy-session/${slot}` : '/api/liturgy-session';
+        const res = await fetch(url);
         if (!res.ok || cancelled) return;
         const data: LiturgySession = await res.json();
         setSession(data);
@@ -49,9 +53,19 @@ export default function LiturgyDisplay() {
     poll();
     const interval = setInterval(poll, 1000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, []);
+  }, [slot]);
 
   const section = getSectionsForLiturgy(session.liturgyType).find(s => s.sectionKey === session.sectionKey);
+
+  if (!slot) {
+    return (
+      <div dir="rtl" className="fixed inset-0 bg-black flex flex-col items-center justify-center text-center px-8">
+        <p className="text-gray-400 text-lg mb-2">لم يتم تحديد جلسة</p>
+        <p className="text-gray-600 text-sm">افتح شاشة العرض من رابط لوحة التحكم الخاصة بك</p>
+        <p className="text-gray-700 text-xs mt-3 font-mono">/liturgy-control → نسخ الرابط</p>
+      </div>
+    );
+  }
 
   return (
     <div

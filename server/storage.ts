@@ -72,6 +72,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserBySessionId(sessionId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  assignChurchNum(userId: string): Promise<number>;
   updateUserPremiumStatus(userId: string, isPremium: boolean, expiryDate?: Date): Promise<User>;
   incrementAiUsage(userId: string): Promise<void>;
   resetAiUsageIfNeeded(userId: string): Promise<void>;
@@ -204,6 +205,21 @@ export class DatabaseStorage implements IStorage {
   async createUser(user: InsertUser): Promise<User> {
     const result = await this.db.insert(schema.users).values(user).returning();
     return result[0];
+  }
+
+  async assignChurchNum(userId: string): Promise<number> {
+    const existing = await this.db
+      .select({ n: schema.users.churchNum })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+    if (existing[0]?.n != null) return existing[0].n;
+    const rows = await this.db.execute(sql`
+      UPDATE users SET church_num = (SELECT COALESCE(MAX(church_num), 0) + 1 FROM users)
+      WHERE id = ${userId} AND church_num IS NULL
+      RETURNING church_num
+    `);
+    return (rows.rows[0] as { church_num: number }).church_num;
   }
 
   async updateUserPremiumStatus(userId: string, isPremium: boolean, expiryDate?: Date): Promise<User> {
