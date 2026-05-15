@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, BookOpen } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, BookOpen, List, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -102,12 +102,7 @@ function SectionReader({ liturgy, section, sectionIdx }: {
   sectionIdx: number;
 }) {
   const [, navigate] = useLocation();
-  const navRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = navRef.current?.querySelector(`[data-idx="${sectionIdx}"]`) as HTMLElement | null;
-    el?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
-  }, [sectionIdx]);
+  const [tocOpen, setTocOpen] = useState(false);
 
   const prev = liturgy.sections[sectionIdx - 1];
   const next = liturgy.sections[sectionIdx + 1];
@@ -124,42 +119,78 @@ function SectionReader({ liturgy, section, sectionIdx }: {
 
       <div className="max-w-2xl mx-auto pb-24" dir="rtl">
         {/* شريط التنقل الثابت */}
-        <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
-          {/* breadcrumb */}
+        <div className="sticky top-0 z-30 bg-background border-b shadow-sm">
+          {/* breadcrumb + فهرس */}
           <div className="flex items-center gap-2 px-4 py-2.5 text-sm">
             <button
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 flex-shrink-0"
               onClick={() => navigate('/kholagy')}
             >
               <ChevronRight className="w-3.5 h-3.5" /> الخولاجي
             </button>
             <span className="text-muted-foreground">›</span>
             <button
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors truncate flex-1 text-right"
               onClick={() => navigate(`/kholagy/${liturgy.id}`)}
             >
               {liturgy.name.split(' — ')[0]}
             </button>
+            {/* زر الفهرس */}
+            <button
+              onClick={() => setTocOpen(v => !v)}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary font-medium text-xs transition-colors"
+            >
+              {tocOpen ? <X className="w-3.5 h-3.5" /> : <List className="w-3.5 h-3.5" />}
+              فهرس
+            </button>
           </div>
 
-          {/* تبويبات الأقسام — scrollable */}
-          <div ref={navRef} className="flex gap-1.5 overflow-x-auto px-3 pb-2.5 scrollbar-hide">
-            {liturgy.sections.map((sec, i) => (
-              <button
-                key={sec.id}
-                data-idx={i}
-                onClick={() => navigate(`/kholagy/${liturgy.id}/${sec.id}`, { replace: true })}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-                  i === sectionIdx
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted'
-                }`}
-              >
-                {sec.title}
-              </button>
-            ))}
+          {/* الشريط السفلي — اسم القسم الحالي */}
+          <div className="flex items-center justify-between px-4 pb-2.5 gap-2">
+            <span className="text-xs font-medium text-foreground truncate flex-1">{section.title}</span>
+            <span className="text-xs text-muted-foreground flex-shrink-0">
+              {sectionIdx + 1} / {liturgy.sections.length}
+            </span>
           </div>
         </div>
+
+        {/* قائمة الفهرس المنسدلة */}
+        <AnimatePresence>
+          {tocOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="sticky top-[72px] z-20 bg-background border-b shadow-lg max-h-72 overflow-y-auto"
+            >
+              {liturgy.sections.map((sec, i) => {
+                const bc = roleColors[sec.role] ?? 'bg-slate-100 text-slate-700';
+                const isActive = i === sectionIdx;
+                return (
+                  <button
+                    key={sec.id}
+                    onClick={() => {
+                      navigate(`/kholagy/${liturgy.id}/${sec.id}`, { replace: true });
+                      setTocOpen(false);
+                      window.scrollTo(0, 0);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-right transition-colors ${
+                      isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
+                    }`}
+                  >
+                    <span className="text-xs text-muted-foreground w-5 flex-shrink-0">{i + 1}</span>
+                    <span className={`flex-1 text-sm font-medium ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                      {sec.title}
+                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${bc}`}>{sec.role}</span>
+                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* عنوان القسم */}
         <div className={`mx-4 mt-5 mb-4 p-4 rounded-xl ${borderClass} bg-muted/30`}>
