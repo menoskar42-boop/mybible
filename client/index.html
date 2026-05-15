@@ -63,6 +63,10 @@
         "@type": "SearchAction",
         "target": "https://mybible.oscardevs.com/search?q={search_term_string}",
         "query-input": "required name=search_term_string"
+      },
+      "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": ["h1", ".verse-text", ".daily-verse"]
       }
     }
     </script>
@@ -71,14 +75,32 @@
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "الكتاب المقدس رفيقي",
+      "alternateName": "Rafiki Bible",
       "url": "https://mybible.oscardevs.com",
       "logo": "https://mybible.oscardevs.com/logo.png",
-      "description": "منصة مجانية للقراءة اليومية والتفسير والتعزية الروحية من الكتاب المقدس باللغة العربية.",
+      "description": "منصة قبطية أرثوذكسية مجانية للكتاب المقدس العربي: قراءة يومية، الخولاجي المقدس، الأجبية، القطمارس، الألحان، وسير القديسين.",
+      "foundingDate": "2023",
+      "slogan": "رفيقي في كل لحظة روحية",
+      "knowsAbout": [
+        "الكتاب المقدس العربي",
+        "اللاهوت القبطي الأرثوذكسي",
+        "الخولاجي المقدس",
+        "الأجبية القبطية",
+        "القطمارس",
+        "الألحان القبطية والإبصلمودية",
+        "سير القديسين والشهداء",
+        "تفاسير الآباء الأقباط"
+      ],
+      "areaServed": {
+        "@type": "Language",
+        "name": "Arabic",
+        "alternateName": "ar"
+      },
       "contactPoint": {
         "@type": "ContactPoint",
         "contactType": "customer support",
         "email": "Contact@oscardevs.com",
-        "availableLanguage": "Arabic"
+        "availableLanguage": ["Arabic", "English"]
       },
       "sameAs": []
     }
