@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  unifiedSections,
+  getSectionsForLiturgy,
   getSplitSlidesForSection,
   getLiturgyLabel,
   getRoleLabel,
@@ -75,9 +75,8 @@ export default function LiturgyControl() {
   }, []);
 
   function switchLiturgy(type: LiturgyType) {
-    const slides = getSplitSlidesForSection(type, session.sectionKey);
-    const idx = Math.min(session.slideIndex, Math.max(0, slides.length - 1));
-    pushSession({ liturgyType: type, slideIndex: idx, deaconOverride: null });
+    const firstSection = getSectionsForLiturgy(type)[0]?.sectionKey ?? 'basil-opening';
+    pushSession({ liturgyType: type, sectionKey: firstSection, slideIndex: 0, deaconOverride: null });
   }
 
   function switchSection(key: string) {
@@ -281,7 +280,7 @@ export default function LiturgyControl() {
           <Card className="bg-gray-900 border-gray-700 p-4">
             <h2 className="text-sm font-bold text-gray-300 mb-3">الأقسام</h2>
             <div className="space-y-1">
-              {unifiedSections.map(sec => {
+              {getSectionsForLiturgy(session.liturgyType).map(sec => {
                 const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey);
                 return (
                   <button

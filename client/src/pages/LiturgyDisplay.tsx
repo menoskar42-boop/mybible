@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  unifiedSections,
+  getSectionsForLiturgy,
   getSplitSlidesForSection,
   getRoleColor,
   getRoleLabel,
@@ -51,7 +51,7 @@ export default function LiturgyDisplay() {
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
-  const section = unifiedSections.find(s => s.sectionKey === session.sectionKey);
+  const section = getSectionsForLiturgy(session.liturgyType).find(s => s.sectionKey === session.sectionKey);
 
   return (
     <div

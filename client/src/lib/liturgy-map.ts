@@ -1,7 +1,7 @@
 // ── نظام الخرائط الموحّدة للقداسات الثلاثة ──────────────────────────────────
 // يربط القسم الواحد (sectionKey) بشرائح من كل قداس بنفس الاسم المنطقي
 
-import { liturgies } from './liturgy-content';
+import { kholagyLiturgies } from './kholagy-data';
 
 export type LiturgyType = 'basil' | 'gregory' | 'cyril';
 
@@ -13,11 +13,10 @@ export interface LiturgySlide {
   copticText?: string;
 }
 
-export interface UnifiedSection {
+export interface SectionMeta {
   sectionKey: string;
   label: string;
   icon: string;
-  slides: Record<LiturgyType, LiturgySlide[]>;
 }
 
 export interface DeaconResponse {
@@ -35,90 +34,30 @@ function normalizeRole(role?: string): LiturgySlide['role'] {
   return 'priest';
 }
 
-// ── استخراج الشرائح من الخولاجي الموجود
-function extractSlides(liturgyId: LiturgyType, chapterIds: string[]): LiturgySlide[] {
-  const liturgy = liturgies.find(l => l.id === liturgyId);
-  if (!liturgy) return [];
-  const slides: LiturgySlide[] = [];
-  for (const chapId of chapterIds) {
-    const chapter = liturgy.chapters.find(c => c.id === chapId);
-    if (!chapter) continue;
-    for (const part of chapter.parts) {
-      slides.push({
-        id: `${liturgyId}-${part.id}`,
-        role: normalizeRole(part.role),
-        title: part.title,
-        text: part.text,
-        ...(part.copticText ? { copticText: part.copticText } : {}),
-      });
-    }
-  }
-  return slides;
-}
+// ── نصوص قبطية للأقسام الرئيسية
+const COPTIC_TEXT_MAP: Record<string, string> = {
+  'basil-opening': `Ⲡⲓⲱⲟⲩ ⲛ̀Ⲫⲛⲟⲩϯ ϧⲉⲛ ⲛⲓⲉⲧϩⲱⲟⲩⲧ ⲟⲩⲟϩ ϩⲓⲣⲏⲛⲏ ϩⲓϫⲉⲛ ⲡⲓⲕⲁϩⲓ ⲟⲩⲟϩ ⲟⲩⲑⲉⲗⲏⲗ ϧⲉⲛ ⲛⲓⲣⲱⲙⲓ.\nⲀⲛⲟⲩϩⲱⲥ ⲉⲣⲟⲕ ⲁⲛⲥ̀ⲙⲟⲩ ⲉⲣⲟⲕ ⲁⲛⲟⲩⲱϣⲧ ⲉⲣⲟⲕ ⲁⲛϯⲱⲟⲩ ⲉⲣⲟⲕ ⲁⲛϣⲡ ϩⲙⲟⲧ ⲉⲣⲟⲕ ⲉⲑⲃⲉ Ⲡⲉⲕⲛⲓϣϯ ⲛ̀ⲱⲟⲩ.\nⲠⲁⲛⲧⲟⲕⲣⲁⲧⲱⲣ Ⲡⲉⲛⲓⲱⲧ.\n\nⲠⲓϣⲏⲣⲓ Ⲛ̀ⲟⲩⲱⲧ Ⲁⲣⲭⲏⲉⲅⲉⲛⲏⲥ Ⲡⲉⲛϭⲟⲓⲥ Ⲓⲏⲥⲟⲩⲥ Ⲡⲓⲭ̀ⲣⲓⲥⲧⲟⲥ ⲛⲉⲙ Ⲡⲓⲡ̀ⲛⲉⲩⲙⲁ ⲉⲑⲟⲩⲁⲃ.`,
+  'basil-synaxar': `Ⲁⲙⲟⲩ ϧⲉⲛ ⲟⲩⲏⲣⲏⲛⲏ Ⲙ̀Ⲡⲓⲭ̀ⲣⲓⲥⲧⲟⲥ ⲉⲛⲥⲱⲧⲉⲙ ⲉⲡⲓⲥⲩⲛⲁⲝⲁⲣⲓⲟⲛ.`,
+  'basil-reconciliation': `Ⲁ̀ⲥⲡⲁⲍⲉⲥⲑⲉ ⲁ̀ⲗⲗⲏⲗⲟⲩⲥ — Ⲉⲓⲥ ⲁⲛⲁⲧⲟⲗⲁⲥ ⲃⲗⲉⲯⲁⲧⲉ\nⲈⲣⲁⲥⲡⲁⲍⲉ ⲣⲱⲟⲩ ϧⲉⲛ Ⲡⲓϩⲓⲣⲏⲛⲏ ⲉⲑⲟⲩⲁⲃ.`,
+  'basil-creed': `Ⲙⲁⲣⲉⲛϫⲱ ⲙ̀ⲡⲓⲛⲓϣϯ ⲛ̀ϩⲟⲙⲟⲗⲟⲅⲓⲁ ⲛ̀ⲧⲉⲛⲛⲓⲥϯ ⲛ̀ⲁⲧⲟⲩ.`,
+  'basil-anaphora': `Ⲡϭⲟⲓⲥ ⲛⲉⲙ ⲧⲏⲣⲟⲩ.\nⲚⲉⲙ ⲡⲉⲕⲡ̀ⲛⲉⲩⲙⲁ ϧⲱⲕ.`,
+  'basil-commemoration': `Ⲁⲣⲓⲙⲉⲩⲓ Ⲛ̀ⲧⲉⲛⲭⲟⲓ ⲛⲉⲙ ⲧⲉⲛⲙⲁⲩ Ⲑⲉⲟⲧⲟⲕⲟⲥ Ⲙⲁⲣⲓⲁ ϯⲡⲁⲣⲑⲉⲛⲟⲥ ⲉⲑⲟⲩⲁⲃ. Ⲁ̀ⲙⲏⲛ.`,
+  'basil-communion': `Ⲡⲓⲟⲩⲁⲃ Ⲛ̀ⲛⲓⲟⲩⲁⲃ.\n\nⲞⲩⲁⲓ ⲡⲉ Ⲫⲓⲱⲧ ⲉⲑⲟⲩⲁⲃ — Ⲟⲩⲁⲓ ⲡⲉ Ⲡⲓϣⲏⲣⲓ ⲉⲑⲟⲩⲁⲃ — Ⲟⲩⲁⲓ ⲡⲉ Ⲡⲓⲡ̀ⲛⲉⲩⲙⲁ ⲉⲑⲟⲩⲁⲃ. Ⲁ̀ⲙⲏⲛ.\n\nⲈⲩⲗⲟⲅⲏⲙⲉⲛⲟⲥ Ⲡϭⲟⲓⲥ Ⲓⲏⲥⲟⲩⲥ Ⲡⲓⲭ̀ⲣⲓⲥⲧⲟⲥ Ⲡϣⲏⲣⲓ Ⲙ̀Ⲫⲛⲟⲩϯ ϧⲉⲛ ⲧⲫⲉ ⲛⲉⲙ ⲡⲓⲕⲁϩⲓ.\nⲰⲥⲁⲛⲛⲁ ϧⲉⲛ ⲛⲓⲉⲧϩⲱⲟⲩⲧ. Ⲁ̀ⲙⲏⲛ.`,
+  'basil-thanksgiving': `Ϣⲡ ϩⲙⲟⲧ ⲛⲁⲕ Ⲡⲉⲛϭⲟⲓⲥ Ⲡⲉⲛⲛⲟⲩϯ ⲉⲑⲃⲉ ⲧⲉⲛⲕⲟⲓⲛⲱⲛⲓⲁ ⲉⲃⲟⲗ ϧⲉⲛ Ⲡⲉⲕⲥⲱⲙⲁ ⲛⲉⲙ Ⲡⲉⲕⲥⲛⲟϥ ⲉⲑⲟⲩⲁⲃ ⲉⲧⲓⲙⲓ.`,
+  'greg-anaphora': `Ⲛ̀ⲑⲟⲕ Ⲡⲉⲧⲉ ⲙ̀ⲙⲟⲛ ⲗⲁⲁⲩ ϭⲓⲛϭ ⲛ̀ⲥⲱⲕ ⲟⲩⲇⲉ ⲙ̀ⲙⲟⲛ ⲗⲁⲁⲩ ϯ Ⲛⲁⲕ.`,
+  'cyril-anaphora': `Ⲁ̀ⲙⲏⲛ Ⲑⲉⲙⲉⲗⲓⲟⲩⲥ ⲛⲉⲙ Ⲑⲉⲡⲣⲉⲡⲓⲥ ⲛⲉⲙ Ⲑⲉⲙⲉⲑⲛⲁϭⲓ ⲉⲃⲉ ⲟⲩⲃⲉⲛ.`,
+};
 
-// ── الأقسام الموحّدة — ترتيب القداس
-export const unifiedSections: UnifiedSection[] = [
-  {
-    sectionKey: 'intro',
-    label: 'الصلوات الافتتاحية',
-    icon: '🕊️',
-    slides: {
-      basil: extractSlides('basil', ['basil-opening']),
-      gregory: extractSlides('gregory', ['greg-intro', 'greg-praise']),
-      cyril: extractSlides('cyril', ['cyril-intro']),
-    },
-  },
-  {
-    sectionKey: 'readings',
-    label: 'قراءات الكتاب المقدس',
-    icon: '📖',
-    slides: {
-      basil: extractSlides('basil', ['basil-gospel-readings']),
-      gregory: extractSlides('gregory', ['greg-praise']),
-      cyril: extractSlides('cyril', ['cyril-penitence']),
-    },
-  },
-  {
-    sectionKey: 'repentance',
-    label: 'التوبة والصلح',
-    icon: '🙏',
-    slides: {
-      basil: extractSlides('basil', ['basil-repentance', 'basil-reconciliation']),
-      gregory: extractSlides('gregory', ['greg-praise']),
-      cyril: extractSlides('cyril', ['cyril-penitence']),
-    },
-  },
-  {
-    sectionKey: 'anaphora',
-    label: 'الأنافورا — القربان',
-    icon: '✝️',
-    slides: {
-      basil: extractSlides('basil', ['basil-anaphora']),
-      gregory: extractSlides('gregory', ['greg-anaphora']),
-      cyril: extractSlides('cyril', ['cyril-anaphora']),
-    },
-  },
-  {
-    sectionKey: 'communion',
-    label: 'التناول المقدس',
-    icon: '🍷',
-    slides: {
-      basil: extractSlides('basil', ['basil-communion']),
-      gregory: extractSlides('gregory', ['greg-anaphora']),
-      cyril: extractSlides('cyril', ['cyril-anaphora']),
-    },
-  },
-  {
-    sectionKey: 'ending',
-    label: 'الختام والشكر',
-    icon: '☮️',
-    slides: {
-      basil: extractSlides('basil', ['basil-thanksgiving']),
-      gregory: extractSlides('gregory', ['greg-closing']),
-      cyril: extractSlides('cyril', ['cyril-closing']),
-    },
-  },
-];
+// ── دالة الأقسام لقداس معيّن (للاستخدام في لوحة التحكم وشاشة العرض)
+export function getSectionsForLiturgy(liturgyType: LiturgyType): SectionMeta[] {
+  const liturgy = kholagyLiturgies.find(l => l.id === liturgyType);
+  if (!liturgy) return [];
+  return liturgy.sections.map(s => ({
+    sectionKey: s.id,
+    label: s.title,
+    icon: s.role.includes('كاهن') ? '✝️' : s.role.includes('شماس') ? '📜' : s.role.includes('شعب') ? '🙏' : '📖',
+  }));
+}
 
 // ── مردات الشماس المشتركة
 export const deaconResponses: DeaconResponse[] = [
@@ -149,7 +88,7 @@ export interface LiturgySession {
 export const defaultSession: LiturgySession = {
   sessionId: 'main',
   liturgyType: 'basil',
-  sectionKey: 'intro',
+  sectionKey: 'basil-opening',
   slideIndex: 0,
   deaconOverride: null,
   updatedAt: Date.now(),
@@ -157,8 +96,17 @@ export const defaultSession: LiturgySession = {
 
 // ── دوال مساعدة
 export function getSlidesForSection(liturgyType: LiturgyType, sectionKey: string): LiturgySlide[] {
-  const section = unifiedSections.find(s => s.sectionKey === sectionKey);
-  return section?.slides[liturgyType] ?? [];
+  const liturgy = kholagyLiturgies.find(l => l.id === liturgyType);
+  if (!liturgy) return [];
+  const section = liturgy.sections.find(s => s.id === sectionKey);
+  if (!section) return [];
+  return [{
+    id: section.id,
+    role: normalizeRole(section.role),
+    title: section.title,
+    text: section.text,
+    ...(COPTIC_TEXT_MAP[section.id] ? { copticText: COPTIC_TEXT_MAP[section.id] } : {}),
+  }];
 }
 
 // ── تقسيم النص الطويل إلى صفحات بناءً على حد الأحرف
