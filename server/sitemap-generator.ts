@@ -139,6 +139,10 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
     { path: "/orthodox/maps", changefreq: "monthly", priority: "0.7" },
     { path: "/orthodox/pope-qa", changefreq: "monthly", priority: "0.7" },
     { path: "/kholagy", changefreq: "monthly", priority: "0.9" },
+    { path: "/terms",    changefreq: "monthly", priority: "0.3" },
+    { path: "/premium",  changefreq: "monthly", priority: "0.6" },
+    { path: "/church",   changefreq: "weekly",  priority: "0.7" },
+    { path: "/challenge", changefreq: "weekly", priority: "0.7" },
   ];
   for (const page of staticPages) {
     const loc = page.path === "/" ? SITE : `${SITE}${page.path}`;
@@ -353,11 +357,22 @@ Allow: /daily-verse
 Allow: /daily-verse/
 Allow: /orthodox
 Allow: /orthodox/
+Allow: /terms
+Allow: /premium
+Allow: /church
+Allow: /church/
+Allow: /challenge
 
 Disallow: /api/
 Disallow: /liturgy-control
 Disallow: /liturgy-display
 Disallow: /admin
+Disallow: /highlights
+Disallow: /groups
+Disallow: /group/
+Disallow: /church-request
+Disallow: /ministry-auth
+Disallow: /share/
 
 Sitemap: ${SITE}/sitemap.xml
 `;
