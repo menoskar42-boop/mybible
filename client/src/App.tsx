@@ -44,6 +44,7 @@ import KholagyPro from '@/pages/KholagyPro';
 import ExitIntelligence from '@/pages/ExitIntelligence';
 import SharePage from '@/pages/SharePage';
 import NotFound from '@/pages/not-found';
+import Sitemap from '@/pages/Sitemap';
 
 // صفحات بدون Layout (ملء الشاشة)
 const FULL_SCREEN_ROUTES = ['/liturgy-display'];
@@ -96,6 +97,7 @@ function Router() {
       <Route path="/orthodox" component={Orthodox} />
       <Route path="/admin/exit" component={ExitIntelligence} />
       <Route path="/share/:type/:id" component={SharePage} />
+      <Route path="/sitemap" component={Sitemap} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -140,6 +140,7 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
     { path: "/orthodox/maps", changefreq: "monthly", priority: "0.7" },
     { path: "/orthodox/pope-qa", changefreq: "monthly", priority: "0.7" },
     { path: "/kholagy", changefreq: "monthly", priority: "0.9" },
+    { path: "/sitemap",  changefreq: "monthly", priority: "0.4" },
     { path: "/terms",    changefreq: "monthly", priority: "0.3" },
     { path: "/premium",  changefreq: "monthly", priority: "0.6" },
     { path: "/church",   changefreq: "weekly",  priority: "0.7" },
