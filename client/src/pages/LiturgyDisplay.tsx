@@ -70,7 +70,7 @@ export default function LiturgyDisplay() {
   return (
     <div
       dir="rtl"
-      className="fixed inset-0 bg-black flex flex-col items-center justify-center"
+      className="fixed inset-0 bg-black flex flex-col items-center justify-center overflow-hidden"
       style={{ fontFamily: 'serif' }}
     >
       {/* شريط المعلومات العلوي */}
@@ -104,22 +104,22 @@ export default function LiturgyDisplay() {
       {/* الشريحة الرئيسية */}
       {!deaconSlide && currentSlide && (
         currentSlide.copticText ? (
-          /* شاشة مقسومة: عربي على اليمين — قبطي على اليسار */
+          /* شاشة مقسومة: عربي يمين — قبطي يسار — بدون قص */
           <div
-            className="flex w-full items-stretch overflow-hidden"
-            style={{ height: '82vh', maxHeight: '82vh' }}
+            className="flex w-full"
+            style={{ minHeight: 0, flex: 1, maxHeight: '85vh' }}
           >
             {/* الجانب العربي — يمين */}
             <div
               dir="rtl"
-              className="flex-1 flex flex-col items-center justify-center gap-4 px-6 border-r border-white/10 overflow-hidden min-w-0"
+              className="flex-1 flex flex-col items-center justify-center gap-3 px-6 border-r border-white/10 min-w-0"
             >
               <div className={`text-xs font-bold tracking-widest uppercase flex-shrink-0 ${getRoleColor(currentSlide.role)}`}>
                 {getRoleLabel(currentSlide.role)}
               </div>
               <div
-                className="text-white whitespace-pre-line text-center overflow-hidden"
-                style={{ fontSize: 'clamp(1.1rem, 2.8vw, 2.6rem)', lineHeight: 1.75 }}
+                className="text-white whitespace-pre-line text-center w-full"
+                style={{ fontSize: 'clamp(1rem, 2.6vw, 2.4rem)', lineHeight: 1.8 }}
               >
                 {currentSlide.text}
               </div>
@@ -128,12 +128,12 @@ export default function LiturgyDisplay() {
             {/* الجانب القبطي — يسار */}
             <div
               dir="ltr"
-              className="flex-1 flex flex-col items-center justify-center gap-4 px-6 overflow-hidden min-w-0"
+              className="flex-1 flex flex-col items-center justify-center gap-3 px-6 min-w-0"
             >
               <div className="text-blue-300/60 text-xs font-bold tracking-widest uppercase flex-shrink-0">Coptic</div>
               <div
-                className="text-white/90 whitespace-pre-line text-center overflow-hidden"
-                style={{ fontSize: 'clamp(1rem, 2.5vw, 2.2rem)', lineHeight: 1.85, fontFamily: 'serif' }}
+                className="text-white/90 whitespace-pre-line text-center w-full"
+                style={{ fontSize: 'clamp(0.9rem, 2.3vw, 2.1rem)', lineHeight: 1.9, fontFamily: 'serif' }}
               >
                 {currentSlide.copticText}
               </div>
@@ -142,14 +142,14 @@ export default function LiturgyDisplay() {
         ) : (
           /* شاشة عادية بدون قبطي */
           <div
-            className="flex flex-col items-center justify-center gap-6 px-10 text-center overflow-hidden w-full"
-            style={{ height: '82vh', maxHeight: '82vh', maxWidth: '90vw' }}
+            className="flex flex-col items-center justify-center gap-6 px-10 text-center w-full"
+            style={{ flex: 1, maxHeight: '85vh', maxWidth: '90vw' }}
           >
             <div className={`text-xs font-bold tracking-widest uppercase flex-shrink-0 ${getRoleColor(currentSlide.role)}`}>
               {getRoleLabel(currentSlide.role)}
             </div>
             <div
-              className="text-white whitespace-pre-line overflow-hidden"
+              className="text-white whitespace-pre-line"
               style={{ fontSize: 'clamp(1.4rem, 3.8vw, 3.4rem)', lineHeight: 1.8 }}
             >
               {currentSlide.text}
