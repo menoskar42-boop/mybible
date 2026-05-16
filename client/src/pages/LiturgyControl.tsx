@@ -208,7 +208,7 @@ export default function LiturgyControl() {
   return (
     <div dir="rtl" className="min-h-screen bg-gray-950 text-white p-4">
       {/* رأس الصفحة */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-amber-400" />
@@ -222,42 +222,48 @@ export default function LiturgyControl() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {syncing && <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />}
-          {lastSync && !syncing && (
-            <span className="text-xs text-gray-500">
-              {lastSync.toLocaleTimeString('ar-EG')}
-            </span>
-          )}
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs border-amber-600/60 text-amber-300 hover:bg-amber-900/30"
-            onClick={() => setShowSearch(true)}
-            title="بحث في نص القداس"
-          >
-            <Search className="w-3.5 h-3.5 ml-1" />
-            بحث
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs border-gray-600 text-gray-300"
-            onClick={copyDisplayLink}
-            title="نسخ رابط شاشة العرض"
-          >
-            {copied ? <Check className="w-3.5 h-3.5 ml-1 text-green-400" /> : <Copy className="w-3.5 h-3.5 ml-1" />}
-            {copied ? 'تم النسخ' : 'نسخ الرابط'}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs border-gray-600 text-gray-300"
-            onClick={() => window.open(displayPath, '_blank')}
-          >
-            <Monitor className="w-3.5 h-3.5 ml-1" />
-            فتح شاشة العرض
-          </Button>
+        <div className="flex flex-col items-end gap-2">
+          {/* الصف الأول: فتح شاشة العرض + نسخ الرابط */}
+          <div className="flex items-center gap-2">
+            {syncing && <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />}
+            {lastSync && !syncing && (
+              <span className="text-xs text-gray-500">
+                {lastSync.toLocaleTimeString('ar-EG')}
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs border-gray-600 text-gray-300"
+              onClick={copyDisplayLink}
+              title="نسخ رابط شاشة العرض"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 ml-1 text-green-400" /> : <Copy className="w-3.5 h-3.5 ml-1" />}
+              {copied ? 'تم النسخ' : 'نسخ الرابط'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs border-gray-600 text-gray-300"
+              onClick={() => window.open(displayPath, '_blank')}
+            >
+              <Monitor className="w-3.5 h-3.5 ml-1" />
+              فتح شاشة العرض
+            </Button>
+          </div>
+          {/* الصف الثاني: بحث */}
+          <div className="flex items-center">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs border-amber-600/60 text-amber-300 hover:bg-amber-900/30 w-full sm:w-auto"
+              onClick={() => setShowSearch(true)}
+              title="بحث في نص القداس"
+            >
+              <Search className="w-3.5 h-3.5 ml-1" />
+              بحث في نص القداس
+            </Button>
+          </div>
         </div>
       </div>
 
