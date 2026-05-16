@@ -145,8 +145,39 @@ function splitTextIntoPages(text: string, maxChars: number): string[] {
   return pages.length > 0 ? pages : [text];
 }
 
-// الحد الأقصى للأحرف في شريحة واحدة — محسوب للموبايل والتلفزيون معاً
-const SLIDE_MAX_CHARS = 100;
+// الحد الأقصى للأحرف في الشريحة — 150 لنص منفرد، 120 لكل جانب في النص الثنائي
+const SLIDE_MAX_CHARS = 150;
+const SLIDE_MAX_CHARS_BILINGUAL = 120;
+
+// تقسيم متوازٍ: العربي والقبطي معاً فقرةً بفقرة — يضمن عدم فقدان النص القبطي
+function splitParallelTexts(
+  arabicText: string,
+  copticText: string,
+  maxPerSide: number,
+): { arabic: string; coptic: string }[] {
+  const arabicParas = arabicText.split('\n').filter(p => p.trim() !== '');
+  const copticParas = copticText.split('\n').filter(p => p.trim() !== '');
+  const pages: { arabic: string; coptic: string }[] = [];
+  let curA = '';
+  let curC = '';
+  const len = Math.max(arabicParas.length, copticParas.length);
+  for (let i = 0; i < len; i++) {
+    const ap = arabicParas[i] ?? '';
+    const cp = copticParas[i] ?? '';
+    const candA = curA ? curA + '\n' + ap : ap;
+    const candC = curC ? curC + '\n' + cp : cp;
+    if (candA.length <= maxPerSide && candC.length <= maxPerSide) {
+      curA = candA;
+      curC = candC;
+    } else {
+      if (curA || curC) pages.push({ arabic: curA, coptic: curC });
+      curA = ap;
+      curC = cp;
+    }
+  }
+  if (curA || curC) pages.push({ arabic: curA, coptic: curC });
+  return pages.length > 0 ? pages : [{ arabic: arabicText, coptic: copticText }];
+}
 
 // ── نسخة مقسّمة من getSlidesForSection
 // كل شريحة طويلة تُقسَّم إلى شرائح منفصلة بنفس الدور والعنوان
@@ -159,21 +190,39 @@ export function getSplitSlidesForSection(
   const result: LiturgySlide[] = [];
 
   for (const slide of slides) {
+    // شريحة ثنائية اللغة — تقسيم متوازٍ يحافظ على المحاذاة
+    if (slide.copticText) {
+      const fits =
+        slide.text.length <= SLIDE_MAX_CHARS_BILINGUAL &&
+        slide.copticText.length <= SLIDE_MAX_CHARS_BILINGUAL;
+      if (fits) {
+        result.push(slide);
+        continue;
+      }
+      const pairs = splitParallelTexts(slide.text, slide.copticText, SLIDE_MAX_CHARS_BILINGUAL);
+      pairs.forEach((pair, i) => {
+        result.push({
+          ...slide,
+          id: `${slide.id}-p${i + 1}`,
+          text: pair.arabic,
+          copticText: pair.coptic,
+          title: pairs.length > 1 ? `${slide.title} (${i + 1}/${pairs.length})` : slide.title,
+        });
+      });
+      continue;
+    }
+    // شريحة عربية فقط — التقسيم القديم
     if (slide.text.length <= maxChars) {
       result.push(slide);
       continue;
     }
     const pages = splitTextIntoPages(slide.text, maxChars);
-    const copticPages = slide.copticText
-      ? splitTextIntoPages(slide.copticText, maxChars)
-      : [];
     pages.forEach((page, i) => {
       result.push({
         ...slide,
         id: `${slide.id}-p${i + 1}`,
         text: page,
         title: pages.length > 1 ? `${slide.title} (${i + 1}/${pages.length})` : slide.title,
-        ...(copticPages[i] ? { copticText: copticPages[i] } : {}),
       });
     });
   }
