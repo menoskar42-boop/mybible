@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,6 +12,7 @@ import {
   defaultSession,
   type LiturgyType,
   type LiturgySession,
+  type LiturgySlide,
   type DeaconResponse,
 } from '@/lib/liturgy-map';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import {
   BookOpen,
   Copy,
   Check,
+  Search,
 } from 'lucide-react';
 
 const LITURGY_TYPES: LiturgyType[] = ['basil', 'gregory', 'cyril'];
@@ -137,6 +139,72 @@ export default function LiturgyControl() {
     pushSession({ deaconOverride: null });
   }
 
+  // ── بحث ──────────────────────────────────────────────────────────────────
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  interface SearchHit {
+    sectionKey: string;
+    sectionLabel: string;
+    sectionIcon: string;
+    slideIndex: number;
+    title: string;
+    role: LiturgySlide['role'];
+    excerpt: string;
+  }
+
+  function buildSearchResults(q: string): SearchHit[] {
+    if (q.trim().length < 2) return [];
+    const lower = q.toLowerCase();
+    const sections = getSectionsForLiturgy(session.liturgyType);
+    const hits: SearchHit[] = [];
+    for (const sec of sections) {
+      const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey);
+      for (let i = 0; i < slides.length; i++) {
+        const s = slides[i];
+        const haystack = (s.text + ' ' + (s.copticText ?? '') + ' ' + s.title).toLowerCase();
+        if (!haystack.includes(lower)) continue;
+        // مقتطف من موضع الكلمة
+        const pos = s.text.toLowerCase().indexOf(lower);
+        const start = Math.max(0, pos - 30);
+        const raw = s.text.slice(start, start + 100).replace(/\n/g, ' ');
+        const excerpt = (start > 0 ? '...' : '') + raw + (raw.length >= 100 ? '...' : '');
+        hits.push({
+          sectionKey: sec.sectionKey,
+          sectionLabel: sec.label,
+          sectionIcon: sec.icon,
+          slideIndex: i,
+          title: s.title,
+          role: s.role,
+          excerpt,
+        });
+        if (hits.length >= 30) return hits;
+      }
+    }
+    return hits;
+  }
+
+  const searchResults = buildSearchResults(searchQuery);
+
+  function jumpToHit(hit: SearchHit) {
+    pushSession({ sectionKey: hit.sectionKey, slideIndex: hit.slideIndex, deaconOverride: null });
+    setShowSearch(false);
+    setSearchQuery('');
+  }
+
+  function highlightQuery(text: string, q: string): React.ReactNode {
+    if (!q.trim()) return text;
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="bg-amber-400 text-black rounded px-0.5">{text.slice(idx, idx + q.length)}</mark>
+        {text.slice(idx + q.length)}
+      </>
+    );
+  }
+
   return (
     <div dir="rtl" className="min-h-screen bg-gray-950 text-white p-4">
       {/* رأس الصفحة */}
@@ -161,6 +229,16 @@ export default function LiturgyControl() {
               {lastSync.toLocaleTimeString('ar-EG')}
             </span>
           )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs border-amber-600/60 text-amber-300 hover:bg-amber-900/30"
+            onClick={() => setShowSearch(true)}
+            title="بحث في نص القداس"
+          >
+            <Search className="w-3.5 h-3.5 ml-1" />
+            بحث
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -404,6 +482,94 @@ export default function LiturgyControl() {
           </Card>
         </div>
       </div>
+
+      {/* ── مودال البحث ────────────────────────────────────────────────────── */}
+      {showSearch && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4"
+          style={{ background: 'rgba(0,0,0,0.85)' }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowSearch(false); setSearchQuery(''); } }}
+        >
+          <div className="w-full max-w-2xl bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden" dir="rtl">
+            {/* شريط البحث */}
+            <div className="flex items-center gap-3 p-4 border-b border-gray-700">
+              <Search className="w-5 h-5 text-amber-400 flex-shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                placeholder="اكتب ما تسمعه من النص... (عربي أو قبطي)"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-white placeholder-gray-500 text-base outline-none font-serif"
+                dir="rtl"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="text-gray-500 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={() => { setShowSearch(false); setSearchQuery(''); }}
+                className="text-gray-500 hover:text-white mr-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* تعليمات */}
+            {!searchQuery && (
+              <div className="px-6 py-8 text-center text-gray-500 text-sm">
+                <Search className="w-10 h-10 mx-auto mb-3 text-gray-700" />
+                <p>اكتب أي كلمة تسمعها من نص القداس</p>
+                <p className="text-xs mt-1 text-gray-600">سيبحث في كل أقسام {getLiturgyLabel(session.liturgyType)}</p>
+              </div>
+            )}
+
+            {/* لا نتائج */}
+            {searchQuery.length >= 2 && searchResults.length === 0 && (
+              <div className="px-6 py-8 text-center text-gray-500 text-sm">
+                <p>لا توجد نتائج لـ "<span className="text-white">{searchQuery}</span>"</p>
+                <p className="text-xs mt-1 text-gray-600">جرّب كلمة أخرى من النص</p>
+              </div>
+            )}
+
+            {/* النتائج */}
+            {searchResults.length > 0 && (
+              <div className="overflow-y-auto max-h-[60vh]">
+                <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-800">
+                  {searchResults.length} نتيجة في {getLiturgyLabel(session.liturgyType)}
+                </div>
+                {searchResults.map((hit, idx) => (
+                  <button
+                    key={`${hit.sectionKey}-${hit.slideIndex}-${idx}`}
+                    onClick={() => jumpToHit(hit)}
+                    className="w-full text-right px-4 py-3 hover:bg-amber-900/20 border-b border-gray-800/50 transition-all group"
+                  >
+                    {/* رأس النتيجة */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">{hit.sectionIcon}</span>
+                      <span className="text-xs text-amber-400 font-bold">{hit.sectionLabel}</span>
+                      <span className="text-gray-600 text-xs">—</span>
+                      <span className="text-xs text-gray-400">{hit.title}</span>
+                      <span className={`text-xs font-bold mr-auto ${getRoleColor(hit.role)}`}>
+                        {getRoleLabel(hit.role)}
+                      </span>
+                    </div>
+                    {/* مقتطف النص مع تمييز */}
+                    <p className="text-gray-300 text-sm font-serif leading-relaxed text-right group-hover:text-white transition-colors">
+                      {highlightQuery(hit.excerpt, searchQuery)}
+                    </p>
+                    {/* زر الانتقال */}
+                    <div className="mt-1 text-xs text-amber-600 group-hover:text-amber-400 transition-colors">
+                      اضغط للانتقال إلى هذا الموضع ←
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
