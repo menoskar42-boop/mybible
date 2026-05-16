@@ -7,6 +7,8 @@ export interface KholagySection {
   title: string;
   role: string; // الكاهن | الشماس | الشعب | الكل
   text: string;
+  copticText?: string;
+  englishText?: string;
 }
 
 export interface KholagyLiturgy {

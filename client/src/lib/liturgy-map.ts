@@ -105,7 +105,7 @@ export function getSlidesForSection(liturgyType: LiturgyType, sectionKey: string
     role: normalizeRole(section.role),
     title: section.title,
     text: section.text,
-    ...(COPTIC_TEXT_MAP[section.id] ? { copticText: COPTIC_TEXT_MAP[section.id] } : {}),
+    ...(section.copticText ? { copticText: section.copticText } : COPTIC_TEXT_MAP[section.id] ? { copticText: COPTIC_TEXT_MAP[section.id] } : {}),
   }];
 }
 
