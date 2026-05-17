@@ -246,9 +246,14 @@ function SynaxariumSection() {
   return null;
 }
 
-const AGPEYA_PLAYLIST_ID = 'PLvMAQ886uces2LPBNwge5x6FOp5BE5e49';
-const AGPEYA_HOUR_INDEX: Record<string, number> = {
-  prime: 0, terce: 1, sext: 2, none: 3, vespers: 4, compline: 5, midnight: 6,
+const AGPEYA_HOUR_VIDEO: Record<string, string> = {
+  prime:    'GHdBAQSvJKE',
+  terce:    'S0j7u_ofox0',
+  sext:     'gLF5RdzeUiU',
+  none:     'PaYAUeyPcxk',
+  vespers:  'HLvvnxMA_JI',
+  compline: 'N6sfbh3bmMk',
+  midnight: 'YHtnFevTKx0',
 };
 
 function AgpeyaSection() {
@@ -341,7 +346,7 @@ function AgpeyaSection() {
               <div className="aspect-video rounded-xl overflow-hidden bg-black">
                 <iframe
                   key={selectedHour.id}
-                  src={`https://www.youtube-nocookie.com/embed/videoseries?list=${AGPEYA_PLAYLIST_ID}&index=${AGPEYA_HOUR_INDEX[selectedHour.id] ?? 0}&autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                  src={`https://www.youtube-nocookie.com/embed/${AGPEYA_HOUR_VIDEO[selectedHour.id]}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
                   title={selectedHour.name}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -352,13 +357,13 @@ function AgpeyaSection() {
             </div>
             <div className="px-4 pb-4">
               <a
-                href={`https://www.youtube.com/playlist?list=${AGPEYA_PLAYLIST_ID}`}
+                href={`https://www.youtube.com/watch?v=${AGPEYA_HOUR_VIDEO[selectedHour.id]}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-2 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-sm transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
-                افتح قائمة التشغيل على يوتيوب
+                افتح الفيديو على يوتيوب
               </a>
             </div>
           </DialogContent>
