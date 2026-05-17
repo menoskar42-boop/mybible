@@ -1,14 +1,23 @@
+import { useState } from 'react';
 import { useParams, Link } from 'wouter';
 import { motion } from 'framer-motion';
-import { ChevronLeft, BookOpen } from 'lucide-react';
+import { ChevronLeft, BookOpen, Volume2, ExternalLink, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { agpeyaHoursFull, commonOpeningPrayers } from '@/lib/agpeya-content';
+
+const AGPEYA_PLAYLIST_ID = 'PLvMAQ886uces2LPBNwge5x6FOp5BE5e49';
+const AGPEYA_HOUR_INDEX: Record<string, number> = {
+  prime: 0, terce: 1, sext: 2, none: 3, vespers: 4, compline: 5, midnight: 6,
+};
 
 export default function OrthodoxAgpeyaHour() {
   const { hour: hourId } = useParams<{ hour: string }>();
   usePageTracker(`/orthodox/agpeya/${hourId}`);
+  const [audioOpen, setAudioOpen] = useState(false);
 
   const hour = agpeyaHoursFull.find(h => h.id === hourId);
 
@@ -49,7 +58,56 @@ export default function OrthodoxAgpeyaHour() {
           <span>•</span>
           <span><strong>التذكار:</strong> {hour.memory}</span>
         </div>
+        <Button
+          size="sm"
+          className="mt-3 gap-1.5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+          onClick={() => setAudioOpen(true)}
+        >
+          <Volume2 className="w-4 h-4 ml-1" />
+          استمع للصلاة
+        </Button>
       </div>
+
+      {/* مشغّل الصلاة — نافذة يوتيوب */}
+      <Dialog open={audioOpen} onOpenChange={setAudioOpen}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <DialogTitle className="text-right font-display text-base flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <span>{hour.icon}</span>
+                <span>{hour.name} — استمع للصلاة</span>
+              </span>
+              <Button variant="ghost" size="sm" onClick={() => setAudioOpen(false)} className="flex-shrink-0">
+                <X className="w-4 h-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-4 pb-2">
+            <div className="aspect-video rounded-xl overflow-hidden bg-black">
+              <iframe
+                key={hour.id}
+                src={`https://www.youtube-nocookie.com/embed/videoseries?list=${AGPEYA_PLAYLIST_ID}&index=${AGPEYA_HOUR_INDEX[hour.id] ?? 0}&autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+                title={hour.name}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            </div>
+          </div>
+          <div className="px-4 pb-4">
+            <a
+              href={`https://www.youtube.com/playlist?list=${AGPEYA_PLAYLIST_ID}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2 rounded-lg border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-sm transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              افتح قائمة التشغيل على يوتيوب
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-4">
         {allPrayers.map((prayer, i) => (
