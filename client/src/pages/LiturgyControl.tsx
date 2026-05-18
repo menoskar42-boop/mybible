@@ -10,6 +10,7 @@ import {
   getRoleColor,
   deaconResponses,
   defaultSession,
+  COPTIC_ARABIC_MAP,
   type LiturgyType,
   type LiturgySession,
   type LiturgySlide,
@@ -50,6 +51,7 @@ export default function LiturgyControl() {
   const [showDeaconPanel, setShowDeaconPanel] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copticMode, setCopticMode] = useState<'script' | 'arabic'>('script');
 
   const displayPath = slot ? `/liturgy-display/${slot}` : '/liturgy-display';
 
@@ -325,18 +327,36 @@ export default function LiturgyControl() {
                   exit={{ opacity: 0, y: -6 }}
                   className="bg-gray-800 rounded-xl p-4 mb-4"
                 >
-                  <div className={`text-xs font-bold mb-2 ${getRoleColor(currentSlide.role)}`}>
-                    {getRoleLabel(currentSlide.role)}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`text-xs font-bold ${getRoleColor(currentSlide.role)}`}>
+                      {getRoleLabel(currentSlide.role)}
+                    </div>
+                    {(currentSlide.copticText || COPTIC_ARABIC_MAP[currentSlide.id]) && (
+                      <button
+                        onClick={() => setCopticMode(m => m === 'script' ? 'arabic' : 'script')}
+                        className="text-xs px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+                      >
+                        {copticMode === 'script' ? 'قبطي بعربي' : 'ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ'}
+                      </button>
+                    )}
                   </div>
                   <h3 className="text-sm text-gray-400 mb-2">{currentSlide.title}</h3>
                   <p className="text-white text-sm font-serif whitespace-pre-line leading-relaxed line-clamp-6">
                     {currentSlide.text}
                   </p>
-                  {currentSlide.copticText && (
+                  {copticMode === 'script' && currentSlide.copticText && (
                     <div className="mt-3 pt-3 border-t border-gray-700">
                       <span className="text-xs font-bold text-blue-400 block mb-1">ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ</span>
                       <p dir="ltr" className="text-blue-300 text-xs font-serif whitespace-pre-line leading-relaxed line-clamp-4">
                         {currentSlide.copticText}
+                      </p>
+                    </div>
+                  )}
+                  {copticMode === 'arabic' && COPTIC_ARABIC_MAP[currentSlide.id] && (
+                    <div className="mt-3 pt-3 border-t border-gray-700">
+                      <span className="text-xs font-bold text-amber-400 block mb-1">قبطي بحروف عربية</span>
+                      <p dir="rtl" className="text-amber-300 text-xs whitespace-pre-line leading-relaxed line-clamp-4">
+                        {COPTIC_ARABIC_MAP[currentSlide.id]}
                       </p>
                     </div>
                   )}

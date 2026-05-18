@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, BookOpen, List, X, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft, BookOpen, List, X, Search, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { SEOHead } from '@/components/SEOHead';
 import { kholagyLiturgies, type KholagyLiturgy, type KholagySection } from '@/lib/kholagy-data';
-import { COPTIC_TEXT_MAP } from '@/lib/liturgy-map';
+import { COPTIC_TEXT_MAP, COPTIC_ARABIC_MAP } from '@/lib/liturgy-map';
 
 // ── ألوان الأدوار
 const roleColors: Record<string, string> = {
@@ -140,11 +140,32 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
 }) {
   const [, navigate] = useLocation();
   const [tocOpen, setTocOpen] = useState(false);
+  const [textMode, setTextMode] = useState<'arabic' | 'copticScript' | 'copticArabic'>('arabic');
 
   const prev = liturgy.sections[sectionIdx - 1];
   const next = liturgy.sections[sectionIdx + 1];
   const borderClass = roleBorder[section.role] ?? 'border-r-4 border-slate-300';
   const badgeClass = roleColors[section.role] ?? 'bg-slate-100 text-slate-700';
+
+  const copticScript = section.copticText || COPTIC_TEXT_MAP[section.id] || null;
+  const copticArabic = COPTIC_ARABIC_MAP[section.id] || null;
+  const hasCoptic = !!(copticScript || copticArabic);
+
+  const modeLabels: Record<typeof textMode, string> = {
+    arabic: 'عربي',
+    copticScript: 'ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ',
+    copticArabic: 'قبطي بعربي',
+  };
+
+  function cycleMode() {
+    setTextMode(prev =>
+      prev === 'arabic'
+        ? copticScript ? 'copticScript' : copticArabic ? 'copticArabic' : 'arabic'
+        : prev === 'copticScript'
+        ? copticArabic ? 'copticArabic' : 'arabic'
+        : 'arabic'
+    );
+  }
 
   return (
     <>
@@ -235,7 +256,20 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
         <div className={`mx-4 mt-5 mb-4 p-4 rounded-xl ${borderClass} bg-muted/30`}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-foreground">{section.title}</h1>
-            <Badge className={`text-xs border-0 ${badgeClass}`}>{section.role}</Badge>
+            <div className="flex items-center gap-2">
+              {hasCoptic && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cycleMode}
+                  className="gap-1 text-xs h-7 px-2"
+                >
+                  <Languages className="w-3 h-3" />
+                  {modeLabels[textMode]}
+                </Button>
+              )}
+              <Badge className={`text-xs border-0 ${badgeClass}`}>{section.role}</Badge>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {sectionIdx + 1} / {liturgy.sections.length}
@@ -245,18 +279,26 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
         {/* النص */}
         <div className="px-4">
           <div className={`rounded-xl p-5 bg-muted/20 border ${borderClass} space-y-4`}>
-            <p className="text-base leading-9 whitespace-pre-line text-foreground text-right font-medium">
-              {section.text}
-            </p>
-            {(section.copticText || COPTIC_TEXT_MAP[section.id]) && (
-              <div className={`border-t pt-3 ${borderClass}`}>
-                <p
-                  className="text-sm leading-8 whitespace-pre-line text-muted-foreground"
-                  style={{ fontFamily: 'serif', direction: 'ltr', textAlign: 'left' }}
-                >
-                  {section.copticText || COPTIC_TEXT_MAP[section.id]}
-                </p>
-              </div>
+            {/* عربي */}
+            {(textMode === 'arabic') && (
+              <p className="text-base leading-9 whitespace-pre-line text-foreground text-right font-medium">
+                {section.text}
+              </p>
+            )}
+            {/* قبطي بحروف قبطية */}
+            {(textMode === 'copticScript') && copticScript && (
+              <p
+                className="text-sm leading-8 whitespace-pre-line text-foreground font-medium"
+                style={{ fontFamily: 'serif', direction: 'ltr', textAlign: 'left' }}
+              >
+                {copticScript}
+              </p>
+            )}
+            {/* قبطي بحروف عربية */}
+            {(textMode === 'copticArabic') && copticArabic && (
+              <p className="text-base leading-9 whitespace-pre-line text-foreground text-right font-medium">
+                {copticArabic}
+              </p>
             )}
           </div>
         </div>
