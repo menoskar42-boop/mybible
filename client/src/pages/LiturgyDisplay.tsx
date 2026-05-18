@@ -20,6 +20,19 @@ export default function LiturgyDisplay() {
   const [currentSlide, setCurrentSlide] = useState<LiturgySlide | null>(null);
   const [deaconSlide, setDeaconSlide] = useState<DeaconResponse | null>(null);
 
+  // copticMode قد يأتي undefined من sessions قديمة — نضع fallback صريح
+  const copticMode: 'script' | 'arabic' =
+    (session as LiturgySession & { copticMode?: string }).copticMode === 'arabic'
+      ? 'arabic'
+      : 'script';
+
+  const copticArabicText = COPTIC_ARABIC_MAP[session.sectionKey] ?? null;
+  const showCopticSide =
+    (copticMode === 'script' && !!(currentSlide?.copticText)) ||
+    (copticMode === 'arabic' && !!copticArabicText);
+  const copticSideText =
+    copticMode === 'arabic' ? copticArabicText : (currentSlide?.copticText ?? null);
+
   useEffect(() => {
     document.title = 'عرض القداس';
     document.body.style.background = '#000';
@@ -102,79 +115,69 @@ export default function LiturgyDisplay() {
         </div>
       )}
 
-      {/* الشريحة الرئيسية */}
-      {!deaconSlide && currentSlide && (() => {
-        const copticArabicText = COPTIC_ARABIC_MAP[session.sectionKey] ?? null;
-        const showSplit =
-          (session.copticMode === 'script' && !!currentSlide.copticText) ||
-          (session.copticMode === 'arabic' && !!copticArabicText);
-        const copticSideText =
-          session.copticMode === 'arabic' ? copticArabicText : currentSlide.copticText;
-        const copticIsArabicLetters = session.copticMode === 'arabic';
-
-        return showSplit ? (
-          /* شاشة مقسومة: عربي يمين — قبطي يسار */
+      {/* الشريحة الرئيسية — مقسومة أو عادية */}
+      {!deaconSlide && currentSlide && showCopticSide && (
+        <div
+          className="flex w-full"
+          style={{ minHeight: 0, flex: 1, maxHeight: '85vh' }}
+        >
+          {/* الجانب العربي */}
           <div
-            className="flex w-full"
-            style={{ minHeight: 0, flex: 1, maxHeight: '85vh' }}
-          >
-            {/* الجانب العربي */}
-            <div
-              dir="rtl"
-              className="flex-1 flex flex-col items-center justify-center gap-3 px-6 border-r border-white/10 min-w-0"
-            >
-              <div className={`text-xs font-bold tracking-widest uppercase flex-shrink-0 ${getRoleColor(currentSlide.role)}`}>
-                {getRoleLabel(currentSlide.role)}
-              </div>
-              <div
-                className="text-white whitespace-pre-line text-center w-full"
-                style={{ fontSize: 'clamp(1rem, 2.6vw, 2.4rem)', lineHeight: 1.8 }}
-              >
-                {currentSlide.text}
-              </div>
-              <div className="text-white/30 text-xs flex-shrink-0">{currentSlide.title}</div>
-            </div>
-            {/* الجانب القبطي */}
-            <div
-              dir={copticIsArabicLetters ? 'rtl' : 'ltr'}
-              className="flex-1 flex flex-col items-center justify-center gap-3 px-6 min-w-0"
-            >
-              <div className="text-blue-300/60 text-xs font-bold tracking-widest uppercase flex-shrink-0">
-                {copticIsArabicLetters ? 'قبطي بحروف عربية' : 'Coptic'}
-              </div>
-              <div
-                className="text-white/90 whitespace-pre-line text-center w-full"
-                style={{
-                  fontSize: 'clamp(0.9rem, 2.3vw, 2.1rem)',
-                  lineHeight: 1.9,
-                  fontFamily: copticIsArabicLetters ? 'inherit' : 'serif',
-                }}
-              >
-                {copticSideText}
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* شاشة عادية بدون قبطي */
-          <div
-            className="flex flex-col items-center justify-center gap-6 px-10 text-center w-full"
-            style={{ flex: 1, maxHeight: '85vh', maxWidth: '90vw' }}
+            dir="rtl"
+            className="flex-1 flex flex-col items-center justify-center gap-3 px-6 border-r border-white/10 min-w-0"
           >
             <div className={`text-xs font-bold tracking-widest uppercase flex-shrink-0 ${getRoleColor(currentSlide.role)}`}>
               {getRoleLabel(currentSlide.role)}
             </div>
             <div
-              className="text-white whitespace-pre-line"
-              style={{ fontSize: 'clamp(1.4rem, 3.8vw, 3.4rem)', lineHeight: 1.8 }}
+              className="text-white whitespace-pre-line text-center w-full"
+              style={{ fontSize: 'clamp(1rem, 2.6vw, 2.4rem)', lineHeight: 1.8 }}
             >
               {currentSlide.text}
             </div>
-            <div className="text-white/30 text-sm flex-shrink-0">
-              {currentSlide.title}
+            <div className="text-white/30 text-xs flex-shrink-0">{currentSlide.title}</div>
+          </div>
+          {/* الجانب القبطي */}
+          <div
+            dir={copticMode === 'arabic' ? 'rtl' : 'ltr'}
+            className="flex-1 flex flex-col items-center justify-center gap-3 px-6 min-w-0"
+          >
+            <div className="text-blue-300/60 text-xs font-bold tracking-widest uppercase flex-shrink-0">
+              {copticMode === 'arabic' ? 'قبطي بحروف عربية' : 'Coptic'}
+            </div>
+            <div
+              className="text-white/90 whitespace-pre-line text-center w-full"
+              style={{
+                fontSize: 'clamp(0.9rem, 2.3vw, 2.1rem)',
+                lineHeight: 1.9,
+                fontFamily: copticMode === 'arabic' ? 'inherit' : 'serif',
+              }}
+            >
+              {copticSideText}
             </div>
           </div>
-        );
-      })()}
+        </div>
+      )}
+
+      {!deaconSlide && currentSlide && !showCopticSide && (
+        <div
+          className="flex flex-col items-center justify-center gap-6 px-10 text-center w-full"
+          style={{ flex: 1, maxHeight: '85vh', maxWidth: '90vw' }}
+        >
+          <div className={`text-xs font-bold tracking-widest uppercase flex-shrink-0 ${getRoleColor(currentSlide.role)}`}>
+            {getRoleLabel(currentSlide.role)}
+          </div>
+          <div
+            className="text-white whitespace-pre-line"
+            style={{ fontSize: 'clamp(1.4rem, 3.8vw, 3.4rem)', lineHeight: 1.8 }}
+          >
+            {currentSlide.text}
+          </div>
+          <div className="text-white/30 text-sm flex-shrink-0">
+            {currentSlide.title}
+          </div>
+        </div>
+      )}
 
       {/* حالة الانتظار */}
       {!deaconSlide && !currentSlide && (
