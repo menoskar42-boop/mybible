@@ -6,6 +6,7 @@ import {
   getRoleColor,
   getRoleLabel,
   getLiturgyLabel,
+  COPTIC_ARABIC_MAP,
   type LiturgySession,
   type LiturgySlide,
   type DeaconResponse,
@@ -102,14 +103,22 @@ export default function LiturgyDisplay() {
       )}
 
       {/* الشريحة الرئيسية */}
-      {!deaconSlide && currentSlide && (
-        currentSlide.copticText ? (
-          /* شاشة مقسومة: عربي يمين — قبطي يسار — بدون قص */
+      {!deaconSlide && currentSlide && (() => {
+        const copticArabicText = COPTIC_ARABIC_MAP[session.sectionKey] ?? null;
+        const showSplit =
+          (session.copticMode === 'script' && !!currentSlide.copticText) ||
+          (session.copticMode === 'arabic' && !!copticArabicText);
+        const copticSideText =
+          session.copticMode === 'arabic' ? copticArabicText : currentSlide.copticText;
+        const copticIsArabicLetters = session.copticMode === 'arabic';
+
+        return showSplit ? (
+          /* شاشة مقسومة: عربي يمين — قبطي يسار */
           <div
             className="flex w-full"
             style={{ minHeight: 0, flex: 1, maxHeight: '85vh' }}
           >
-            {/* الجانب العربي — يمين */}
+            {/* الجانب العربي */}
             <div
               dir="rtl"
               className="flex-1 flex flex-col items-center justify-center gap-3 px-6 border-r border-white/10 min-w-0"
@@ -125,17 +134,23 @@ export default function LiturgyDisplay() {
               </div>
               <div className="text-white/30 text-xs flex-shrink-0">{currentSlide.title}</div>
             </div>
-            {/* الجانب القبطي — يسار */}
+            {/* الجانب القبطي */}
             <div
-              dir="ltr"
+              dir={copticIsArabicLetters ? 'rtl' : 'ltr'}
               className="flex-1 flex flex-col items-center justify-center gap-3 px-6 min-w-0"
             >
-              <div className="text-blue-300/60 text-xs font-bold tracking-widest uppercase flex-shrink-0">Coptic</div>
+              <div className="text-blue-300/60 text-xs font-bold tracking-widest uppercase flex-shrink-0">
+                {copticIsArabicLetters ? 'قبطي بحروف عربية' : 'Coptic'}
+              </div>
               <div
                 className="text-white/90 whitespace-pre-line text-center w-full"
-                style={{ fontSize: 'clamp(0.9rem, 2.3vw, 2.1rem)', lineHeight: 1.9, fontFamily: 'serif' }}
+                style={{
+                  fontSize: 'clamp(0.9rem, 2.3vw, 2.1rem)',
+                  lineHeight: 1.9,
+                  fontFamily: copticIsArabicLetters ? 'inherit' : 'serif',
+                }}
               >
-                {currentSlide.copticText}
+                {copticSideText}
               </div>
             </div>
           </div>
@@ -158,8 +173,8 @@ export default function LiturgyDisplay() {
               {currentSlide.title}
             </div>
           </div>
-        )
-      )}
+        );
+      })()}
 
       {/* حالة الانتظار */}
       {!deaconSlide && !currentSlide && (
