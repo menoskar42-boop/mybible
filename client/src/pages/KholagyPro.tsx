@@ -151,10 +151,16 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
   const copticArabic = COPTIC_ARABIC_MAP[section.id] || null;
   const hasCoptic = !!(copticScript || copticArabic);
 
-  const modeLabels: Record<typeof textMode, string> = {
-    arabic: 'عربي',
-    copticScript: 'ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ',
-    copticArabic: 'قبطي بعربي',
+  // الزر يعرض الوضع الحالي — يدور: عربي ← قبطي بحروف قبطية ← قبطي بحروف عربية ← عربي
+  const modeIcon: Record<typeof textMode, string> = {
+    arabic:       'عر',
+    copticScript: 'ϯⲘ',
+    copticArabic: 'قب',
+  };
+  const modeLabel: Record<typeof textMode, string> = {
+    arabic:       'عربي',
+    copticScript: 'قبطي بحروف قبطية',
+    copticArabic: 'قبطي بحروف عربية',
   };
 
   function cycleMode() {
@@ -263,9 +269,11 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
                   size="sm"
                   onClick={cycleMode}
                   className="gap-1 text-xs h-7 px-2"
+                  title={modeLabel[textMode]}
                 >
                   <Languages className="w-3 h-3" />
-                  {modeLabels[textMode]}
+                  <span className="font-mono font-bold">{modeIcon[textMode]}</span>
+                  <span>{modeLabel[textMode]}</span>
                 </Button>
               )}
               <Badge className={`text-xs border-0 ${badgeClass}`}>{section.role}</Badge>
