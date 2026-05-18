@@ -89,7 +89,7 @@ function LiturgyReader({ liturgy, initialChapterId }: { liturgy: Liturgy; initia
     : 0;
   const [chapterIdx, setChapterIdx] = useState(Math.max(0, initialIdx));
   const [expandedParts, setExpandedParts] = useState<Set<string>>(new Set());
-  const [showCoptic, setShowCoptic] = useState(false);
+  const [textMode, setTextMode] = useState<'arabic' | 'coptic' | 'both'>('arabic');
 
   const chapter: LiturgyChapter = liturgy.chapters[chapterIdx];
 
@@ -185,11 +185,13 @@ function LiturgyReader({ liturgy, initialChapterId }: { liturgy: Liturgy; initia
             </Button>
             <Button
               size="sm"
-              variant={showCoptic ? 'default' : 'outline'}
-              className="text-xs h-7"
-              onClick={() => setShowCoptic(v => !v)}
+              variant="outline"
+              className="text-xs h-7 gap-1 font-medium"
+              onClick={() => setTextMode(m => m === 'arabic' ? 'coptic' : m === 'coptic' ? 'both' : 'arabic')}
             >
-              {showCoptic ? '🔤 إخفاء القبطي' : '🔤 إظهار القبطي'}
+              {textMode === 'arabic' && '🇪🇬 عربي فقط'}
+              {textMode === 'coptic' && '🔤 قبطي فقط'}
+              {textMode === 'both'   && '🔤🇪🇬 عربي + قبطي'}
             </Button>
           </div>
         </div>
@@ -238,12 +240,14 @@ function LiturgyReader({ liturgy, initialChapterId }: { liturgy: Liturgy; initia
                       >
                         <div className={`px-4 pb-4 pt-1 border-t ${liturgy.colorBorder} space-y-3`}>
                           {/* النص العربي */}
-                          <p className="text-sm leading-8 whitespace-pre-line text-foreground text-right">
-                            {part.text}
-                          </p>
+                          {(textMode === 'arabic' || textMode === 'both') && (
+                            <p className="text-sm leading-8 whitespace-pre-line text-foreground text-right">
+                              {part.text}
+                            </p>
+                          )}
                           {/* النص القبطي */}
-                          {showCoptic && part.copticText && (
-                            <div className={`mt-2 pt-2 border-t ${liturgy.colorBorder}`}>
+                          {(textMode === 'coptic' || textMode === 'both') && part.copticText && (
+                            <div className={`${textMode === 'both' ? `mt-2 pt-2 border-t ${liturgy.colorBorder}` : ''}`}>
                               <p
                                 className="text-sm leading-8 whitespace-pre-line text-muted-foreground"
                                 style={{ fontFamily: 'serif', direction: 'ltr', textAlign: 'left' }}
@@ -251,6 +255,12 @@ function LiturgyReader({ liturgy, initialChapterId }: { liturgy: Liturgy; initia
                                 {part.copticText}
                               </p>
                             </div>
+                          )}
+                          {/* إذا لا يوجد نص قبطي وطُلب القبطي فقط */}
+                          {textMode === 'coptic' && !part.copticText && (
+                            <p className="text-xs text-muted-foreground text-center italic py-1">
+                              لا يوجد نص قبطي لهذا الجزء
+                            </p>
                           )}
                         </div>
                       </motion.div>
