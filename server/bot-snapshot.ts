@@ -9,7 +9,7 @@ import { agpeyaHoursFull, commonOpeningPrayers } from "../client/src/lib/agpeya-
 import { synaxariumMonths, getMonthById, getDayEntries, entryTypeIcon } from "../client/src/lib/synaxarium-content";
 import { buildChapterOgUrl, buildBookOgUrl, buildOrthodoxOgUrl } from "./og-image";
 
-const BOT_UA_PATTERN = /Googlebot|bingbot|GPTBot|ClaudeBot|PerplexityBot|Applebot|DuckDuckBot|YandexBot|Baiduspider|Slurp|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp/i;
+const BOT_UA_PATTERN = /Googlebot|Googlebot-Image|Googlebot-Video|Google-InspectionTool|bingbot|BingPreview|GPTBot|ClaudeBot|PerplexityBot|Applebot|DuckDuckBot|YandexBot|Baiduspider|Slurp|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|AdsBot-Google|Mediapartners-Google|APIs-Google/i;
 
 function esc(str: string): string {
   return str
@@ -535,6 +535,7 @@ function serveCached(res: Response, cacheKey: string): boolean {
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     res.set("Content-Type", "text/html; charset=utf-8");
     res.set("X-Bot-Snapshot", "cached");
+    res.set("X-Robots-Tag", "index, follow");
     res.send(cached.html);
     return true;
   }
@@ -546,6 +547,7 @@ function cacheAndServe(res: Response, cacheKey: string, html: string) {
   evictOldest();
   res.set("Content-Type", "text/html; charset=utf-8");
   res.set("X-Bot-Snapshot", "fresh");
+  res.set("X-Robots-Tag", "index, follow");
   res.send(html);
 }
 
