@@ -1168,14 +1168,14 @@ export async function registerRoutes(
   // ── Liturgy Presentation Session (per-user) ───────────────────────────────
   type LiturgySessionState = {
     slot: string; liturgyType: string; sectionKey: string;
-    slideIndex: number; deaconOverride: unknown; updatedAt: number;
+    slideIndex: number; deaconOverride: unknown; copticMode: string; updatedAt: number;
   };
 
   const liturgySessions = new Map<string, LiturgySessionState>();
 
   function makeDefaultSession(slot: string): LiturgySessionState {
     return { slot, liturgyType: 'basil', sectionKey: 'basil-opening',
-             slideIndex: 0, deaconOverride: null, updatedAt: Date.now() };
+             slideIndex: 0, deaconOverride: null, copticMode: 'script', updatedAt: Date.now() };
   }
 
   // GET جلسة المستخدم الحالي (يُعيد slot الخاص به أيضاً)
@@ -1196,12 +1196,13 @@ export async function registerRoutes(
     const num = await storage.assignChurchNum(req.session.userId!);
     const slot = `user${num}`;
     const existing = liturgySessions.get(slot) ?? makeDefaultSession(slot);
-    const { liturgyType, sectionKey, slideIndex, deaconOverride } = req.body ?? {};
+    const { liturgyType, sectionKey, slideIndex, deaconOverride, copticMode } = req.body ?? {};
     const patch: Partial<LiturgySessionState> = {};
     if (liturgyType !== undefined) patch.liturgyType = liturgyType;
     if (sectionKey !== undefined) patch.sectionKey = sectionKey;
     if (slideIndex !== undefined) patch.slideIndex = slideIndex;
     if (deaconOverride !== undefined) patch.deaconOverride = deaconOverride;
+    if (copticMode !== undefined) patch.copticMode = copticMode;
     const next = { ...existing, ...patch, updatedAt: Date.now() };
     liturgySessions.set(slot, next);
     res.json(next);
