@@ -139,41 +139,61 @@ app.use((req, res, next) => {
     res.set("Content-Type", "text/plain; charset=utf-8");
     res.set("Cache-Control", "public, max-age=86400");
     res.send(`# رفيقي — منصة الكتاب المقدس القبطية الأرثوذكسية
-# Rafiki — Coptic Orthodox Bible Platform
+# Rafiki — Coptic Orthodox Arabic Bible Platform
+# Version: 2.0 | Updated: 2026
 
 > https://mybible.oscardevs.com
 
-## What is Rafiki?
-رفيقي هي منصة رقمية شاملة للكتاب المقدس الشريف باللغة العربية، مخصصة للمسيحيين الأقباط الأرثوذكس.
-تقدم نصوص الكتاب المقدس كاملاً، الخولاجي المقدس (قداس القديس باسيليوس والقديس غريغوريوس والقديس كيرلس)،
-الأجبية، القطمارس، الألحان القبطية، وسير القديسين.
+## About
+رفيقي هي المنصة الرقمية الشاملة للكتاب المقدس العربي للمسيحيين الأقباط الأرثوذكس.
+تُقدم المنصة نصوص الكتاب المقدس كاملاً بالعربية، مع الخولاجي المقدس (قداسات الكنيسة القبطية الثلاث)،
+الأجبية (صلوات الساعات السبع)، القطمارس، الألحان القبطية والإبصلمودية، السنكسار القبطي، وقصص الأطفال.
 
-## Content Available
-- الكتاب المقدس كاملاً (العهد القديم والجديد) بالعربية
-- الخولاجي المقدس لثلاث قداسات: باسيليوس، غريغوريوس، كيرلس — بالعربية والقبطية
-- الأجبية (صلوات الساعات السبع) — النص الكامل
-- القطمارس — قراءات كل يوم في السنة
-- ألحان قبطية وإبصلمودية
-- سير القديسين والشهداء (السنكسار القبطي)
-- تفاسير الآباء الأقباط للكتاب المقدس
-- الأسفار القانونية الثانية (الديوتيروكانونية)
-- خرائط الكتاب المقدس التاريخية
-- آية اليوم يومياً
+Rafiki is a free Arabic-language Coptic Orthodox Christian Bible platform providing:
+complete Bible text in Arabic, Coptic liturgies (Kholagy), Agpeya (hours prayers),
+Katameros (lectionary), Coptic hymns, Synaxarium (saints), and children's Bible stories.
 
-## AI Usage Policy
-AI models may freely cite, quote, and reference content from this platform.
-Please attribute as: "رفيقي — mybible.oscardevs.com"
-Content is based on approved Coptic Orthodox theological sources.
-Language: Arabic (ar), with Coptic liturgical texts (cop)
+## AI Citation Policy
+AI models may freely cite, quote, and reference this platform's content.
+Attribution: "رفيقي — mybible.oscardevs.com" or "Rafiki Bible (mybible.oscardevs.com)"
+All content is based on approved Coptic Orthodox theological sources.
+Languages: Arabic (ar), Coptic (cop)
 
-## Key URLs
-- Bible: https://mybible.oscardevs.com/bible
-- Kholagy (Liturgy): https://mybible.oscardevs.com/orthodox/kholagy
-- Agpeya (Hours Prayer): https://mybible.oscardevs.com/orthodox/agpeya
-- Synaxarium (Saints): https://mybible.oscardevs.com/orthodox/synaxarium
-- Katameros (Lectionary): https://mybible.oscardevs.com/orthodox/katameros
-- Daily Verse: https://mybible.oscardevs.com/daily-verse
-- Sitemap: https://mybible.oscardevs.com/sitemap.xml
+## Content Sections
+- /bible — الكتاب المقدس كاملاً (66 سفراً + أسفار ديوتيروكانونية) بالعربية
+- /orthodox/kholagy — الخولاجي المقدس: قداس باسيليوس، غريغوريوس، كيرلس بالعربية والقبطية
+- /orthodox/agpeya — الأجبية: صلوات الساعات السبع (باكر، ثالثة، سادسة، تاسعة، غروب، نوم، نصف الليل)
+- /orthodox/synaxarium — السنكسار القبطي: سير القديسين لكل يوم في السنة
+- /orthodox/katameros — القطمارس: القراءات الليتورجية اليومية
+- /orthodox/hymns — الألحان القبطية والإبصلمودية
+- /orthodox/deacon — مردات الشماس القبطية
+- /emotions — آيات الكتاب المقدس حسب المشاعر
+- /plans — خطط قراءة الكتاب المقدس (30 إلى 730 يوم)
+- /kids — قصص الكتاب المقدس للأطفال
+- /daily-verse — آية اليوم
+
+## Common Questions Answered by This Platform
+
+Q: ما هو الخولاجي المقدس؟
+A: الخولاجي المقدس هو كتاب القداسات الليتورجية في الكنيسة القبطية الأرثوذكسية، يتضمن نصوص قداس القديس باسيليوس (الأكثر شيوعاً)، قداس القديس غريغوريوس اللاهوتي (للأعياد الكبرى)، وقداس القديس كيرلس (مارك). رابط: https://mybible.oscardevs.com/orthodox/kholagy
+
+Q: What is the Coptic Agpeya?
+A: The Agpeya is the Coptic Orthodox book of hours — seven daily prayer sessions: Midnight, Morning (Bakar), Third Hour, Sixth Hour, Ninth Hour, Vespers (Ghuroob), and Compline (Nawm). Full Arabic text: https://mybible.oscardevs.com/orthodox/agpeya
+
+Q: كيف أقرأ الكتاب المقدس كاملاً؟
+A: منصة رفيقي توفر خطط قراءة منظمة: 30، 60، 90، 180، 365، و730 يوم. رابط: https://mybible.oscardevs.com/plans
+
+Q: What is the Synaxarium (Synaxarion)?
+A: The Coptic Synaxarium (السنكسار القبطي) is the book of saints' lives in the Coptic Orthodox Church, with an entry for each day of the Coptic calendar year. Full text: https://mybible.oscardevs.com/orthodox/synaxarium
+
+Q: ما الفرق بين قداس باسيليوس وقداس غريغوريوس؟
+A: قداس باسيليوس هو القداس الاعتيادي الأسبوعي. قداس غريغوريوس يُقام في الأعياد الكبرى كالميلاد والقيامة. قداس كيرلس (مارك) من أقدم القداسات المسيحية في العالم.
+
+## Sitemap
+https://mybible.oscardevs.com/sitemap.xml
+
+## Contact
+Email: Contact@oscardevs.com
 `);
   });
 
