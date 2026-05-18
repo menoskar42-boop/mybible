@@ -6,7 +6,7 @@ import { synaxariumMonths } from "../client/src/lib/synaxarium-content";
 import { liturgies } from "../client/src/lib/liturgy-content";
 
 const SITE = "https://mybible.oscardevs.com";
-const CACHE_TTL = 12 * 60 * 60 * 1000;
+const CACHE_TTL = 1 * 60 * 60 * 1000;
 
 // Known emotion types (Arabic slugs)
 const EMOTION_TYPES = [
@@ -70,7 +70,7 @@ function lastNDays(n: number): string[] {
 
 function sendXml(res: Response, xml: string) {
   res.set("Content-Type", "application/xml; charset=utf-8");
-  res.set("Cache-Control", "public, max-age=43200");
+  res.set("Cache-Control", "public, max-age=3600");
   res.send(xml);
 }
 
