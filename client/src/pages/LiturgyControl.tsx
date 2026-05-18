@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -51,6 +51,9 @@ export default function LiturgyControl() {
   const [showDeaconPanel, setShowDeaconPanel] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [copied, setCopied] = useState(false);
+  // copticMode مستقل عن session لتجنب stale closure عند pushSession
+  const [copticMode, setCopticMode] = useState<'script' | 'arabic'>('script');
+  const copticModeRef = useRef<'script' | 'arabic'>('script');
 
   const displayPath = slot ? `/liturgy-display/${slot}` : '/liturgy-display';
 
@@ -68,7 +71,8 @@ export default function LiturgyControl() {
   const currentCopticArabic = COPTIC_ARABIC_MAP[currentSectionKey] ?? null;
 
   const pushSession = useCallback(async (patch: Partial<LiturgySession>) => {
-    const next = { ...session, ...patch };
+    // دائماً نستخدم copticModeRef لضمان القيمة الأحدث وتجنب stale closure
+    const next = { ...session, copticMode: copticModeRef.current, ...patch };
     setSession(next);
     setSyncing(true);
     try {
@@ -99,7 +103,10 @@ export default function LiturgyControl() {
           Math.max(0, data.slideIndex),
           Math.max(0, slides.length - 1),
         );
-        setSession({ ...data, slideIndex: safeIdx });
+        const initialMode: 'script' | 'arabic' = data.copticMode === 'arabic' ? 'arabic' : 'script';
+        copticModeRef.current = initialMode;
+        setCopticMode(initialMode);
+        setSession({ ...data, slideIndex: safeIdx, copticMode: initialMode });
       })
       .catch(err => console.error('[LiturgyControl] failed to load session:', err));
   }, []);
@@ -335,10 +342,15 @@ export default function LiturgyControl() {
                     </div>
                     {(currentSlide.copticText || currentCopticArabic) && (
                       <button
-                        onClick={() => pushSession({ copticMode: session.copticMode === 'script' ? 'arabic' : 'script' })}
+                        onClick={() => {
+                          const next: 'script' | 'arabic' = copticModeRef.current === 'script' ? 'arabic' : 'script';
+                          copticModeRef.current = next;
+                          setCopticMode(next);
+                          pushSession({ copticMode: next });
+                        }}
                         className="text-xs px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
                       >
-                        {session.copticMode === 'script' ? 'قبطي بعربي ←' : '← ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ'}
+                        {copticMode === 'script' ? 'قبطي بعربي ←' : '← ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ'}
                       </button>
                     )}
                   </div>
@@ -346,7 +358,7 @@ export default function LiturgyControl() {
                   <p className="text-white text-sm font-serif whitespace-pre-line leading-relaxed line-clamp-6">
                     {currentSlide.text}
                   </p>
-                  {session.copticMode === 'script' && currentSlide.copticText && (
+                  {copticMode === 'script' && currentSlide.copticText && (
                     <div className="mt-3 pt-3 border-t border-gray-700">
                       <span className="text-xs font-bold text-blue-400 block mb-1">ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ</span>
                       <p dir="ltr" className="text-blue-300 text-xs font-serif whitespace-pre-line leading-relaxed line-clamp-4">
@@ -354,7 +366,7 @@ export default function LiturgyControl() {
                       </p>
                     </div>
                   )}
-                  {session.copticMode === 'arabic' && currentCopticArabic && (
+                  {copticMode === 'arabic' && currentCopticArabic && (
                     <div className="mt-3 pt-3 border-t border-gray-700">
                       <span className="text-xs font-bold text-amber-400 block mb-1">قبطي بحروف عربية</span>
                       <p dir="rtl" className="text-amber-300 text-xs whitespace-pre-line leading-relaxed line-clamp-4">
