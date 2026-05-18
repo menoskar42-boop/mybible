@@ -1559,6 +1559,11 @@ function DeaconResponsesSection() {
                                   <p className="font-display text-lg font-bold text-foreground leading-tight mb-1">
                                     {resp.arabic}
                                   </p>
+                                  {resp.copticArabic && (
+                                    <p className={`text-sm font-medium mb-1 leading-relaxed ${c.text} opacity-80`}>
+                                      {resp.copticArabic}
+                                    </p>
+                                  )}
                                   {resp.coptic && (
                                     <p className="text-base font-mono text-muted-foreground mb-1 leading-relaxed break-all">
                                       {resp.coptic}

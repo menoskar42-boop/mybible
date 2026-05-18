@@ -89,7 +89,7 @@ function LiturgyReader({ liturgy, initialChapterId }: { liturgy: Liturgy; initia
     : 0;
   const [chapterIdx, setChapterIdx] = useState(Math.max(0, initialIdx));
   const [expandedParts, setExpandedParts] = useState<Set<string>>(new Set());
-  const [textMode, setTextMode] = useState<'arabic' | 'coptic' | 'both'>('arabic');
+  const [textMode, setTextMode] = useState<'arabic' | 'coptic' | 'both'>('both');
 
   const chapter: LiturgyChapter = liturgy.chapters[chapterIdx];
 
