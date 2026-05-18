@@ -3,7 +3,7 @@ import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { useSearch, useLocation, useParams } from 'wouter';
 import { motion } from 'framer-motion';
-import { Book, ChevronDown, ChevronLeft, ChevronRight, Highlighter, Check, Volume2, BookText, BookOpen, Loader2, GraduationCap, Share2 } from 'lucide-react';
+import { Book, ChevronDown, ChevronLeft, ChevronRight, Highlighter, Check, Volume2, BookText, BookOpen, Loader2, GraduationCap, Share2, Music } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +14,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, type BibleBook, type BibleVerse } from '@/lib/api';
 import { fetchBookIntro, fetchChapterTafsir, fetchVerseTafsir } from '@/lib/tafsir-csv-service';
 import { getVideoId } from '@/lib/video-links-data';
+import { getChanteVideoId } from '@/lib/chanted-videos-data';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getDaoudLameiLessons, refreshDaoudLameiCache } from '@/lib/daoud-lamei-rss';
 import { getBibleChapterSEO, getTafsirSEO, getVerseTafsirSEO } from '@/lib/seo-config';
 import { SEOHead } from '@/components/SEOHead';
@@ -60,6 +62,9 @@ export default function Bible() {
   const [lessonVideoId, setLessonVideoId] = useState<string | null>(null);
   const [lessonVideoTitle, setLessonVideoTitle] = useState<string>('');
   const [lessonRefreshing, setLessonRefreshing] = useState(false);
+  const [listenChoiceOpen, setListenChoiceOpen] = useState(false);
+  const [listenChoiceChante, setListenChoiceChante] = useState<string | null>(null);
+  const [listenChoiceRegular, setListenChoiceRegular] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: oldTestamentBooks, isLoading: oldLoading } = useQuery({
@@ -200,8 +205,14 @@ export default function Bible() {
 
   const handleListenClick = () => {
     if (!selectedBook) return;
-    const videoId = getVideoId(selectedBook.name, selectedChapter);
-    setCurrentVideoId(videoId);
+    const chanteId = getChanteVideoId(selectedBook.name, selectedChapter);
+    if (chanteId) {
+      setListenChoiceChante(chanteId);
+      setListenChoiceRegular(getVideoId(selectedBook.name, selectedChapter));
+      setListenChoiceOpen(true);
+      return;
+    }
+    setCurrentVideoId(getVideoId(selectedBook.name, selectedChapter));
     setChapterSubView('video');
   };
 
@@ -346,6 +357,7 @@ export default function Bible() {
   }, [selectedBook, selectedChapter, chapterSubView, tafsirDialogType, tafsirVerseNum]);
 
   return (
+    <>
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       <SEOHead dynamicSEO={dynamicSEO} />
       <motion.div
@@ -797,5 +809,42 @@ export default function Bible() {
 
       </motion.div>
     </div>
+
+    <Dialog open={listenChoiceOpen} onOpenChange={setListenChoiceOpen}>
+      <DialogContent className="max-w-sm" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="font-display text-center">
+            استمع للإصحاح — {selectedBook?.name} {selectedChapter}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 pt-2">
+          <Button
+            className="gap-2 justify-start"
+            style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+            onClick={() => {
+              setCurrentVideoId(listenChoiceChante);
+              setChapterSubView('video');
+              setListenChoiceOpen(false);
+            }}
+          >
+            <Music className="w-4 h-4" />
+            استمع له مرتلاً
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2 justify-start"
+            onClick={() => {
+              setCurrentVideoId(listenChoiceRegular);
+              setChapterSubView('video');
+              setListenChoiceOpen(false);
+            }}
+          >
+            <Volume2 className="w-4 h-4" />
+            استمع له كقراءة
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
