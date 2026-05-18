@@ -243,10 +243,20 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
 
         {/* النص */}
         <div className="px-4">
-          <div className={`rounded-xl p-5 bg-muted/20 border ${borderClass}`}>
+          <div className={`rounded-xl p-5 bg-muted/20 border ${borderClass} space-y-4`}>
             <p className="text-base leading-9 whitespace-pre-line text-foreground text-right font-medium">
               {section.text}
             </p>
+            {section.copticText && (
+              <div className={`border-t pt-3 ${borderClass}`}>
+                <p
+                  className="text-sm leading-8 whitespace-pre-line text-muted-foreground"
+                  style={{ fontFamily: 'serif', direction: 'ltr', textAlign: 'left' }}
+                >
+                  {section.copticText}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
