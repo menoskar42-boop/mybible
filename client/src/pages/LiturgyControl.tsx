@@ -51,7 +51,6 @@ export default function LiturgyControl() {
   const [showDeaconPanel, setShowDeaconPanel] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [copied, setCopied] = useState(false);
-  const [copticMode, setCopticMode] = useState<'script' | 'arabic'>('script');
 
   const displayPath = slot ? `/liturgy-display/${slot}` : '/liturgy-display';
 
@@ -336,10 +335,10 @@ export default function LiturgyControl() {
                     </div>
                     {(currentSlide.copticText || currentCopticArabic) && (
                       <button
-                        onClick={() => setCopticMode(m => m === 'script' ? 'arabic' : 'script')}
+                        onClick={() => pushSession({ copticMode: session.copticMode === 'script' ? 'arabic' : 'script' })}
                         className="text-xs px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
                       >
-                        {copticMode === 'script' ? 'قبطي بعربي ←' : '← ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ'}
+                        {session.copticMode === 'script' ? 'قبطي بعربي ←' : '← ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ'}
                       </button>
                     )}
                   </div>
@@ -347,7 +346,7 @@ export default function LiturgyControl() {
                   <p className="text-white text-sm font-serif whitespace-pre-line leading-relaxed line-clamp-6">
                     {currentSlide.text}
                   </p>
-                  {copticMode === 'script' && currentSlide.copticText && (
+                  {session.copticMode === 'script' && currentSlide.copticText && (
                     <div className="mt-3 pt-3 border-t border-gray-700">
                       <span className="text-xs font-bold text-blue-400 block mb-1">ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ</span>
                       <p dir="ltr" className="text-blue-300 text-xs font-serif whitespace-pre-line leading-relaxed line-clamp-4">
@@ -355,7 +354,7 @@ export default function LiturgyControl() {
                       </p>
                     </div>
                   )}
-                  {copticMode === 'arabic' && currentCopticArabic && (
+                  {session.copticMode === 'arabic' && currentCopticArabic && (
                     <div className="mt-3 pt-3 border-t border-gray-700">
                       <span className="text-xs font-bold text-amber-400 block mb-1">قبطي بحروف عربية</span>
                       <p dir="rtl" className="text-amber-300 text-xs whitespace-pre-line leading-relaxed line-clamp-4">

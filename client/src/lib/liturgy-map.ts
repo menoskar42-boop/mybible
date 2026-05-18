@@ -107,6 +107,7 @@ export interface LiturgySession {
   sectionKey: string;
   slideIndex: number;
   deaconOverride: DeaconResponse | null;
+  copticMode: 'script' | 'arabic';
   updatedAt: number;
 }
 
@@ -116,6 +117,7 @@ export const defaultSession: LiturgySession = {
   sectionKey: 'basil-opening',
   slideIndex: 0,
   deaconOverride: null,
+  copticMode: 'script',
   updatedAt: Date.now(),
 };
 
