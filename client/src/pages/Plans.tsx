@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CalendarDays, ChevronLeft, ChevronRight, BookOpen, CheckCircle2, Circle, Play, ArrowLeft, ArrowRight, Plus, Trash2, Star, PartyPopper, Volume2, BookText, Loader2, GraduationCap } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, BookOpen, CheckCircle2, Circle, Play, ArrowLeft, ArrowRight, Plus, Trash2, Star, PartyPopper, Volume2, BookText, Loader2, GraduationCap, Music } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -16,6 +16,7 @@ import { api, type BibleBook } from '@/lib/api';
 import { fetchBookIntro, fetchChapterTafsir, fetchVerseTafsir } from '@/lib/tafsir-csv-service';
 import { getBibleChapterSEO, getTafsirSEO, getVerseTafsirSEO, getBookIntroSEO } from '@/lib/seo-config';
 import { getVideoId } from '@/lib/video-links-data';
+import { getChanteVideoId } from '@/lib/chanted-videos-data';
 import { getDaoudLameiLessons } from '@/lib/daoud-lamei-rss';
 import { SEOHead } from '@/components/SEOHead';
 import { TafsirText } from '@/components/TafsirText';
@@ -114,6 +115,12 @@ export default function Plans() {
   const [planChapterOverride, setPlanChapterOverride] = useState<number | null>(null);
   const [customChapterOverride, setCustomChapterOverride] = useState<number | null>(null);
   const [videoSource, setVideoSource] = useState<'plan' | 'custom'>('plan');
+  const [listenChoiceOpen, setListenChoiceOpen] = useState(false);
+  const [listenChoiceBook, setListenChoiceBook] = useState('');
+  const [listenChoiceChapter, setListenChoiceChapter] = useState(1);
+  const [listenChoiceChante, setListenChoiceChante] = useState<string | null>(null);
+  const [listenChoiceRegular, setListenChoiceRegular] = useState<string | null>(null);
+  const [listenChoiceSource, setListenChoiceSource] = useState<'plan' | 'custom'>('plan');
 
   const [chapterSubView, setChapterSubView] = useState<'verses' | 'tafsir' | 'lesson' | 'video'>('verses');
   const [lessonParts, setLessonParts] = useState<{ videoId: string; partNum: number; title: string }[]>([]);
@@ -153,16 +160,22 @@ export default function Plans() {
   }, [chapterSubView, tafsirDialogType, tafsirBookName, tafsirChapter, tafsirVerseNum]);
 
   const handleListenClick = (bookName: string, chapter: number, source: 'plan' | 'custom' = 'plan') => {
-    const videoId = getVideoId(bookName, chapter);
+    const chanteId = getChanteVideoId(bookName, chapter);
+    if (chanteId) {
+      setListenChoiceBook(bookName);
+      setListenChoiceChapter(chapter);
+      setListenChoiceChante(chanteId);
+      setListenChoiceRegular(getVideoId(bookName, chapter));
+      setListenChoiceSource(source);
+      setListenChoiceOpen(true);
+      return;
+    }
     setCurrentVideoBookName(bookName);
     setCurrentVideoChapter(chapter);
     setVideoSource(source);
-    setCurrentVideoId(videoId);
-    if (source === 'plan') {
-      setVideoReadingIndex(currentReadingIndex);
-    } else {
-      setVideoReadingIndex(customReadingIndex);
-    }
+    setCurrentVideoId(getVideoId(bookName, chapter));
+    if (source === 'plan') setVideoReadingIndex(currentReadingIndex);
+    else setVideoReadingIndex(customReadingIndex);
     setChapterSubView('video');
   };
 
@@ -1380,6 +1393,7 @@ export default function Plans() {
   );
 
   return (
+    <>
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       <SEOHead dynamicSEO={dynamicSEO} />
       <motion.div
@@ -1425,5 +1439,52 @@ export default function Plans() {
       </motion.div>
 
     </div>
+
+    <Dialog open={listenChoiceOpen} onOpenChange={setListenChoiceOpen}>
+      <DialogContent className="max-w-sm" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="font-display text-center">
+            استمع للإصحاح — {listenChoiceBook} {listenChoiceChapter}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 pt-2">
+          <Button
+            className="gap-2 justify-start"
+            style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+            onClick={() => {
+              setCurrentVideoBookName(listenChoiceBook);
+              setCurrentVideoChapter(listenChoiceChapter);
+              setVideoSource(listenChoiceSource);
+              setCurrentVideoId(listenChoiceChante);
+              if (listenChoiceSource === 'plan') setVideoReadingIndex(currentReadingIndex);
+              else setVideoReadingIndex(customReadingIndex);
+              setChapterSubView('video');
+              setListenChoiceOpen(false);
+            }}
+          >
+            <Music className="w-4 h-4" />
+            استمع له مرتلاً
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2 justify-start"
+            onClick={() => {
+              setCurrentVideoBookName(listenChoiceBook);
+              setCurrentVideoChapter(listenChoiceChapter);
+              setVideoSource(listenChoiceSource);
+              setCurrentVideoId(listenChoiceRegular);
+              if (listenChoiceSource === 'plan') setVideoReadingIndex(currentReadingIndex);
+              else setVideoReadingIndex(customReadingIndex);
+              setChapterSubView('video');
+              setListenChoiceOpen(false);
+            }}
+          >
+            <Volume2 className="w-4 h-4" />
+            استمع له كقراءة
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
