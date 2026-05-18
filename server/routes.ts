@@ -1192,18 +1192,15 @@ export async function registerRoutes(
   });
 
   // POST — يُحدّث جلسة المستخدم الحالي فقط
+  // نُمرّر كل حقول req.body مباشرةً حتى لا نحتاج تعديل عند إضافة حقول جديدة
   app.post('/api/liturgy-session', async (req, res) => {
     const num = await storage.assignChurchNum(req.session.userId!);
     const slot = `user${num}`;
     const existing = liturgySessions.get(slot) ?? makeDefaultSession(slot);
-    const { liturgyType, sectionKey, slideIndex, deaconOverride, copticMode } = req.body ?? {};
-    const patch: Partial<LiturgySessionState> = {};
-    if (liturgyType !== undefined) patch.liturgyType = liturgyType;
-    if (sectionKey !== undefined) patch.sectionKey = sectionKey;
-    if (slideIndex !== undefined) patch.slideIndex = slideIndex;
-    if (deaconOverride !== undefined) patch.deaconOverride = deaconOverride;
-    if (copticMode !== undefined) patch.copticMode = copticMode;
-    const next = { ...existing, ...patch, updatedAt: Date.now() };
+    const body = req.body ?? {};
+    // slot و updatedAt محجوزان للسيرفر فقط
+    const { slot: _s, updatedAt: _u, ...clientFields } = body;
+    const next = { ...existing, ...clientFields, slot, updatedAt: Date.now() };
     liturgySessions.set(slot, next);
     res.json(next);
   });
