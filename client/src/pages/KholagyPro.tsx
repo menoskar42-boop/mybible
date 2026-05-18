@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { SEOHead } from '@/components/SEOHead';
 import { kholagyLiturgies, type KholagyLiturgy, type KholagySection } from '@/lib/kholagy-data';
+import { COPTIC_TEXT_MAP } from '@/lib/liturgy-map';
 
 // ── ألوان الأدوار
 const roleColors: Record<string, string> = {
@@ -247,13 +248,13 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
             <p className="text-base leading-9 whitespace-pre-line text-foreground text-right font-medium">
               {section.text}
             </p>
-            {section.copticText && (
+            {(section.copticText || COPTIC_TEXT_MAP[section.id]) && (
               <div className={`border-t pt-3 ${borderClass}`}>
                 <p
                   className="text-sm leading-8 whitespace-pre-line text-muted-foreground"
                   style={{ fontFamily: 'serif', direction: 'ltr', textAlign: 'left' }}
                 >
-                  {section.copticText}
+                  {section.copticText || COPTIC_TEXT_MAP[section.id]}
                 </p>
               </div>
             )}
