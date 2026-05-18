@@ -64,6 +64,9 @@ export default function LiturgyControl() {
 
   const currentSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey);
   const currentSlide = currentSlides[session.slideIndex];
+  // section key هو المعرّف الأصلي قبل التقسيم (basil-opening لا basil-opening-p4)
+  const currentSectionKey = session.sectionKey;
+  const currentCopticArabic = COPTIC_ARABIC_MAP[currentSectionKey] ?? null;
 
   const pushSession = useCallback(async (patch: Partial<LiturgySession>) => {
     const next = { ...session, ...patch };
@@ -331,12 +334,12 @@ export default function LiturgyControl() {
                     <div className={`text-xs font-bold ${getRoleColor(currentSlide.role)}`}>
                       {getRoleLabel(currentSlide.role)}
                     </div>
-                    {(currentSlide.copticText || COPTIC_ARABIC_MAP[currentSlide.id]) && (
+                    {(currentSlide.copticText || currentCopticArabic) && (
                       <button
                         onClick={() => setCopticMode(m => m === 'script' ? 'arabic' : 'script')}
                         className="text-xs px-2 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
                       >
-                        {copticMode === 'script' ? 'قبطي بعربي' : 'ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ'}
+                        {copticMode === 'script' ? 'قبطي بعربي ←' : '← ϯⲙⲉⲧⲣⲉⲙⲛ̀ⲭⲏⲙⲓ'}
                       </button>
                     )}
                   </div>
@@ -352,11 +355,11 @@ export default function LiturgyControl() {
                       </p>
                     </div>
                   )}
-                  {copticMode === 'arabic' && COPTIC_ARABIC_MAP[currentSlide.id] && (
+                  {copticMode === 'arabic' && currentCopticArabic && (
                     <div className="mt-3 pt-3 border-t border-gray-700">
                       <span className="text-xs font-bold text-amber-400 block mb-1">قبطي بحروف عربية</span>
                       <p dir="rtl" className="text-amber-300 text-xs whitespace-pre-line leading-relaxed line-clamp-4">
-                        {COPTIC_ARABIC_MAP[currentSlide.id]}
+                        {currentCopticArabic}
                       </p>
                     </div>
                   )}
