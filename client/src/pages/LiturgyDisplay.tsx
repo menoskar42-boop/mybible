@@ -87,6 +87,11 @@ export default function LiturgyDisplay() {
       className="fixed inset-0 bg-black flex flex-col items-center justify-center overflow-hidden"
       style={{ fontFamily: 'serif' }}
     >
+      {/* DEBUG — يُحذف بعد التشخيص */}
+      <div className="absolute top-2 right-2 z-50 bg-red-900/80 text-white text-xs px-2 py-1 rounded font-mono">
+        mode={String((session as { copticMode?: string }).copticMode ?? 'undefined')}
+      </div>
+
       {/* شريط المعلومات العلوي */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-8 py-4 opacity-40">
         <span className="text-white text-sm">
