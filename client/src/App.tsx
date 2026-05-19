@@ -45,6 +45,7 @@ import ExitIntelligence from '@/pages/ExitIntelligence';
 import SharePage from '@/pages/SharePage';
 import NotFound from '@/pages/not-found';
 import Sitemap from '@/pages/Sitemap';
+import DailyVersePage from '@/pages/DailyVersePage';
 
 // صفحات بدون Layout (ملء الشاشة)
 const FULL_SCREEN_ROUTES = ['/liturgy-display'];
@@ -98,6 +99,7 @@ function Router() {
       <Route path="/admin/exit" component={ExitIntelligence} />
       <Route path="/share/:type/:id" component={SharePage} />
       <Route path="/sitemap" component={Sitemap} />
+      <Route path="/daily-verse" component={DailyVersePage} />
       <Route component={NotFound} />
     </Switch>
   );
