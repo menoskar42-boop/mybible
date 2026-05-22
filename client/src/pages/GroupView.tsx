@@ -1069,7 +1069,7 @@ export default function GroupView() {
 
         <div className="flex items-center gap-2 mb-6">
           <Badge variant="secondary">كود: {groupCode}</Badge>
-          <Badge variant="outline">الخادم: {group.leaderName}</Badge>
+          <Badge variant="outline">الأدمن: {group.leaderName}</Badge>
           {isAdminFinal && <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 gap-1"><Shield className="w-3 h-3" /> أدمن</Badge>}
         </div>
 
