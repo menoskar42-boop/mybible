@@ -14,6 +14,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getUserGroupEntry, addUserGroup, removeUserGroup } from '@/lib/user-groups';
+import { fetchBookIntro, fetchVerseTafsir } from '@/lib/tafsir-csv-service';
 
 interface GroupData {
   group: any;
@@ -63,6 +64,28 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   const startTimeRef = useRef(Date.now());
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollTop = useRef(0);
+
+  // تفسير
+  const [tafsirOpen, setTafsirOpen] = useState(false);
+  const [tafsirTitle, setTafsirTitle] = useState('');
+  const [tafsirText, setTafsirText] = useState<string | null>(null);
+  const [tafsirLoading, setTafsirLoading] = useState(false);
+
+  const openTafsir = async (type: 'intro' | 'verse', verseNum?: number) => {
+    setTafsirOpen(true);
+    setTafsirLoading(true);
+    setTafsirText(null);
+    if (type === 'intro') {
+      setTafsirTitle(`مقدمة عن سفر ${bookName}`);
+      const text = await fetchBookIntro(bookName);
+      setTafsirText(text || 'لا توجد مقدمة متاحة لهذا السفر حالياً');
+    } else if (verseNum !== undefined) {
+      setTafsirTitle(`تفسير ${bookName} ${chapter}:${verseNum}`);
+      const text = await fetchVerseTafsir(bookName, chapter, verseNum);
+      setTafsirText(text || 'لا يوجد تفسير متاح لهذه الآية حالياً');
+    }
+    setTafsirLoading(false);
+  };
 
   const { data: allBooks } = useQuery({
     queryKey: ['books'],
@@ -122,10 +145,8 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   const condTime = elapsed >= MIN_SECONDS;
   const condScrolls = scrollCount >= MIN_SCROLLS;
   const condDepth = scrollDepth >= MIN_DEPTH;
-  const canFinish = condTime && condScrolls && condDepth;
 
   const handleFinishReading = async () => {
-    if (!canFinish) return;
     setCompleting(true);
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
     try {
@@ -161,6 +182,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
 
   return (
     <div className="space-y-4">
+      {/* مؤشرات القراءة — للمعلومية فقط */}
       <div className="grid grid-cols-3 gap-2">
         <div className={`flex flex-col items-center p-2 rounded-lg text-xs font-semibold border transition-colors ${condTime ? 'bg-green-50 dark:bg-green-950/30 border-green-300 text-green-700' : 'bg-muted/50 border-border text-muted-foreground'}`}>
           <Clock className="w-4 h-4 mb-1" />
@@ -178,28 +200,56 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
           <span className="text-[10px] font-normal">عمق القراءة</span>
         </div>
       </div>
+
+      {/* منطقة القراءة */}
       <div ref={containerRef} className="max-h-[60vh] overflow-y-auto rounded-lg border p-4 bg-background" dir="rtl">
-        <h3 className="font-display text-xl font-bold text-primary mb-4 text-center">{bookName} - الإصحاح {chapter}</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-xl font-bold text-primary">{bookName} - الإصحاح {chapter}</h3>
+          <Button variant="outline" size="sm" className="text-xs gap-1 flex-shrink-0" onClick={() => openTafsir('intro')} data-testid="button-book-intro">
+            <BookOpen className="w-3.5 h-3.5" />
+            مقدمة السفر
+          </Button>
+        </div>
         <div className="space-y-3">
           {verses.map((v: any) => (
-            <p key={v.id} className="text-xl leading-loose font-display">
-              <span className="text-primary font-bold ml-1">{v.verse}</span>
-              {v.text}
-            </p>
+            <div key={v.id} className="group flex gap-2 items-start">
+              <p className="flex-1 text-xl leading-loose font-display">
+                <span className="text-primary font-bold ml-1">{v.verse}</span>
+                {v.text}
+              </p>
+              <button
+                onClick={() => openTafsir('verse', v.verse)}
+                className="flex-shrink-0 mt-2 opacity-40 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                title={`تفسير الآية ${v.verse}`}
+                data-testid={`button-verse-tafsir-${v.verse}`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+              </button>
+            </div>
           ))}
         </div>
       </div>
-      {!canFinish && (
-        <div className="text-center text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
-          {!condTime && <span>اقرأ لمدة {MIN_SECONDS - elapsed} ثانية إضافية · </span>}
-          {!condScrolls && <span>مرّر {MIN_SCROLLS - scrollCount} مرة أخرى · </span>}
-          {!condDepth && <span>واصل القراءة للأسفل حتى {MIN_DEPTH}%</span>}
-        </div>
-      )}
-      <Button onClick={handleFinishReading} disabled={completing || !canFinish} className="w-full" size="lg" data-testid="button-finish-reading">
+
+      <Button onClick={handleFinishReading} disabled={completing} className="w-full" size="lg" data-testid="button-finish-reading">
         {completing ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Check className="w-4 h-4 ml-2" />}
-        {canFinish ? 'الانتهاء من القراءة' : 'أكمل القراءة أولاً'}
+        الانتهاء من القراءة
       </Button>
+
+      {/* Dialog التفسير */}
+      <Dialog open={tafsirOpen} onOpenChange={setTafsirOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-right">{tafsirTitle}</DialogTitle>
+          </DialogHeader>
+          {tafsirLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <p className="text-sm leading-loose whitespace-pre-wrap text-foreground font-display" dir="rtl">{tafsirText}</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
