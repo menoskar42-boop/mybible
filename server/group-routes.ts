@@ -37,6 +37,43 @@ async function isAdminByLeaderKey(group: any, memberKey: string): Promise<boolea
 
 export function registerGroupRoutes(app: Express) {
 
+  // endpoint مؤقت لإنشاء مجموعة بكود محدد مسبقاً (للاستخدام الإداري فقط)
+  app.post('/api/groups/seed-once', async (req, res) => {
+    try {
+      const { secret, groupCode, name, churchName, admins } = req.body;
+      if (secret !== 'MYBIBLE_SEED_2026') {
+        return res.status(403).json({ error: 'غير مسموح' });
+      }
+      if (!groupCode || !name || !admins?.length) {
+        return res.status(400).json({ error: 'بيانات ناقصة' });
+      }
+      const existing = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, groupCode.toUpperCase()));
+      if (existing.length > 0) {
+        return res.json({ status: 'already_exists', group: existing[0] });
+      }
+      const leaderKey = generateKey();
+      const [group] = await db.insert(readingGroups).values({
+        groupCode: groupCode.toUpperCase(),
+        name,
+        churchName: churchName || null,
+        leaderName: admins[0].name,
+        leaderKey,
+      }).returning();
+      const members = admins.map((a: { name: string; phone: string }, i: number) => ({
+        groupId:   group.id,
+        userName:  a.name,
+        memberKey: i === 0 ? leaderKey : generateKey(),
+        phone:     a.phone,
+        isAdmin:   true,
+      }));
+      await db.insert(groupMembers).values(members);
+      res.json({ status: 'created', group });
+    } catch (err) {
+      console.error('[groups] seed-once error:', err);
+      res.status(500).json({ error: 'فشل إنشاء المجموعة' });
+    }
+  });
+
   app.post('/api/groups', async (req, res) => {
     try {
       const { name, churchName, leaderName, phone } = req.body;
