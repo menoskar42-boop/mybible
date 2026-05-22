@@ -219,8 +219,9 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
   const [expandedAssignment, setExpandedAssignment] = useState<number | null>(null);
 
   const [assignType, setAssignType] = useState<'daily' | 'weekly'>('daily');
+  const [assignTestament, setAssignTestament] = useState<'old' | 'new' | ''>('');
   const [assignBook, setAssignBook] = useState('');
-  const [assignChaptersStr, setAssignChaptersStr] = useState('');
+  const [assignChapters, setAssignChapters] = useState<number[]>([]);
   const [assignTitle, setAssignTitle] = useState('');
   const [assignDeadline, setAssignDeadline] = useState('');
 
@@ -259,23 +260,8 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
   });
 
   const createAssignment = async () => {
-    if (!assignBook || !assignChaptersStr.trim()) {
-      toast.error('اختر السفر وأدخل أرقام الإصحاحات');
-      return;
-    }
-    const chapters = assignChaptersStr.split(/[,،\s]+/).map(s => {
-      const trimmed = s.trim();
-      if (trimmed.includes('-')) {
-        const [start, end] = trimmed.split('-').map(Number);
-        if (isNaN(start) || isNaN(end)) return [];
-        return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-      }
-      const n = parseInt(trimmed);
-      return isNaN(n) ? [] : [n];
-    }).reduce((acc: number[], arr: number[]) => acc.concat(arr), []);
-
-    if (chapters.length === 0) {
-      toast.error('أدخل أرقام الإصحاحات بشكل صحيح (مثال: 1,2,3 أو 1-5)');
+    if (!assignBook || assignChapters.length === 0) {
+      toast.error('اختر السفر والإصحاحات المطلوبة');
       return;
     }
 
@@ -289,15 +275,16 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
           type: assignType,
           title: assignTitle || null,
           bookName: assignBook,
-          chapters,
+          chapters: assignChapters,
           deadline: assignDeadline || null,
         }),
       });
       if (!res.ok) throw new Error();
       toast.success('تم إضافة القراءة المطلوبة');
       setCreateOpen(false);
+      setAssignTestament('');
       setAssignBook('');
-      setAssignChaptersStr('');
+      setAssignChapters([]);
       setAssignTitle('');
       setAssignDeadline('');
       refetchAssignments();
@@ -469,57 +456,110 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
         </Card>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) { setAssignTestament(''); setAssignBook(''); setAssignChapters([]); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>إضافة قراءة مطلوبة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* نوع القراءة */}
             <div>
               <Label>نوع القراءة</Label>
               <div className="flex gap-2 mt-1">
-                <Button variant={assignType === 'daily' ? 'default' : 'outline'} size="sm" onClick={() => setAssignType('daily')} data-testid="button-type-daily">
-                  يومية
-                </Button>
-                <Button variant={assignType === 'weekly' ? 'default' : 'outline'} size="sm" onClick={() => setAssignType('weekly')} data-testid="button-type-weekly">
-                  أسبوعية
-                </Button>
+                <Button variant={assignType === 'daily' ? 'default' : 'outline'} size="sm" onClick={() => setAssignType('daily')} data-testid="button-type-daily">يومية</Button>
+                <Button variant={assignType === 'weekly' ? 'default' : 'outline'} size="sm" onClick={() => setAssignType('weekly')} data-testid="button-type-weekly">أسبوعية</Button>
               </div>
             </div>
+
+            {/* عنوان */}
             <div>
               <Label>عنوان (اختياري)</Label>
               <Input value={assignTitle} onChange={e => setAssignTitle(e.target.value)} placeholder="مثال: قراءة يوم الأحد" data-testid="input-assign-title" />
             </div>
+
+            {/* العهد */}
             <div>
-              <Label>السفر</Label>
+              <Label>العهد</Label>
               <select
-                value={assignBook}
-                onChange={e => setAssignBook(e.target.value)}
+                value={assignTestament}
+                onChange={e => { setAssignTestament(e.target.value as 'old' | 'new' | ''); setAssignBook(''); setAssignChapters([]); }}
                 className="w-full border rounded-md p-2 bg-background text-foreground"
-                data-testid="select-assign-book"
+                data-testid="select-assign-testament"
               >
-                <option value="">اختر السفر</option>
-                {allBooks?.map((b: any) => (
-                  <option key={b.id} value={b.name}>{b.name}</option>
-                ))}
+                <option value="">اختر العهد</option>
+                <option value="old">العهد القديم</option>
+                <option value="new">العهد الجديد</option>
               </select>
             </div>
-            <div>
-              <Label>الإصحاحات المطلوبة</Label>
-              <Input
-                value={assignChaptersStr}
-                onChange={e => setAssignChaptersStr(e.target.value)}
-                placeholder="مثال: 1,2,3 أو 1-5 أو 1,3,5-8"
-                data-testid="input-assign-chapters"
-              />
-              <p className="text-xs text-muted-foreground mt-1">افصل بفاصلة أو استخدم - للنطاق (مثال: 1-5)</p>
-            </div>
+
+            {/* السفر */}
+            {assignTestament && (
+              <div>
+                <Label>السفر</Label>
+                <select
+                  value={assignBook}
+                  onChange={e => { setAssignBook(e.target.value); setAssignChapters([]); }}
+                  className="w-full border rounded-md p-2 bg-background text-foreground"
+                  data-testid="select-assign-book"
+                >
+                  <option value="">اختر السفر</option>
+                  {allBooks?.filter((b: any) => b.testament === assignTestament).map((b: any) => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* الإصحاحات */}
+            {assignBook && (() => {
+              const book = allBooks?.find((b: any) => b.name === assignBook);
+              const total = book?.chaptersCount || 0;
+              return total > 0 ? (
+                <div>
+                  <Label>الإصحاحات المطلوبة ({assignChapters.length} مختار)</Label>
+                  <div className="flex gap-2 mb-2 mt-1 flex-wrap">
+                    <Button type="button" size="sm" variant="outline" className="text-xs h-7"
+                      onClick={() => setAssignChapters(Array.from({ length: total }, (_, i) => i + 1))}>
+                      اختر الكل
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="text-xs h-7"
+                      onClick={() => setAssignChapters([])}>
+                      مسح الكل
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-6 gap-1.5 max-h-40 overflow-y-auto p-1">
+                    {Array.from({ length: total }, (_, i) => i + 1).map(ch => {
+                      const selected = assignChapters.includes(ch);
+                      return (
+                        <button
+                          key={ch}
+                          type="button"
+                          onClick={() => setAssignChapters(prev =>
+                            selected ? prev.filter(c => c !== ch) : [...prev, ch].sort((a, b) => a - b)
+                          )}
+                          className={`rounded-md py-1.5 text-sm font-semibold border transition-colors ${
+                            selected
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background border-border hover:border-primary'
+                          }`}
+                          data-testid={`chapter-btn-${ch}`}
+                        >
+                          {ch}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
             {assignType === 'weekly' && (
               <div>
                 <Label>الموعد النهائي</Label>
                 <Input type="date" value={assignDeadline} onChange={e => setAssignDeadline(e.target.value)} data-testid="input-assign-deadline" />
               </div>
             )}
+
             <Button onClick={createAssignment} className="w-full" data-testid="button-create-assignment">إضافة القراءة</Button>
           </div>
         </DialogContent>
