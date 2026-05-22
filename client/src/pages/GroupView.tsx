@@ -791,11 +791,8 @@ export default function GroupView() {
   const [loading, setLoading] = useState(true);
   const [adminOpen, setAdminOpen] = useState(false);
   const [missionOpen, setMissionOpen] = useState(false);
-  const [todayBook, setTodayBook] = useState('');
-  const [todayChapter, setTodayChapter] = useState('');
   const [challengeTotal, setChallengeTotal] = useState('');
   const [copied, setCopied] = useState(false);
-  const [todayReaderOpen, setTodayReaderOpen] = useState(false);
   const [addAdminOpen, setAddAdminOpen] = useState(false);
   const [addAdminName, setAddAdminName] = useState('');
   const [addAdminPhone, setAddAdminPhone] = useState('');
@@ -830,8 +827,6 @@ export default function GroupView() {
       if (!res.ok) throw new Error();
       const d = await res.json();
       setData(d);
-      setTodayBook(d.group.todayBook || '');
-      setTodayChapter(d.group.todayChapter?.toString() || '');
       setChallengeTotal(d.group.challengeTotal?.toString() || '');
       setLinkJoinMode((d.group.linkJoinMode as 'approval' | 'auto') || 'approval');
     } catch {
@@ -889,6 +884,19 @@ export default function GroupView() {
     },
     enabled: !!groupCode,
   });
+
+  const { data: pageAssignmentsData } = useQuery({
+    queryKey: ['assignments', groupCode],
+    queryFn: async () => {
+      const res = await fetch(`/api/groups/${groupCode}/assignments`);
+      if (!res.ok) throw new Error();
+      return res.json();
+    },
+    enabled: !!groupCode,
+  });
+  const todayAssignment = ((pageAssignmentsData || []) as any[]).find(
+    (a: any) => a.type === 'daily' && a.isActive !== false
+  ) ?? null;
 
   const { data: leaderReport } = useQuery({
     queryKey: ['leader-report', groupCode],
@@ -952,8 +960,6 @@ export default function GroupView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leaderKey: memberKey,
-          todayBook: todayBook || null,
-          todayChapter: todayChapter ? parseInt(todayChapter) : null,
           challengeTotal: challengeTotal ? parseInt(challengeTotal) : 0,
         }),
       });
@@ -1237,13 +1243,17 @@ export default function GroupView() {
               <BookOpen className="w-5 h-5 text-primary" />
               <h3 className="font-display font-bold text-foreground">قراءة اليوم</h3>
             </div>
-            {group.todayBook ? (
+            {todayAssignment ? (
               <div>
-                <p className="text-lg font-semibold text-primary mb-3">{group.todayBook} {group.todayChapter}</p>
-                <Button size="sm" className="w-full" onClick={() => setTodayReaderOpen(true)} data-testid="button-read-now">اقرأ الآن</Button>
+                <p className="text-lg font-semibold text-primary mb-1">{todayAssignment.bookName}</p>
+                <p className="text-sm text-muted-foreground mb-3">{todayAssignment.chapters?.length} إصحاح</p>
+                <Button size="sm" className="w-full" data-testid="button-read-now"
+                  onClick={() => document.getElementById('assignment-section')?.scrollIntoView({ behavior: 'smooth' })}>
+                  اقرأ الآن
+                </Button>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">لم يتم تحديد قراءة اليوم بعد</p>
+              <p className="text-sm text-muted-foreground">لم تُضف قراءة يومية بعد</p>
             )}
           </Card>
 
@@ -1274,14 +1284,16 @@ export default function GroupView() {
           </Card>
         </div>
 
-        <AssignmentSection
-          groupCode={groupCode}
-          isAdmin={isAdminFinal}
-          memberKey={memberKey}
-          userName={userName}
-          allBooks={allBooks || []}
-          onReadComplete={fetchGroup}
-        />
+        <div id="assignment-section">
+          <AssignmentSection
+            groupCode={groupCode}
+            isAdmin={isAdminFinal}
+            memberKey={memberKey}
+            userName={userName}
+            allBooks={allBooks || []}
+            onReadComplete={fetchGroup}
+          />
+        </div>
 
         {mission && (
           <Card className="p-5 mb-6 border-amber-200 dark:border-amber-800/30" data-testid="card-mission">
@@ -1477,24 +1489,6 @@ export default function GroupView() {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>السفر</Label>
-                <select
-                  value={todayBook}
-                  onChange={e => setTodayBook(e.target.value)}
-                  className="w-full border rounded-md p-2 bg-background text-foreground"
-                  data-testid="select-today-book"
-                >
-                  <option value="">اختر السفر</option>
-                  {allBooks?.map((b: any) => (
-                    <option key={b.id} value={b.name}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>الإصحاح</Label>
-                <Input type="number" min="1" value={todayChapter} onChange={e => setTodayChapter(e.target.value)} data-testid="input-today-chapter" />
-              </div>
-              <div>
                 <Label>إجمالي تحدي القراءة (عدد الإصحاحات)</Label>
                 <Input type="number" min="0" value={challengeTotal} onChange={e => setChallengeTotal(e.target.value)} data-testid="input-challenge-total" />
               </div>
@@ -1647,23 +1641,6 @@ export default function GroupView() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={todayReaderOpen} onOpenChange={setTodayReaderOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>قراءة اليوم - {group.todayBook} {group.todayChapter}</DialogTitle>
-            </DialogHeader>
-            {group.todayBook && group.todayChapter && (
-              <InlineChapterReader
-                bookName={group.todayBook}
-                chapter={parseInt(group.todayChapter)}
-                groupCode={groupCode}
-                assignmentId={null}
-                userName={userName}
-                onComplete={() => { setTodayReaderOpen(false); fetchGroup(); }}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
       </motion.div>
     </div>
   );
