@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { SEOHead } from '@/components/SEOHead';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getUserGroupEntry, addUserGroup, removeUserGroup } from '@/lib/user-groups';
 import { fetchBookIntro, fetchVerseTafsir } from '@/lib/tafsir-csv-service';
@@ -266,7 +266,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
   const [reportOpen, setReportOpen] = useState(false);
   const [reportAssignmentId, setReportAssignmentId] = useState<number | null>(null);
   const [readingChapter, setReadingChapter] = useState<{ assignmentId: number; bookName: string; chapter: number } | null>(null);
-  const [expandedAssignment, setExpandedAssignment] = useState<number | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<number> | null>(null);
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<number>>(new Set());
 
   const [assignType, setAssignType] = useState<'daily' | 'weekly'>('daily');
@@ -288,16 +288,36 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
 
   const assignments = assignmentsData?.assignments || [];
 
-  const { data: progressData, refetch: refetchProgress } = useQuery({
-    queryKey: ['assignment-progress', groupCode, expandedAssignment],
-    queryFn: async () => {
-      if (!expandedAssignment) return null;
-      const res = await fetch(`/api/groups/${groupCode}/assignments/${expandedAssignment}/progress`);
-      if (!res.ok) throw new Error();
-      return res.json();
-    },
-    enabled: !!expandedAssignment,
+  // فتح كل القراءات بشكل افتراضي عند التحميل
+  useEffect(() => {
+    if (assignments.length > 0 && expandedIds === null) {
+      setExpandedIds(new Set(assignments.map((a: any) => a.id)));
+    }
+  }, [assignments, expandedIds]);
+
+  const currentExpandedIds = expandedIds ?? new Set<number>();
+
+  // جلب progress لكل قراءة مفتوحة بشكل مستقل
+  const progressResults = useQueries({
+    queries: assignments.map((a: any) => ({
+      queryKey: ['assignment-progress', groupCode, a.id],
+      queryFn: async () => {
+        const res = await fetch(`/api/groups/${groupCode}/assignments/${a.id}/progress`);
+        if (!res.ok) throw new Error();
+        return res.json();
+      },
+      enabled: !!groupCode && currentExpandedIds.has(a.id),
+    })),
   });
+
+  const getProgressDataForAssignment = (assignmentId: number) => {
+    const idx = assignments.findIndex((a: any) => a.id === assignmentId);
+    return idx >= 0 ? progressResults[idx]?.data : null;
+  };
+
+  const refetchProgress = () => {
+    progressResults.forEach(r => r.refetch?.());
+  };
 
   const { data: reportData } = useQuery({
     queryKey: ['assignment-report', groupCode, reportAssignmentId],
@@ -366,15 +386,22 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
   };
 
   const getMyProgress = (assignmentId: number, chapters: number[]) => {
-    const mp = progressData?.memberProgress?.[userName];
+    const pd = getProgressDataForAssignment(assignmentId) as any;
+    const mp = pd?.memberProgress?.[userName];
     if (!mp) return { completed: 0, total: chapters.length };
     return { completed: mp.completed || 0, total: chapters.length };
   };
 
-  const isChapterCompleted = (chapter: number) => {
-    const mp = progressData?.memberProgress?.[userName];
+  const isChapterCompleted = (assignmentId: number, chapter: number) => {
+    const pd = getProgressDataForAssignment(assignmentId) as any;
+    const mp = pd?.memberProgress?.[userName];
     if (!mp) return false;
     return mp.chapters?.[chapter]?.completed || false;
+  };
+
+  const getChapterData = (assignmentId: number, chapter: number) => {
+    const pd = getProgressDataForAssignment(assignmentId) as any;
+    return pd?.memberProgress?.[userName]?.chapters?.[chapter];
   };
 
   if (readingChapter) {
@@ -404,7 +431,10 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
 
   return (
     <>
-      {assignments.length > 0 && completedAssignmentIds.size === assignments.length && (
+      {assignments.length > 0 && assignments.every((a: any) => {
+        const p = getMyProgress(a.id, a.chapters || []);
+        return p.completed >= p.total && p.total > 0;
+      }) && (
         <div className="p-4 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 text-center mb-4">
           <p className="text-2xl mb-1">🎉</p>
           <p className="font-display font-bold text-green-700 dark:text-green-400">مبروك! أنهيت كل القراءات المطلوبة</p>
@@ -416,8 +446,9 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
         <div className="mb-6 space-y-4">
           {assignments.map((a: any) => {
             const chapters = (a.chapters as number[]) || [];
-            const isExpanded = expandedAssignment === a.id;
-            const myProg = isExpanded ? getMyProgress(a.id, chapters) : { completed: 0, total: chapters.length };
+            const isExpanded = currentExpandedIds.has(a.id);
+            const myProg = getMyProgress(a.id, chapters);
+            const isDone = myProg.completed >= myProg.total && myProg.total > 0;
 
             return (
               <Card key={a.id} className="p-5 border-emerald-200 dark:border-emerald-800/30" data-testid={`card-assignment-${a.id}`}>
@@ -447,7 +478,11 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
                         </Button>
                       </>
                     )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpandedAssignment(isExpanded ? null : a.id)} data-testid={`button-expand-${a.id}`}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpandedIds(prev => {
+                      const next = new Set<number>(prev ?? new Set<number>());
+                      if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
+                      return next;
+                    })} data-testid={`button-expand-${a.id}`}>
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </Button>
                   </div>
@@ -462,33 +497,17 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
                     </div>
                     <Progress value={myProg.total > 0 ? Math.min((myProg.completed / myProg.total) * 100, 100) : 0} className="h-2 mb-3" />
 
-                    {myProg.completed >= myProg.total && myProg.total > 0 && (() => {
-                      // تسجيل هذه القراءة كمكتملة
-                      if (!completedAssignmentIds.has(a.id)) {
-                        setCompletedAssignmentIds(prev => new Set([...prev, a.id]));
-                      }
-                      // هل هذه آخر قراءة غير مكتملة؟
-                      const isLastOne = assignments.length === 1;
-                      if (isLastOne) {
-                        return (
-                          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 text-center mb-3">
-                            <p className="text-green-600 dark:text-green-400 font-bold text-sm">🎉 مبروك! أنهيت كل القراءات المطلوبة</p>
-                            <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">«اَلَّذِينَ يَزْرَعُونَ بِالدُّمُوعِ يَحْصُدُونَ بِالتَّرَنُّمِ» (مز ١٢٦: ٥)</p>
-                          </div>
-                        );
-                      }
-                      return (
-                        <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-center mb-3">
-                          <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">✝️ أحسنت! واصل جهادك الروحي</p>
-                          <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-1">«مَنْ يَثْبُتْ إِلَى الْمُنْتَهَى فَذَاكَ يَخْلُصُ» (مت ٢٤: ١٣) — لا يزال أمامك قراءات، واصل بنفس الشوق 📖</p>
-                        </div>
-                      );
-                    })()}
+                    {isDone && (
+                      <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-center mb-3">
+                        <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">✝️ أحسنت! أكملت قراءة {a.bookName}</p>
+                        <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-1">«مَنْ يَثْبُتْ إِلَى الْمُنْتَهَى فَذَاكَ يَخْلُصُ» (مت ٢٤: ١٣)</p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {chapters.map((ch: number) => {
-                        const done = isChapterCompleted(ch);
-                        const chapterData = progressData?.memberProgress?.[userName]?.chapters?.[ch];
+                        const done = isChapterCompleted(a.id, ch);
+                        const chapterData = getChapterData(a.id, ch);
                         return (
                           <button
                             key={ch}

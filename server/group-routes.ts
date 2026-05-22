@@ -1024,6 +1024,26 @@ export function registerGroupRoutes(app: Express) {
           })
           .where(eq(assignmentReadings.id, existing[0].id))
           .returning();
+
+        // سجّل في group_reading_logs حتى تُحتسب للإحصائيات اليومية
+        const date = new Date().toISOString().split('T')[0];
+        const existingLog = await db.select().from(groupReadingLogs)
+          .where(and(
+            eq(groupReadingLogs.groupId, group.id),
+            eq(groupReadingLogs.userName, userName),
+            eq(groupReadingLogs.date, date),
+            eq(groupReadingLogs.book, bookName),
+            eq(groupReadingLogs.chapter, chapter),
+          ));
+        if (existingLog.length === 0) {
+          const scrollPct = scrollCount > 0 ? Math.min(scrollCount * 10, 100) : 0;
+          const quality = timeSpent < 30 ? 'fast' : (scrollPct > 70 && timeSpent > 60 ? 'genuine' : 'normal');
+          await db.insert(groupReadingLogs).values({
+            groupId: group.id, userName, book: bookName, chapter, date,
+            timeSpent: timeSpent || 0, scrollPercent: scrollPct, quality,
+          });
+        }
+
         return res.json({ reading: updated });
       }
 
