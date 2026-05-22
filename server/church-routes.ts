@@ -123,6 +123,36 @@ export function registerChurchRoutes(app: Express) {
     }
   });
 
+  // ── كل الكنائس مع مجموعاتها لأدمن الموقع ──
+  app.get('/api/admin/churches', async (req, res) => {
+    try {
+      const phone = req.query.phone as string;
+      if (phone !== ADMIN_PHONE) return res.status(403).json({ error: 'غير مسموح' });
+
+      const allChurches = await db.select().from(churches).where(
+        eq(churches.status, 'approved')
+      );
+      const allDisabled = await db.select().from(churches).where(eq(churches.status, 'disabled'));
+      const combined = [...allChurches, ...allDisabled];
+
+      const result = await Promise.all(combined.map(async (c) => {
+        const groups = await db.select({
+          id: readingGroups.id,
+          groupCode: readingGroups.groupCode,
+          name: readingGroups.name,
+          leaderName: readingGroups.leaderName,
+          createdAt: readingGroups.createdAt,
+        }).from(readingGroups).where(eq(readingGroups.churchId, c.id));
+        return { ...c, groups };
+      }));
+
+      res.json({ churches: result });
+    } catch (err) {
+      console.error('[admin] churches error:', err);
+      res.status(500).json({ error: 'فشل تحميل الكنائس' });
+    }
+  });
+
   app.get('/api/churches/pending', async (req, res) => {
     try {
       const phone = req.query.phone as string;
@@ -174,6 +204,68 @@ export function registerChurchRoutes(app: Express) {
     } catch (err) {
       console.error('[churches] reject error:', err);
       res.status(500).json({ error: 'فشل الرفض' });
+    }
+  });
+
+  // ── تعطيل / تفعيل كنيسة (أدمن الموقع) ──
+  app.put('/api/churches/:id/toggle-status', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { phone } = req.body;
+      if (phone !== ADMIN_PHONE) return res.status(403).json({ error: 'غير مسموح' });
+
+      const [current] = await db.select().from(churches).where(eq(churches.id, id));
+      if (!current) return res.status(404).json({ error: 'الكنيسة غير موجودة' });
+
+      const newStatus = current.status === 'disabled' ? 'approved' : 'disabled';
+      const [church] = await db.update(churches).set({ status: newStatus }).where(eq(churches.id, id)).returning();
+      res.json({ church });
+    } catch (err) {
+      console.error('[churches] toggle-status error:', err);
+      res.status(500).json({ error: 'فشل تغيير الحالة' });
+    }
+  });
+
+  // ── حذف كنيسة نهائياً مع جميع مجموعاتها (أدمن الموقع) ──
+  app.delete('/api/churches/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { phone } = req.body;
+      if (phone !== ADMIN_PHONE) return res.status(403).json({ error: 'غير مسموح' });
+
+      // حذف أعضاء المجموعات التابعة للكنيسة
+      const churchGroups = await db.select({ id: readingGroups.id }).from(readingGroups).where(eq(readingGroups.churchId, id));
+      for (const g of churchGroups) {
+        await db.delete(groupMembers).where(eq(groupMembers.groupId, g.id));
+      }
+      await db.delete(readingGroups).where(eq(readingGroups.churchId, id));
+      await db.delete(churchAdmins).where(eq(churchAdmins.churchId, id));
+      await db.delete(churches).where(eq(churches.id, id));
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error('[churches] delete error:', err);
+      res.status(500).json({ error: 'فشل الحذف' });
+    }
+  });
+
+  // ── حذف مجموعة من كنيسة (أدمن الموقع) ──
+  app.delete('/api/admin/groups/:code', async (req, res) => {
+    try {
+      const { phone } = req.body;
+      if (phone !== ADMIN_PHONE) return res.status(403).json({ error: 'غير مسموح' });
+
+      const code = req.params.code.toUpperCase();
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, code));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      await db.delete(groupMembers).where(eq(groupMembers.groupId, group.id));
+      await db.delete(readingGroups).where(eq(readingGroups.id, group.id));
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error('[admin] delete group error:', err);
+      res.status(500).json({ error: 'فشل حذف المجموعة' });
     }
   });
 
