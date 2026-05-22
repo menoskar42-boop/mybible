@@ -1283,6 +1283,14 @@ export async function registerRoutes(
     '12-8': { pauline: {book:'عبرانيين',fromCh:12,fromVs:1,toCh:12,toVs:17,label:'عبرانيين 12: 1-17'}, catholic: {book:'يوحنا الثانية',fromCh:1,fromVs:1,toCh:1,toVs:13,label:'يوحنا الثانية 1: 1-13'}, praxis: {book:'أعمال الرسل',fromCh:3,fromVs:1,toCh:3,toVs:26,label:'أعمال 3: 1-26'}, psalm: {book:'المزامير',fromCh:149,fromVs:1,toCh:149,toVs:9,label:'مزمور 149: 1-9'}, gospel: {book:'متى',fromCh:19,fromVs:16,toCh:19,toVs:30,label:'متى 19: 16-30'} },
     '12-15':{ pauline: {book:'عبرانيين',fromCh:13,fromVs:1,toCh:13,toVs:25,label:'عبرانيين 13: 1-25'}, catholic: {book:'يوحنا الثالثة',fromCh:1,fromVs:1,toCh:1,toVs:14,label:'يوحنا الثالثة 1: 1-14'}, praxis: {book:'أعمال الرسل',fromCh:4,fromVs:1,toCh:4,toVs:31,label:'أعمال 4: 1-31'}, psalm: {book:'المزامير',fromCh:147,fromVs:12,toCh:147,toVs:20,label:'مزمور 147: 12-20'}, gospel: {book:'متى',fromCh:20,fromVs:1,toCh:20,toVs:28,label:'متى 20: 1-28'} },
     '12-22':{ pauline: {book:'رؤيا يوحنا',fromCh:1,fromVs:1,toCh:1,toVs:8,label:'رؤيا يوحنا 1: 1-8'}, catholic: {book:'يهوذا',fromCh:1,fromVs:1,toCh:1,toVs:25,label:'يهوذا 1: 1-25'}, praxis: {book:'أعمال الرسل',fromCh:5,fromVs:1,toCh:5,toVs:42,label:'أعمال 5: 1-42'}, psalm: {book:'المزامير',fromCh:148,fromVs:1,toCh:148,toVs:14,label:'مزمور 148: 1-14'}, gospel: {book:'متى',fromCh:22,fromVs:1,toCh:22,toVs:22,label:'متى 22: 1-22'} },
+    // ── الأعياد الكبرى ──
+    'feast-christmas':    { pauline: {book:'غلاطية',fromCh:4,fromVs:4,toCh:4,toVs:7,label:'غلاطية 4: 4-7'}, catholic: {book:'عبرانيين',fromCh:1,fromVs:1,toCh:1,toVs:12,label:'عبرانيين 1: 1-12'}, praxis: {book:'أعمال الرسل',fromCh:13,fromVs:16,toCh:13,toVs:41,label:'أعمال 13: 16-41'}, psalm: {book:'المزامير',fromCh:110,fromVs:3,toCh:110,toVs:3,label:'مزمور 110: 3'}, gospel: {book:'لوقا',fromCh:2,fromVs:1,toCh:2,toVs:20,label:'لوقا 2: 1-20'} },
+    'feast-epiphany':     { pauline: {book:'رومية',fromCh:6,fromVs:3,toCh:6,toVs:11,label:'رومية 6: 3-11'}, catholic: {book:'يوحنا الأولى',fromCh:5,fromVs:5,toCh:5,toVs:12,label:'يوحنا الأولى 5: 5-12'}, praxis: {book:'أعمال الرسل',fromCh:19,fromVs:1,toCh:19,toVs:7,label:'أعمال 19: 1-7'}, psalm: {book:'المزامير',fromCh:29,fromVs:3,toCh:29,toVs:3,label:'مزمور 29: 3'}, gospel: {book:'مرقس',fromCh:1,fromVs:9,toCh:1,toVs:11,label:'مرقس 1: 9-11'} },
+    'feast-presentation': { pauline: {book:'عبرانيين',fromCh:2,fromVs:14,toCh:2,toVs:18,label:'عبرانيين 2: 14-18'}, catholic: {book:'يوحنا الأولى',fromCh:3,fromVs:1,toCh:3,toVs:10,label:'يوحنا الأولى 3: 1-10'}, praxis: {book:'أعمال الرسل',fromCh:3,fromVs:1,toCh:3,toVs:16,label:'أعمال 3: 1-16'}, psalm: {book:'المزامير',fromCh:45,fromVs:12,toCh:45,toVs:12,label:'مزمور 45: 12'}, gospel: {book:'لوقا',fromCh:2,fromVs:22,toCh:2,toVs:40,label:'لوقا 2: 22-40'} },
+    'feast-palm-sunday':  { pauline: {book:'فيلبي',fromCh:4,fromVs:4,toCh:4,toVs:13,label:'فيلبي 4: 4-13'}, catholic: {book:'يوحنا الأولى',fromCh:5,fromVs:1,toCh:5,toVs:5,label:'يوحنا الأولى 5: 1-5'}, praxis: {book:'أعمال الرسل',fromCh:28,fromVs:11,toCh:28,toVs:31,label:'أعمال 28: 11-31'}, psalm: {book:'المزامير',fromCh:118,fromVs:26,toCh:118,toVs:26,label:'مزمور 118: 26'}, gospel: {book:'يوحنا',fromCh:12,fromVs:12,toCh:12,toVs:22,label:'يوحنا 12: 12-22'} },
+    'feast-easter':       { pauline: {book:'كورنثوس الأولى',fromCh:5,fromVs:7,toCh:5,toVs:8,label:'كورنثوس الأولى 5: 7-8'}, catholic: {book:'بطرس الأولى',fromCh:1,fromVs:3,toCh:1,toVs:9,label:'بطرس الأولى 1: 3-9'}, praxis: {book:'أعمال الرسل',fromCh:1,fromVs:1,toCh:1,toVs:14,label:'أعمال 1: 1-14'}, psalm: {book:'المزامير',fromCh:118,fromVs:24,toCh:118,toVs:24,label:'مزمور 118: 24'}, gospel: {book:'يوحنا',fromCh:20,fromVs:1,toCh:20,toVs:18,label:'يوحنا 20: 1-18'} },
+    'feast-ascension':    { pauline: {book:'أفسس',fromCh:4,fromVs:7,toCh:4,toVs:16,label:'أفسس 4: 7-16'}, catholic: {book:'يوحنا الأولى',fromCh:4,fromVs:7,toCh:4,toVs:21,label:'يوحنا الأولى 4: 7-21'}, praxis: {book:'أعمال الرسل',fromCh:1,fromVs:1,toCh:1,toVs:11,label:'أعمال 1: 1-11'}, psalm: {book:'المزامير',fromCh:47,fromVs:5,toCh:47,toVs:5,label:'مزمور 47: 5'}, gospel: {book:'لوقا',fromCh:24,fromVs:49,toCh:24,toVs:53,label:'لوقا 24: 49-53'} },
+    'feast-pentecost':    { pauline: {book:'كورنثوس الأولى',fromCh:12,fromVs:1,toCh:12,toVs:14,label:'كورنثوس الأولى 12: 1-14'}, catholic: {book:'يوحنا الأولى',fromCh:4,fromVs:1,toCh:4,toVs:6,label:'يوحنا الأولى 4: 1-6'}, praxis: {book:'أعمال الرسل',fromCh:2,fromVs:1,toCh:2,toVs:21,label:'أعمال 2: 1-21'}, psalm: {book:'المزامير',fromCh:104,fromVs:30,toCh:104,toVs:30,label:'مزمور 104: 30'}, gospel: {book:'يوحنا',fromCh:14,fromVs:15,toCh:14,toVs:27,label:'يوحنا 14: 15-27'} },
   };
 
   function getServerLectionary(month: number, day: number) {
@@ -1301,13 +1309,42 @@ export async function registerRoutes(
     return serverLectionary['1-1'];
   }
 
+  // حساب الفصح القبطي (أرثوذكسي) باستخدام خوارزمية Meeus/Jones/Butcher مع تحويل يوليانى→ميلادى
+  function calculateCopticEaster(year: number): Date {
+    const a = year % 4, b = year % 7, c = year % 19;
+    const d = (19 * c + 15) % 30;
+    const e = (2 * a + 4 * b - d + 34) % 7;
+    const month = Math.floor((d + e + 114) / 31);
+    const day = ((d + e + 114) % 31) + 1;
+    // الكنيسة القبطية تتبع التقويم اليوليانى — يُضاف 13 يوماً للتحويل للميلادى
+    const julian = new Date(year, month - 1, day);
+    julian.setDate(julian.getDate() + 13);
+    return julian;
+  }
+
+  function getFeastKey(date: Date): string | null {
+    const m = date.getMonth() + 1, d = date.getDate(), y = date.getFullYear();
+    if (m === 12 && d === 29) return 'feast-christmas';
+    if (m === 1  && d === 7)  return 'feast-christmas'; // الكريسماس الأرثوذكسى 7 يناير
+    if (m === 1  && d === 19) return 'feast-epiphany';
+    if (m === 2  && d === 15) return 'feast-presentation';
+    const easter = calculateCopticEaster(y);
+    const diff = Math.round((new Date(y, m - 1, d).getTime() - easter.getTime()) / 86400000);
+    if (diff === -7)  return 'feast-palm-sunday';
+    if (diff === 0)   return 'feast-easter';
+    if (diff === 39)  return 'feast-ascension';
+    if (diff === 49)  return 'feast-pentecost';
+    return null;
+  }
+
   // GET /api/daily-readings — يُعيد القراءات الخمس مع نصوصها لليوم الحالي
   app.get('/api/daily-readings', async (_req, res) => {
     try {
       const today = new Date();
       const { day, month } = gregorianToCopticServer(today);
       const copticDate = `${day} ${MONTH_NAMES[month] ?? 'توت'}`;
-      const lectionary = getServerLectionary(month, day);
+      const feastKey = getFeastKey(today);
+      const lectionary = (feastKey && serverLectionary[feastKey]) || getServerLectionary(month, day);
 
       const [pauline, catholic, praxis, psalm, gospel] = await Promise.all([
         fetchReadingText(lectionary.pauline),
