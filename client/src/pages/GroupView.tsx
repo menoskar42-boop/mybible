@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
+import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -638,6 +638,11 @@ export default function GroupView() {
   const [challengeTotal, setChallengeTotal] = useState('');
   const [copied, setCopied] = useState(false);
   const [todayReaderOpen, setTodayReaderOpen] = useState(false);
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
+  const [addAdminName, setAddAdminName] = useState('');
+  const [addAdminPhone, setAddAdminPhone] = useState('');
+  const [addAdminLoading, setAddAdminLoading] = useState(false);
+  const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
 
   const [missionTitle, setMissionTitle] = useState('');
   const [missionBook, setMissionBook] = useState('');
@@ -920,6 +925,33 @@ export default function GroupView() {
     }
   };
 
+  const handleAddAdmin = async () => {
+    if (!addAdminName.trim() || !addAdminPhone.trim()) {
+      toast.error('الاسم ورقم الموبايل مطلوبان');
+      return;
+    }
+    if (addAdminPhone.trim().length < 10) {
+      toast.error('رقم الموبايل غير صحيح');
+      return;
+    }
+    setAddAdminLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/add-admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, name: addAdminName.trim(), phone: addAdminPhone.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setAddAdminResult(data.memberKey);
+      fetchGroup();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل إضافة الأدمن');
+    } finally {
+      setAddAdminLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-4xl flex items-center justify-center min-h-[50vh]">
@@ -1175,9 +1207,17 @@ export default function GroupView() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <Card className="p-5" data-testid="card-members">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-5 h-5 text-blue-500" />
-              <h3 className="font-display font-bold text-foreground">الأعضاء ({members.length})</h3>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                <h3 className="font-display font-bold text-foreground">الأعضاء ({members.length})</h3>
+              </div>
+              {isAdminFinal && (
+                <Button variant="ghost" size="sm" onClick={() => { setAddAdminResult(null); setAddAdminName(''); setAddAdminPhone(''); setAddAdminOpen(true); }} data-testid="button-add-admin">
+                  <UserPlus className="w-4 h-4 ml-1" />
+                  إضافة أدمن
+                </Button>
+              )}
             </div>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {members.map((m: any) => {
@@ -1348,6 +1388,52 @@ export default function GroupView() {
               </div>
               <Button onClick={createMission} className="w-full" data-testid="button-create-mission">إنشاء المهمة</Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={addAdminOpen} onOpenChange={(o) => { setAddAdminOpen(o); if (!o) setAddAdminResult(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-indigo-500" />
+                إضافة أدمن للمجموعة
+              </DialogTitle>
+            </DialogHeader>
+            {addAdminResult ? (
+              <div className="space-y-4 text-center">
+                <div className="w-14 h-14 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Check className="w-7 h-7 text-green-600" />
+                </div>
+                <p className="font-bold text-foreground">تم إضافة {addAdminName} كأدمن</p>
+                <div className="bg-muted rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-2">شارك هذا الكود الشخصي مع الأدمن الجديد ليسجل دخوله</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <code className="font-mono text-sm font-bold text-primary bg-background px-3 py-1.5 rounded-lg border" data-testid="text-new-admin-key">{addAdminResult}</code>
+                    <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(addAdminResult); toast.success('تم النسخ'); }} data-testid="button-copy-admin-key">
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">يمكنه الانضمام بكود المجموعة <strong>{groupCode}</strong> باستخدام اسمه ورقم موبايله</p>
+                <Button onClick={() => setAddAdminOpen(false)} className="w-full" data-testid="button-close-add-admin">إغلاق</Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="admin-name">الاسم *</Label>
+                  <Input id="admin-name" value={addAdminName} onChange={e => setAddAdminName(e.target.value)} placeholder="اكتب اسم الأدمن الجديد" data-testid="input-add-admin-name" />
+                </div>
+                <div>
+                  <Label htmlFor="admin-phone">رقم الموبايل *</Label>
+                  <Input id="admin-phone" value={addAdminPhone} onChange={e => setAddAdminPhone(e.target.value)} placeholder="01000000000" type="tel" dir="ltr" className="text-left" data-testid="input-add-admin-phone" />
+                </div>
+                <p className="text-xs text-muted-foreground">سيُضاف هذا الشخص مباشرة كأدمن ويمكنه تسجيل الدخول بنفس الاسم والرقم</p>
+                <Button onClick={handleAddAdmin} disabled={addAdminLoading} className="w-full" data-testid="button-submit-add-admin">
+                  {addAdminLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <UserPlus className="w-4 h-4 ml-2" />}
+                  إضافة كأدمن
+                </Button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 

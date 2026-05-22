@@ -396,6 +396,46 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  app.post('/api/groups/:code/add-admin', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const { leaderKey, name, phone } = req.body;
+      if (!name || !phone) return res.status(400).json({ error: 'الاسم ورقم الموبايل مطلوبان' });
+
+      const authorized = await isAdminByLeaderKey(group, leaderKey);
+      if (!authorized) return res.status(403).json({ error: 'غير مسموح' });
+
+      const normalizedPhone = String(phone).trim().replace(/\s+/g, '');
+
+      // إذا كان موجوداً بالفعل — نحوّله لأدمن فقط
+      const [existing] = await db.select().from(groupMembers)
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.phone, normalizedPhone)));
+
+      if (existing) {
+        await db.update(groupMembers)
+          .set({ isAdmin: true })
+          .where(eq(groupMembers.id, existing.id));
+        return res.json({ memberKey: existing.memberKey, alreadyMember: true });
+      }
+
+      const memberKey = generateKey();
+      await db.insert(groupMembers).values({
+        groupId: group.id,
+        userName: name.trim(),
+        memberKey,
+        phone: normalizedPhone,
+        isAdmin: true,
+      });
+
+      res.json({ memberKey });
+    } catch (err) {
+      console.error('[groups] add-admin error:', err);
+      res.status(500).json({ error: 'فشل إضافة الأدمن' });
+    }
+  });
+
   app.post('/api/groups/:code/leave', async (req, res) => {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
