@@ -754,7 +754,7 @@ export default function GroupView() {
     enabled: !!groupCode && isAdminConfirmed,
   });
 
-  const joinRequests = joinRequestsData?.requests || [];
+  const joinRequests = joinRequestsData?.joinRequests || [];
 
   const handleApproveRequest = async (requestId: number) => {
     try {
