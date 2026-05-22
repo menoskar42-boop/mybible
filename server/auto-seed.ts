@@ -428,8 +428,15 @@ const topicVerseMappings: TopicVerseMapping[] = [
 
 export async function autoSeedIfNeeded(): Promise<void> {
   console.log('[auto-seed] Checking if database needs seeding...');
-  
+
   try {
+    // ── Migration: إضافة عمود role لجدول church_admins إن لم يكن موجوداً ──
+    const migrationDb = getDb();
+    await migrationDb.execute(
+      sql`ALTER TABLE church_admins ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'admin'`
+    );
+    console.log('[auto-seed] church_admins.role column ensured');
+
     const emotions = await storage.getAllEmotions();
     if (emotions.length === 0) {
       console.log('[auto-seed] Seeding emotions...');
