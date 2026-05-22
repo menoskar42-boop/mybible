@@ -339,13 +339,16 @@ export function registerGroupRoutes(app: Express) {
       const members = await db.select().from(groupMembers).where(eq(groupMembers.groupId, group.id));
       const today = new Date().toISOString().split('T')[0];
 
-      // عداد "قرأوا اليوم" — بدون JOIN، مباشرة من group_id في assignment_readings
+      // عداد "قرأوا اليوم" — يستخدم completed_date إن وُجد وإلا يعود لـ completed_at
       const readTodayResult = await pool.query(
         `SELECT DISTINCT user_name
          FROM assignment_readings
          WHERE group_id = $1
            AND completed = true
-           AND completed_date = $2`,
+           AND (
+             completed_date = $2
+             OR (completed_date IS NULL AND completed_at IS NOT NULL AND completed_at::date = $2::date)
+           )`,
         [group.id, today]
       );
       const readTodayNames = new Set<string>(readTodayResult.rows.map((r: any) => r.user_name));
