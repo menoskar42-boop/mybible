@@ -47,12 +47,13 @@ const MIN_SECONDS = 40;
 const MIN_SCROLLS = 5;
 const MIN_DEPTH = 80;
 
-function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userName, onComplete }: {
+function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userName, isLastChapter, onComplete }: {
   bookName: string;
   chapter: number;
   groupCode: string;
   assignmentId: number | null;
   userName: string;
+  isLastChapter?: boolean;
   onComplete: () => void;
 }) {
   const [verses, setVerses] = useState<any[]>([]);
@@ -163,7 +164,11 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
           body: JSON.stringify({ userName, book: bookName, chapter, timeSpent, scrollPercent: scrollDepth }),
         });
       }
-      toast.success(`تم تسجيل قراءة ${bookName} ${chapter} - ${formatTime(timeSpent)}`);
+      if (isLastChapter) {
+        toast.success(`🎉 مبروك! أنهيت قراءة ${bookName} بالكامل`, { duration: 4000 });
+      } else {
+        toast.success(`تم تسجيل قراءة ${bookName} ${chapter} - ${formatTime(timeSpent)}`);
+      }
       onComplete();
     } catch {
       toast.error('فشل تسجيل القراءة');
@@ -266,7 +271,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
   const [createOpen, setCreateOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportAssignmentId, setReportAssignmentId] = useState<number | null>(null);
-  const [readingChapter, setReadingChapter] = useState<{ assignmentId: number; bookName: string; chapter: number } | null>(null);
+  const [readingChapter, setReadingChapter] = useState<{ assignmentId: number; bookName: string; chapter: number; isLastChapter: boolean } | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number> | null>(null);
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<number>>(new Set());
 
@@ -431,6 +436,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
           groupCode={groupCode}
           assignmentId={readingChapter.assignmentId}
           userName={userName}
+          isLastChapter={readingChapter.isLastChapter}
           onComplete={handleReadComplete}
         />
       </Card>
@@ -522,7 +528,11 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
                         return (
                           <button
                             key={ch}
-                            onClick={() => !done && setReadingChapter({ assignmentId: a.id, bookName: a.bookName, chapter: ch })}
+                            onClick={() => {
+                              if (done) return;
+                              const remaining = chapters.filter((c: number) => !isChapterCompleted(a.id, c));
+                              setReadingChapter({ assignmentId: a.id, bookName: a.bookName, chapter: ch, isLastChapter: remaining.length === 1 });
+                            }}
                             disabled={done}
                             className={`relative p-3 rounded-lg border text-center transition-all ${
                               done
