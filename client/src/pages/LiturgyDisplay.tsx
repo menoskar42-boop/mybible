@@ -7,6 +7,8 @@ import {
   getRoleLabel,
   getLiturgyLabel,
   COPTIC_ARABIC_MAP,
+  READINGS_SECTION_KEYS,
+  getReadingType,
   type LiturgySession,
   type LiturgySlide,
   type DeaconResponse,
@@ -57,8 +59,27 @@ export default function LiturgyDisplay() {
           setCurrentSlide(null);
         } else {
           setDeaconSlide(null);
-          const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey);
-          setCurrentSlide(slides[data.slideIndex] ?? null);
+          // قراءات اليوم الديناميكية — إن وُجد override وكان القسم من أقسام القراءات
+          const override = (data as LiturgySession & { readingsOverride?: Record<string, { title: string; slides: string[] }> }).readingsOverride;
+          const readingType = READINGS_SECTION_KEYS.has(data.sectionKey) ? getReadingType(data.sectionKey) : null;
+          if (override && readingType && override[readingType]) {
+            const reading = override[readingType];
+            const rawSlides = reading.slides ?? [];
+            const idx = Math.min(data.slideIndex, rawSlides.length - 1);
+            if (rawSlides.length > 0) {
+              setCurrentSlide({
+                id: `override-${readingType}-${idx}`,
+                title: reading.title,
+                role: 'reader' as LiturgySlide['role'],
+                text: rawSlides[idx] ?? '',
+              });
+            } else {
+              setCurrentSlide(null);
+            }
+          } else {
+            const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey);
+            setCurrentSlide(slides[data.slideIndex] ?? null);
+          }
         }
       } catch {
         // silent — keep last state
@@ -188,14 +209,19 @@ export default function LiturgyDisplay() {
 
       {/* شريط سفلي */}
       <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-        {getSplitSlidesForSection(session.liturgyType, session.sectionKey).map((_, i) => (
-          <div
-            key={i}
-            className={`h-1 rounded-full transition-all duration-300 ${
-              i === session.slideIndex ? 'bg-white w-8' : 'bg-white/20 w-2'
-            }`}
-          />
-        ))}
+        {(() => {
+          const ov = (session as LiturgySession & { readingsOverride?: Record<string, { slides: string[] }> }).readingsOverride;
+          const rt = READINGS_SECTION_KEYS.has(session.sectionKey) ? getReadingType(session.sectionKey) : null;
+          const count = (ov && rt && ov[rt]) ? ov[rt].slides.length : getSplitSlidesForSection(session.liturgyType, session.sectionKey).length;
+          return Array.from({ length: count }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all duration-300 ${
+                i === session.slideIndex ? 'bg-white w-8' : 'bg-white/20 w-2'
+              }`}
+            />
+          ));
+        })()}
       </div>
     </div>
   );
