@@ -498,20 +498,10 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
                     <Progress value={myProg.total > 0 ? Math.min((myProg.completed / myProg.total) * 100, 100) : 0} className="h-2 mb-3" />
 
                     {isDone && (
-                      assignments.filter((x: any) => {
-                        const p = getMyProgress(x.id, x.chapters || []);
-                        return p.completed < p.total;
-                      }).length === 0 ? (
-                        <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 text-center mb-3">
-                          <p className="text-green-600 dark:text-green-400 font-bold text-sm">🎉 مبروك! أنهيت كل القراءات المطلوبة</p>
-                          <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">«اَلَّذِينَ يَزْرَعُونَ بِالدُّمُوعِ يَحْصُدُونَ بِالتَّرَنُّمِ» (مز ١٢٦: ٥)</p>
-                        </div>
-                      ) : (
-                        <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-center mb-3">
-                          <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">✝️ أحسنت! واصل جهادك الروحي</p>
-                          <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-1">«مَنْ يَثْبُتْ إِلَى الْمُنْتَهَى فَذَاكَ يَخْلُصُ» (مت ٢٤: ١٣) — لا يزال أمامك قراءات، واصل بنفس الشوق 📖</p>
-                        </div>
-                      )
+                      <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-center mb-3">
+                        <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">✝️ أحسنت! أكملت قراءة {a.bookName}</p>
+                        <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-1">«مَنْ يَثْبُتْ إِلَى الْمُنْتَهَى فَذَاكَ يَخْلُصُ» (مت ٢٤: ١٣)</p>
+                      </div>
                     )}
 
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
