@@ -1003,7 +1003,8 @@ export function registerGroupRoutes(app: Express) {
       if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
 
       const assignmentId = parseInt(req.params.assignmentId);
-      const { userName, bookName, chapter, timeSpent, scrollCount, scrollDepth } = req.body;
+      const { userName, bookName, timeSpent, scrollCount, scrollDepth } = req.body;
+      const chapter = parseInt(req.body.chapter);
 
       const existing = await db.select().from(assignmentReadings)
         .where(and(
@@ -1026,22 +1027,26 @@ export function registerGroupRoutes(app: Express) {
           .returning();
 
         // سجّل في group_reading_logs حتى تُحتسب للإحصائيات اليومية
-        const date = new Date().toISOString().split('T')[0];
-        const existingLog = await db.select().from(groupReadingLogs)
-          .where(and(
-            eq(groupReadingLogs.groupId, group.id),
-            eq(groupReadingLogs.userName, userName),
-            eq(groupReadingLogs.date, date),
-            eq(groupReadingLogs.book, bookName),
-            eq(groupReadingLogs.chapter, chapter),
-          ));
-        if (existingLog.length === 0) {
-          const scrollPct = scrollCount > 0 ? Math.min(scrollCount * 10, 100) : 0;
-          const quality = timeSpent < 30 ? 'fast' : (scrollPct > 70 && timeSpent > 60 ? 'genuine' : 'normal');
-          await db.insert(groupReadingLogs).values({
-            groupId: group.id, userName, book: bookName, chapter, date,
-            timeSpent: timeSpent || 0, scrollPercent: scrollPct, quality,
-          });
+        try {
+          const date = new Date().toISOString().split('T')[0];
+          const existingLog = await db.select().from(groupReadingLogs)
+            .where(and(
+              eq(groupReadingLogs.groupId, group.id),
+              eq(groupReadingLogs.userName, userName),
+              eq(groupReadingLogs.date, date),
+              eq(groupReadingLogs.book, bookName),
+              eq(groupReadingLogs.chapter, chapter),
+            ));
+          if (existingLog.length === 0) {
+            const scrollPct = (scrollCount || 0) > 0 ? Math.min((scrollCount || 0) * 10, 100) : 0;
+            const quality = (timeSpent || 0) < 30 ? 'fast' : (scrollPct > 70 && (timeSpent || 0) > 60 ? 'genuine' : 'normal');
+            await db.insert(groupReadingLogs).values({
+              groupId: group.id, userName, book: bookName, chapter, date,
+              timeSpent: timeSpent || 0, scrollPercent: scrollPct, quality,
+            });
+          }
+        } catch (logErr) {
+          console.error('[groups] assignment read - log insert error:', logErr);
         }
 
         return res.json({ reading: updated });
@@ -1061,33 +1066,29 @@ export function registerGroupRoutes(app: Express) {
         completedAt: new Date(),
       }).returning();
 
-      const date = new Date().toISOString().split('T')[0];
-      const existingLog = await db.select().from(groupReadingLogs)
-        .where(and(
-          eq(groupReadingLogs.groupId, group.id),
-          eq(groupReadingLogs.userName, userName),
-          eq(groupReadingLogs.date, date),
-          eq(groupReadingLogs.book, bookName),
-          eq(groupReadingLogs.chapter, chapter),
-        ));
+      try {
+        const date = new Date().toISOString().split('T')[0];
+        const existingLog = await db.select().from(groupReadingLogs)
+          .where(and(
+            eq(groupReadingLogs.groupId, group.id),
+            eq(groupReadingLogs.userName, userName),
+            eq(groupReadingLogs.date, date),
+            eq(groupReadingLogs.book, bookName),
+            eq(groupReadingLogs.chapter, chapter),
+          ));
 
-      if (existingLog.length === 0) {
-        let quality = 'unknown';
-        const scrollPct = scrollCount > 0 ? Math.min(scrollCount * 10, 100) : 0;
-        if (timeSpent < 30) quality = 'fast';
-        else if (scrollPct > 70 && timeSpent > 60) quality = 'genuine';
-        else quality = 'normal';
+        if (existingLog.length === 0) {
+          let quality = 'unknown';
+          const scrollPct = (scrollCount || 0) > 0 ? Math.min((scrollCount || 0) * 10, 100) : 0;
+          if ((timeSpent || 0) < 30) quality = 'fast';
+          else if (scrollPct > 70 && (timeSpent || 0) > 60) quality = 'genuine';
+          else quality = 'normal';
 
-        await db.insert(groupReadingLogs).values({
-          groupId: group.id,
-          userName,
-          book: bookName,
-          chapter,
-          date,
-          timeSpent: timeSpent || 0,
-          scrollPercent: scrollPct,
-          quality,
-        });
+          await db.insert(groupReadingLogs).values({
+            groupId: group.id, userName, book: bookName, chapter, date,
+            timeSpent: timeSpent || 0, scrollPercent: scrollPct, quality,
+          });
+        }
 
         try {
           const cps = await db.select().from(challengeParticipants)
@@ -1104,6 +1105,8 @@ export function registerGroupRoutes(app: Express) {
         } catch (e) {
           console.log('[groups] challenge update from assignment (non-critical):', e);
         }
+      } catch (logErr) {
+        console.error('[groups] assignment read - log insert error:', logErr);
       }
 
       res.json({ reading });
