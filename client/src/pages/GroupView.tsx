@@ -288,12 +288,18 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
 
   const assignments = assignmentsData?.assignments || [];
 
-  // فتح كل القراءات بشكل افتراضي عند التحميل
+  // فتح كل القراءات بشكل افتراضي، وفتح أي قراءة جديدة تُضاف لاحقاً
   useEffect(() => {
-    if (assignments.length > 0 && expandedIds === null) {
-      setExpandedIds(new Set(assignments.map((a: any) => a.id)));
-    }
-  }, [assignments, expandedIds]);
+    if (assignments.length === 0) return;
+    setExpandedIds(prev => {
+      const next = new Set<number>(prev ?? new Set<number>());
+      let changed = false;
+      for (const a of assignments) {
+        if (!next.has(a.id)) { next.add(a.id); changed = true; }
+      }
+      return changed ? next : (prev ?? next);
+    });
+  }, [assignments]);
 
   const currentExpandedIds = expandedIds ?? new Set<number>();
 
@@ -452,7 +458,14 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
 
             return (
               <Card key={a.id} className="p-5 border-emerald-200 dark:border-emerald-800/30" data-testid={`card-assignment-${a.id}`}>
-                <div className="flex items-center justify-between mb-2">
+                <div
+                  className="flex items-center justify-between mb-2 cursor-pointer select-none"
+                  onClick={() => setExpandedIds(prev => {
+                    const next = new Set<number>(prev ?? new Set<number>());
+                    if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
+                    return next;
+                  })}
+                >
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
                       <BookOpen className="w-4 h-4 text-white" />
@@ -470,21 +483,17 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
                   <div className="flex items-center gap-1">
                     {isAdmin && (
                       <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setReportAssignmentId(a.id); setReportOpen(true); }} data-testid={`button-report-${a.id}`}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); setReportAssignmentId(a.id); setReportOpen(true); }} data-testid={`button-report-${a.id}`}>
                           <Eye className="w-3.5 h-3.5 text-indigo-500" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteAssignment(a.id)} data-testid={`button-delete-assignment-${a.id}`}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); deleteAssignment(a.id); }} data-testid={`button-delete-assignment-${a.id}`}>
                           <Trash2 className="w-3.5 h-3.5 text-red-500" />
                         </Button>
                       </>
                     )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setExpandedIds(prev => {
-                      const next = new Set<number>(prev ?? new Set<number>());
-                      if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
-                      return next;
-                    })} data-testid={`button-expand-${a.id}`}>
+                    <div className="h-7 w-7 flex items-center justify-center" data-testid={`button-expand-${a.id}`}>
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </Button>
+                    </div>
                   </div>
                 </div>
                 {a.deadline && <p className="text-xs text-muted-foreground mb-2">الموعد النهائي: {a.deadline}</p>}
