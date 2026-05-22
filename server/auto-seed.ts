@@ -542,6 +542,31 @@ export async function autoSeedIfNeeded(): Promise<void> {
       console.log(`[auto-seed] Calendar daily verses OK: ${uniqueCount} unique refs`);
     }
 
+    // ── إنشاء مجموعة "درس كتاب مارمرقس" إذا لم تكن موجودة ──────────────
+    const groupDb = getDb();
+    const existingGroup = await groupDb.select()
+      .from(schema.readingGroups)
+      .where(sql`group_code = 'AZK3P'`);
+    if (existingGroup.length === 0) {
+      console.log('[auto-seed] Creating group درس كتاب مارمرقس (AZK3P)...');
+      const leaderKey  = 'lk_abouna_matta_azk3p';
+      const admin2Key  = 'lk_mina_eskarus_azk3p';
+      const [group] = await groupDb.insert(schema.readingGroups).values({
+        groupCode:  'AZK3P',
+        name:       'درس كتاب مارمرقس',
+        churchName: 'كنيسة مارمرقس بأسيوط',
+        leaderName: 'ابونا متى',
+        leaderKey,
+      }).returning();
+      await groupDb.insert(schema.groupMembers).values([
+        { groupId: group.id, userName: 'ابونا متى',     memberKey: leaderKey, phone: '01200801212', isAdmin: true },
+        { groupId: group.id, userName: 'مينا اسكاروس', memberKey: admin2Key,  phone: '01552406406', isAdmin: true },
+      ]);
+      console.log('[auto-seed] Group AZK3P created with 2 admins');
+    } else {
+      console.log('[auto-seed] Group AZK3P already exists');
+    }
+
     console.log('[auto-seed] Database seeding check complete');
   } catch (error) {
     console.error('[auto-seed] Error during auto-seed:', error);
