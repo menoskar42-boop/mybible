@@ -1029,22 +1029,17 @@ export function registerGroupRoutes(app: Express) {
         // سجّل في group_reading_logs حتى تُحتسب للإحصائيات اليومية
         try {
           const date = new Date().toISOString().split('T')[0];
-          const existingLog = await db.select().from(groupReadingLogs)
-            .where(and(
-              eq(groupReadingLogs.groupId, group.id),
-              eq(groupReadingLogs.userName, userName),
-              eq(groupReadingLogs.date, date),
-              eq(groupReadingLogs.book, bookName),
-              eq(groupReadingLogs.chapter, chapter),
-            ));
-          if (existingLog.length === 0) {
-            const scrollPct = (scrollCount || 0) > 0 ? Math.min((scrollCount || 0) * 10, 100) : 0;
-            const quality = (timeSpent || 0) < 30 ? 'fast' : (scrollPct > 70 && (timeSpent || 0) > 60 ? 'genuine' : 'normal');
-            await db.insert(groupReadingLogs).values({
-              groupId: group.id, userName, book: bookName, chapter, date,
-              timeSpent: timeSpent || 0, scrollPercent: scrollPct, quality,
-            });
-          }
+          const scrollPct = (scrollCount || 0) > 0 ? Math.min((scrollCount || 0) * 10, 100) : 0;
+          const quality = (timeSpent || 0) < 30 ? 'fast' : (scrollPct > 70 && (timeSpent || 0) > 60 ? 'genuine' : 'normal');
+          await pool.query(
+            `INSERT INTO group_reading_logs (group_id, user_name, book, chapter, date, time_spent, scroll_percent, quality)
+             SELECT $1,$2,$3,$4,$5,$6,$7,$8
+             WHERE NOT EXISTS (
+               SELECT 1 FROM group_reading_logs
+               WHERE group_id=$1 AND user_name=$2 AND date=$5 AND book=$3 AND chapter=$4
+             )`,
+            [group.id, userName, bookName, chapter, date, timeSpent || 0, scrollPct, quality]
+          );
         } catch (logErr) {
           console.error('[groups] assignment read - log insert error:', logErr);
         }
@@ -1068,45 +1063,35 @@ export function registerGroupRoutes(app: Express) {
 
       try {
         const date = new Date().toISOString().split('T')[0];
-        const existingLog = await db.select().from(groupReadingLogs)
-          .where(and(
-            eq(groupReadingLogs.groupId, group.id),
-            eq(groupReadingLogs.userName, userName),
-            eq(groupReadingLogs.date, date),
-            eq(groupReadingLogs.book, bookName),
-            eq(groupReadingLogs.chapter, chapter),
-          ));
-
-        if (existingLog.length === 0) {
-          let quality = 'unknown';
-          const scrollPct = (scrollCount || 0) > 0 ? Math.min((scrollCount || 0) * 10, 100) : 0;
-          if ((timeSpent || 0) < 30) quality = 'fast';
-          else if (scrollPct > 70 && (timeSpent || 0) > 60) quality = 'genuine';
-          else quality = 'normal';
-
-          await db.insert(groupReadingLogs).values({
-            groupId: group.id, userName, book: bookName, chapter, date,
-            timeSpent: timeSpent || 0, scrollPercent: scrollPct, quality,
-          });
-        }
-
-        try {
-          const cps = await db.select().from(challengeParticipants)
-            .where(eq(challengeParticipants.groupId, group.id));
-          for (const cp of cps) {
-            const [ch] = await db.select().from(churchChallenges)
-              .where(eq(churchChallenges.id, cp.challengeId));
-            if (ch && ch.isActive && ch.bookName === bookName && chapter >= ch.startChapter && chapter <= ch.endChapter) {
-              await db.update(challengeParticipants)
-                .set({ totalChaptersRead: (cp.totalChaptersRead || 0) + 1 })
-                .where(eq(challengeParticipants.id, cp.id));
-            }
-          }
-        } catch (e) {
-          console.log('[groups] challenge update from assignment (non-critical):', e);
-        }
+        const scrollPct = (scrollCount || 0) > 0 ? Math.min((scrollCount || 0) * 10, 100) : 0;
+        const quality = (timeSpent || 0) < 30 ? 'fast' : (scrollPct > 70 && (timeSpent || 0) > 60 ? 'genuine' : 'normal');
+        await pool.query(
+          `INSERT INTO group_reading_logs (group_id, user_name, book, chapter, date, time_spent, scroll_percent, quality)
+           SELECT $1,$2,$3,$4,$5,$6,$7,$8
+           WHERE NOT EXISTS (
+             SELECT 1 FROM group_reading_logs
+             WHERE group_id=$1 AND user_name=$2 AND date=$5 AND book=$3 AND chapter=$4
+           )`,
+          [group.id, userName, bookName, chapter, date, timeSpent || 0, scrollPct, quality]
+        );
       } catch (logErr) {
-        console.error('[groups] assignment read - log insert error:', logErr);
+        console.error('[groups] assignment read - log insert error (new):', logErr);
+      }
+
+      try {
+        const cps = await db.select().from(challengeParticipants)
+          .where(eq(challengeParticipants.groupId, group.id));
+        for (const cp of cps) {
+          const [ch] = await db.select().from(churchChallenges)
+            .where(eq(churchChallenges.id, cp.challengeId));
+          if (ch && ch.isActive && ch.bookName === bookName && chapter >= ch.startChapter && chapter <= ch.endChapter) {
+            await db.update(challengeParticipants)
+              .set({ totalChaptersRead: (cp.totalChaptersRead || 0) + 1 })
+              .where(eq(challengeParticipants.id, cp.id));
+          }
+        }
+      } catch (e) {
+        console.log('[groups] challenge update from assignment (non-critical):', e);
       }
 
       res.json({ reading });
