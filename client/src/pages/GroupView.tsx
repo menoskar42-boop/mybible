@@ -152,21 +152,23 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
     try {
       if (assignmentId !== null) {
-        await fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/read`, {
+        const res = await fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/read`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userName, bookName, chapter, timeSpent, scrollCount, scrollDepth }),
         });
+        const data = res.ok ? await res.json() : {};
+        if (data.allDone) {
+          toast.success('🎉 مبروك! أنهيت كل القراءات المطلوبة اليوم', { duration: 5000 });
+        } else {
+          toast.success(`تم تسجيل قراءة ${bookName} ${chapter} - ${formatTime(timeSpent)}`);
+        }
       } else {
         await fetch(`/api/groups/${groupCode}/reading`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userName, book: bookName, chapter, timeSpent, scrollPercent: scrollDepth }),
         });
-      }
-      if (isLastChapter) {
-        toast.success(`🎉 مبروك! أنهيت قراءة ${bookName} بالكامل`, { duration: 4000 });
-      } else {
         toast.success(`تم تسجيل قراءة ${bookName} ${chapter} - ${formatTime(timeSpent)}`);
       }
       onComplete();
