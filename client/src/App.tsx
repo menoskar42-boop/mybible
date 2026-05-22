@@ -24,6 +24,7 @@ import GroupCreate from '@/pages/GroupCreate';
 import GroupJoin from '@/pages/GroupJoin';
 import GroupInvite from '@/pages/GroupInvite';
 import GroupView from '@/pages/GroupView';
+import GroupMembers from '@/pages/GroupMembers';
 import GroupChat from '@/pages/GroupChat';
 import Churches from '@/pages/Churches';
 import ChurchView from '@/pages/ChurchView';
@@ -77,6 +78,7 @@ function Router() {
       <Route path="/groups/join" component={GroupJoin} />
       <Route path="/invite/:code" component={GroupInvite} />
       <Route path="/group/:groupId" component={GroupView} />
+      <Route path="/group/:groupId/members" component={GroupMembers} />
       <Route path="/group/:groupId/chat" component={GroupChat} />
       <Route path="/church" component={Churches} />
       <Route path="/church/:churchId" component={ChurchView} />

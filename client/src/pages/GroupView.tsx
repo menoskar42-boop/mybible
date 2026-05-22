@@ -735,7 +735,7 @@ export default function GroupView() {
   const { data: leaderReport } = useQuery({
     queryKey: ['leader-report', groupCode],
     queryFn: async () => {
-      const res = await fetch(`/api/groups/${groupCode}/leader-report`);
+      const res = await fetch(`/api/groups/${groupCode}/leader-report?leaderKey=${encodeURIComponent(memberKey)}`);
       if (!res.ok) throw new Error();
       return res.json();
     },
@@ -1069,7 +1069,7 @@ export default function GroupView() {
 
         <div className="flex items-center gap-2 mb-6">
           <Badge variant="secondary">كود: {groupCode}</Badge>
-          <Badge variant="outline">الخادم: {group.leaderName}</Badge>
+          <Badge variant="outline">الأدمن: {group.leaderName}</Badge>
           {isAdminFinal && <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 gap-1"><Shield className="w-3 h-3" /> أدمن</Badge>}
         </div>
 
@@ -1242,59 +1242,19 @@ export default function GroupView() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <Card className="p-5" data-testid="card-members">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+          <Link href={`/group/${groupCode}/members`}>
+            <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer h-full" data-testid="card-members">
+              <div className="flex items-center gap-2 mb-3">
                 <Users className="w-5 h-5 text-blue-500" />
-                <h3 className="font-display font-bold text-foreground">الأعضاء ({members.length})</h3>
+                <h3 className="font-display font-bold text-foreground">الأعضاء</h3>
               </div>
-              {isAdminFinal && (
-                <Button variant="ghost" size="sm" onClick={() => { setAddAdminResult(null); setAddAdminName(''); setAddAdminPhone(''); setAddAdminOpen(true); }} data-testid="button-add-admin">
-                  <UserPlus className="w-4 h-4 ml-1" />
-                  إضافة أدمن
-                </Button>
-              )}
-            </div>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {members.map((m: any) => {
-                const memberChapters = leaderboard.find((l: any) => l.userName === m.userName)?.chaptersReadCount || 0;
-                const badge = getBadge(memberChapters);
-                return (
-                  <div key={m.id} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={m.readToday ? 'text-green-500' : 'text-red-400'}>
-                        {m.readToday ? '✔' : '❌'}
-                      </span>
-                      <span className="text-sm font-medium">{m.userName}</span>
-                      {m.isAdmin && <Badge variant="secondary" className="text-xs gap-0.5"><Shield className="w-2.5 h-2.5" /> أدمن</Badge>}
-                      {m.isMuted && <Badge variant="destructive" className="text-xs">مكتوم</Badge>}
-                      {badge && <Badge className={`text-xs ${badge.color}`}><Award className="w-2.5 h-2.5 ml-0.5" />{badge.label}</Badge>}
-                    </div>
-                    {isAdminFinal && m.userName !== userName && (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          title={m.isAdmin ? 'إزالة أدمن' : 'تعيين كأدمن'}
-                          onClick={() => toggleAdmin(m.userName, !m.isAdmin)}
-                          data-testid={`button-toggle-admin-${m.userName}`}
-                        >
-                          {m.isAdmin ? <ShieldOff className="w-3 h-3 text-amber-500" /> : <Shield className="w-3 h-3 text-indigo-500" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleMute(m.userName, !m.isMuted)}>
-                          <span className="text-xs">{m.isMuted ? '🔊' : '🔇'}</span>
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeMember(m.userName)}>
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+              <p className="text-3xl font-bold text-center my-2 text-foreground">{members.length}</p>
+              <p className="text-sm text-muted-foreground text-center mb-3">
+                <span className="text-green-600 font-semibold">{members.filter((m: any) => m.readToday).length}</span> قرأوا اليوم
+              </p>
+              <Button variant="outline" size="sm" className="w-full">عرض الأعضاء</Button>
+            </Card>
+          </Link>
 
           <Link href={`/group/${groupCode}/chat`}>
             <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer h-full" data-testid="card-chat">

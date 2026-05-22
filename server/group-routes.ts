@@ -83,16 +83,23 @@ export function registerGroupRoutes(app: Express) {
       if (pending) return res.json({ group, status: 'pending', request: pending });
 
       if (group.linkJoinMode === 'auto') {
-        // انضمام مباشر
+        // انضمام مباشر — نتحقق مرة أخرى بـ INSERT WHERE NOT EXISTS لمنع التكرار
         const memberKey = generateKey();
-        const [member] = await db.insert(groupMembers).values({
-          groupId: group.id,
-          userName: userName.trim(),
-          memberKey,
-          phone: phone.trim(),
-          isAdmin: false,
-        }).returning();
-        return res.json({ group, member, status: 'joined', memberKey });
+        const result = await pool.query(
+          `INSERT INTO group_members (group_id, user_name, member_key, phone, is_admin, is_muted)
+           SELECT $1, $2, $3, $4, false, false
+           WHERE NOT EXISTS (
+             SELECT 1 FROM group_members WHERE group_id = $1 AND (user_name = $2 OR phone = $4)
+           )
+           RETURNING *`,
+          [group.id, userName.trim(), memberKey, phone.trim()]
+        );
+        if (result.rows.length === 0) {
+          const [dup] = await db.select().from(groupMembers)
+            .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, userName.trim())));
+          return res.json({ group, member: dup, status: 'already_member' });
+        }
+        return res.json({ group, member: result.rows[0], status: 'joined', memberKey });
       }
 
       // وضع الموافقة — إنشاء طلب انضمام
@@ -698,11 +705,16 @@ export function registerGroupRoutes(app: Express) {
         .where(eq(groupReadingLogs.groupId, group.id));
 
       const memberStats: Record<string, { chaptersReadCount: number; lastReadingDate: string; totalReadingTimeMinutes: number }> = {};
+      const seenChapters = new Set<string>();
       for (const log of logs) {
         if (!memberStats[log.userName]) {
           memberStats[log.userName] = { chaptersReadCount: 0, lastReadingDate: '', totalReadingTimeMinutes: 0 };
         }
-        memberStats[log.userName].chaptersReadCount++;
+        const chapterKey = `${log.userName}|${log.book}|${log.chapter}`;
+        if (!seenChapters.has(chapterKey)) {
+          seenChapters.add(chapterKey);
+          memberStats[log.userName].chaptersReadCount++;
+        }
         memberStats[log.userName].totalReadingTimeMinutes += Math.round((log.timeSpent || 0) / 60);
         if (log.date > memberStats[log.userName].lastReadingDate) {
           memberStats[log.userName].lastReadingDate = log.date;
@@ -725,6 +737,10 @@ export function registerGroupRoutes(app: Express) {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
       if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const leaderKey = req.query.leaderKey as string || '';
+      const authorized = await isAdminByLeaderKey(group, leaderKey);
+      if (!authorized) return res.status(403).json({ error: 'غير مسموح' });
 
       const members = await db.select().from(groupMembers).where(eq(groupMembers.groupId, group.id));
 
