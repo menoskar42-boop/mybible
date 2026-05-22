@@ -240,6 +240,7 @@ export const readingGroups = pgTable("reading_groups", {
   todayBook: text("today_book"),
   todayChapter: integer("today_chapter"),
   challengeTotal: integer("challenge_total").default(0),
+  linkJoinMode: text("link_join_mode").default('approval'), // 'approval' | 'auto'
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
+import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -638,6 +638,13 @@ export default function GroupView() {
   const [challengeTotal, setChallengeTotal] = useState('');
   const [copied, setCopied] = useState(false);
   const [todayReaderOpen, setTodayReaderOpen] = useState(false);
+  const [addAdminOpen, setAddAdminOpen] = useState(false);
+  const [addAdminName, setAddAdminName] = useState('');
+  const [addAdminPhone, setAddAdminPhone] = useState('');
+  const [addAdminLoading, setAddAdminLoading] = useState(false);
+  const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
+  const [linkJoinMode, setLinkJoinMode] = useState<'approval' | 'auto'>('approval');
+  const [linkModeLoading, setLinkModeLoading] = useState(false);
 
   const [missionTitle, setMissionTitle] = useState('');
   const [missionBook, setMissionBook] = useState('');
@@ -668,6 +675,7 @@ export default function GroupView() {
       setTodayBook(d.group.todayBook || '');
       setTodayChapter(d.group.todayChapter?.toString() || '');
       setChallengeTotal(d.group.challengeTotal?.toString() || '');
+      setLinkJoinMode((d.group.linkJoinMode as 'approval' | 'auto') || 'approval');
     } catch {
       toast.error('فشل تحميل بيانات المجموعة');
     } finally {
@@ -920,6 +928,66 @@ export default function GroupView() {
     }
   };
 
+  const handleCopyInviteLink = async () => {
+    const link = `${window.location.origin}/invite/${groupCode}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'انضم لمجموعة القراءة', text: `انضم لمجموعة "${data?.group?.name}" في تطبيق الكتاب المقدس رفيقي`, url: link });
+      } else {
+        await navigator.clipboard.writeText(link);
+        toast.success('تم نسخ رابط الدعوة');
+      }
+    } catch {
+      await navigator.clipboard.writeText(link);
+      toast.success('تم نسخ رابط الدعوة');
+    }
+  };
+
+  const handleToggleLinkMode = async (newMode: 'approval' | 'auto') => {
+    setLinkModeLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/link-mode`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, mode: newMode }),
+      });
+      if (!res.ok) throw new Error();
+      setLinkJoinMode(newMode);
+      toast.success(newMode === 'auto' ? 'الانضمام أصبح فورياً عبر الرابط' : 'الانضمام يتطلب موافقتك الآن');
+    } catch {
+      toast.error('فشل تحديث الإعداد');
+    } finally {
+      setLinkModeLoading(false);
+    }
+  };
+
+  const handleAddAdmin = async () => {
+    if (!addAdminName.trim() || !addAdminPhone.trim()) {
+      toast.error('الاسم ورقم الموبايل مطلوبان');
+      return;
+    }
+    if (addAdminPhone.trim().length < 10) {
+      toast.error('رقم الموبايل غير صحيح');
+      return;
+    }
+    setAddAdminLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/add-admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, name: addAdminName.trim(), phone: addAdminPhone.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setAddAdminResult(data.memberKey);
+      fetchGroup();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل إضافة الأدمن');
+    } finally {
+      setAddAdminLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-4xl flex items-center justify-center min-h-[50vh]">
@@ -986,6 +1054,9 @@ export default function GroupView() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={copyCode} data-testid="button-copy-group-code">
               {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleCopyInviteLink} title="مشاركة رابط الانضمام" data-testid="button-share-invite">
+              <Link2 className="w-4 h-4" />
             </Button>
             {isAdminFinal && (
               <Button variant="ghost" size="icon" onClick={() => setAdminOpen(true)} data-testid="button-admin">
@@ -1175,9 +1246,17 @@ export default function GroupView() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <Card className="p-5" data-testid="card-members">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-5 h-5 text-blue-500" />
-              <h3 className="font-display font-bold text-foreground">الأعضاء ({members.length})</h3>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                <h3 className="font-display font-bold text-foreground">الأعضاء ({members.length})</h3>
+              </div>
+              {isAdminFinal && (
+                <Button variant="ghost" size="sm" onClick={() => { setAddAdminResult(null); setAddAdminName(''); setAddAdminPhone(''); setAddAdminOpen(true); }} data-testid="button-add-admin">
+                  <UserPlus className="w-4 h-4 ml-1" />
+                  إضافة أدمن
+                </Button>
+              )}
             </div>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {members.map((m: any) => {
@@ -1304,6 +1383,47 @@ export default function GroupView() {
                 <Input type="number" min="0" value={challengeTotal} onChange={e => setChallengeTotal(e.target.value)} data-testid="input-challenge-total" />
               </div>
               <Button onClick={updateToday} className="w-full" data-testid="button-save-admin">حفظ التغييرات</Button>
+
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-indigo-500" />
+                  <Label className="font-bold">رابط الدعوة</Label>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={handleCopyInviteLink} data-testid="button-copy-invite-link">
+                    <Copy className="w-3.5 h-3.5 ml-1" />
+                    نسخ / مشاركة الرابط
+                  </Button>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">وضع الانضمام عبر الرابط</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={linkJoinMode === 'approval' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={linkModeLoading}
+                      onClick={() => handleToggleLinkMode('approval')}
+                      data-testid="button-mode-approval"
+                    >
+                      بعد موافقتي
+                    </Button>
+                    <Button
+                      variant={linkJoinMode === 'auto' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={linkModeLoading}
+                      onClick={() => handleToggleLinkMode('auto')}
+                      data-testid="button-mode-auto"
+                    >
+                      انضمام فوري
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {linkJoinMode === 'auto' ? 'كل من يفتح الرابط ينضم فوراً بدون موافقة' : 'تصلك طلبات ويمكنك قبول أو رفض كل شخص'}
+                  </p>
+                </div>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -1348,6 +1468,52 @@ export default function GroupView() {
               </div>
               <Button onClick={createMission} className="w-full" data-testid="button-create-mission">إنشاء المهمة</Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={addAdminOpen} onOpenChange={(o) => { setAddAdminOpen(o); if (!o) setAddAdminResult(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-indigo-500" />
+                إضافة أدمن للمجموعة
+              </DialogTitle>
+            </DialogHeader>
+            {addAdminResult ? (
+              <div className="space-y-4 text-center">
+                <div className="w-14 h-14 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Check className="w-7 h-7 text-green-600" />
+                </div>
+                <p className="font-bold text-foreground">تم إضافة {addAdminName} كأدمن</p>
+                <div className="bg-muted rounded-xl p-4">
+                  <p className="text-xs text-muted-foreground mb-2">شارك هذا الكود الشخصي مع الأدمن الجديد ليسجل دخوله</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <code className="font-mono text-sm font-bold text-primary bg-background px-3 py-1.5 rounded-lg border" data-testid="text-new-admin-key">{addAdminResult}</code>
+                    <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(addAdminResult); toast.success('تم النسخ'); }} data-testid="button-copy-admin-key">
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">يمكنه الانضمام بكود المجموعة <strong>{groupCode}</strong> باستخدام اسمه ورقم موبايله</p>
+                <Button onClick={() => setAddAdminOpen(false)} className="w-full" data-testid="button-close-add-admin">إغلاق</Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="admin-name">الاسم *</Label>
+                  <Input id="admin-name" value={addAdminName} onChange={e => setAddAdminName(e.target.value)} placeholder="اكتب اسم الأدمن الجديد" data-testid="input-add-admin-name" />
+                </div>
+                <div>
+                  <Label htmlFor="admin-phone">رقم الموبايل *</Label>
+                  <Input id="admin-phone" value={addAdminPhone} onChange={e => setAddAdminPhone(e.target.value)} placeholder="01000000000" type="tel" dir="ltr" className="text-left" data-testid="input-add-admin-phone" />
+                </div>
+                <p className="text-xs text-muted-foreground">سيُضاف هذا الشخص مباشرة كأدمن ويمكنه تسجيل الدخول بنفس الاسم والرقم</p>
+                <Button onClick={handleAddAdmin} disabled={addAdminLoading} className="w-full" data-testid="button-submit-add-admin">
+                  {addAdminLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <UserPlus className="w-4 h-4 ml-2" />}
+                  إضافة كأدمن
+                </Button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 

@@ -22,6 +22,7 @@ import MinistryAuth from '@/pages/MinistryAuth';
 import Groups from '@/pages/Groups';
 import GroupCreate from '@/pages/GroupCreate';
 import GroupJoin from '@/pages/GroupJoin';
+import GroupInvite from '@/pages/GroupInvite';
 import GroupView from '@/pages/GroupView';
 import GroupChat from '@/pages/GroupChat';
 import Churches from '@/pages/Churches';
@@ -74,6 +75,7 @@ function Router() {
       <Route path="/groups" component={Groups} />
       <Route path="/groups/create" component={GroupCreate} />
       <Route path="/groups/join" component={GroupJoin} />
+      <Route path="/invite/:code" component={GroupInvite} />
       <Route path="/group/:groupId" component={GroupView} />
       <Route path="/group/:groupId/chat" component={GroupChat} />
       <Route path="/church" component={Churches} />

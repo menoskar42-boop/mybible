@@ -437,6 +437,28 @@ export async function autoSeedIfNeeded(): Promise<void> {
     );
     console.log('[auto-seed] church_admins.role column ensured');
 
+    // ── Migration: رابط الانضمام للمجموعة ──
+    await migrationDb.execute(
+      sql`ALTER TABLE reading_groups ADD COLUMN IF NOT EXISTS link_join_mode text NOT NULL DEFAULT 'approval'`
+    );
+    console.log('[auto-seed] reading_groups.link_join_mode column ensured');
+
+    // ── Indexes: أداء عند آلاف الأعضاء ──
+    const indexSql = [
+      `CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members(group_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_group_reading_logs_group_id ON group_reading_logs(group_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_group_reading_logs_group_date ON group_reading_logs(group_id, date)`,
+      `CREATE INDEX IF NOT EXISTS idx_group_messages_group_id ON group_messages(group_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_group_missions_group_id ON group_missions(group_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_group_assignments_group_id ON group_assignments(group_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_assignment_readings_group_id ON assignment_readings(group_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_assignment_readings_assignment_user ON assignment_readings(assignment_id, user_name)`,
+    ];
+    for (const s of indexSql) {
+      await migrationDb.execute(sql.raw(s));
+    }
+    console.log('[auto-seed] performance indexes ensured');
+
     const emotions = await storage.getAllEmotions();
     if (emotions.length === 0) {
       console.log('[auto-seed] Seeding emotions...');
