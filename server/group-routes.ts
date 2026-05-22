@@ -338,14 +338,36 @@ export function registerGroupRoutes(app: Express) {
 
       const members = await db.select().from(groupMembers).where(eq(groupMembers.groupId, group.id));
       const today = new Date().toISOString().split('T')[0];
-      const todayLogs = await db.select().from(groupReadingLogs)
-        .where(and(eq(groupReadingLogs.groupId, group.id), eq(groupReadingLogs.date, today)));
 
-      const readToday = new Set(todayLogs.map(l => l.userName));
-      const membersWithStatus = members.map(m => ({
+      // عداد "قرأوا اليوم" من assignment_readings مباشرةً — موثوق ومُثبت
+      const readTodayResult = await pool.query(
+        `SELECT COUNT(DISTINCT ar.user_name)::int AS count
+         FROM assignment_readings ar
+         JOIN group_assignments ga ON ga.id = ar.assignment_id
+         WHERE ga.group_id = $1
+           AND ar.completed = true
+           AND ar.completed_at::date = $2::date`,
+        [group.id, today]
+      );
+      const readTodayCount: number = readTodayResult.rows[0]?.count || 0;
+
+      // تحديد من قرأ اليوم لكل عضو (لعرض الشارة)
+      const readTodayNames = new Set<string>(
+        readTodayResult.rows.length > 0
+          ? (await pool.query(
+              `SELECT DISTINCT ar.user_name
+               FROM assignment_readings ar
+               JOIN group_assignments ga ON ga.id = ar.assignment_id
+               WHERE ga.group_id = $1 AND ar.completed = true AND ar.completed_at::date = $2::date`,
+              [group.id, today]
+            )).rows.map((r: any) => r.user_name)
+          : []
+      );
+
+      const membersWithStatus = members.map((m: any) => ({
         ...m,
-        readToday: readToday.has(m.userName),
-        log: todayLogs.find(l => l.userName === m.userName) || null,
+        readToday: readTodayNames.has(m.userName),
+        log: null,
       }));
 
       const allLogs = await db.select().from(groupReadingLogs)
@@ -357,7 +379,7 @@ export function registerGroupRoutes(app: Express) {
         members: membersWithStatus,
         stats: {
           totalMembers: members.length,
-          readToday: readToday.size,
+          readToday: readTodayCount,
           chaptersRead: uniqueChaptersRead,
         },
       });
@@ -1044,7 +1066,27 @@ export function registerGroupRoutes(app: Express) {
           console.error('[groups] assignment read - log insert error:', logErr);
         }
 
-        return res.json({ reading: updated });
+        // تحقق هل أتم العضو كل إصحاحات كل القراءات
+        const allDoneCheck = await pool.query(
+          `SELECT COUNT(*) = 0 AS all_done
+           FROM (
+             SELECT ga.id, ch::int AS chapter
+             FROM group_assignments ga
+             CROSS JOIN LATERAL unnest(ga.chapters::int[]) AS ch
+             WHERE ga.group_id = $1
+           ) required
+           WHERE NOT EXISTS (
+             SELECT 1 FROM assignment_readings ar
+             WHERE ar.assignment_id = required.id
+               AND ar.user_name = $2
+               AND ar.chapter = required.chapter
+               AND ar.completed = true
+           )`,
+          [group.id, userName]
+        );
+        const allDone: boolean = allDoneCheck.rows[0]?.all_done === true;
+
+        return res.json({ reading: updated, allDone });
       }
 
       const [reading] = await db.insert(assignmentReadings).values({
@@ -1094,7 +1136,26 @@ export function registerGroupRoutes(app: Express) {
         console.log('[groups] challenge update from assignment (non-critical):', e);
       }
 
-      res.json({ reading });
+      const allDoneCheck2 = await pool.query(
+        `SELECT COUNT(*) = 0 AS all_done
+         FROM (
+           SELECT ga.id, ch::int AS chapter
+           FROM group_assignments ga
+           CROSS JOIN LATERAL unnest(ga.chapters::int[]) AS ch
+           WHERE ga.group_id = $1
+         ) required
+         WHERE NOT EXISTS (
+           SELECT 1 FROM assignment_readings ar
+           WHERE ar.assignment_id = required.id
+             AND ar.user_name = $2
+             AND ar.chapter = required.chapter
+             AND ar.completed = true
+         )`,
+        [group.id, userName]
+      );
+      const allDone2: boolean = allDoneCheck2.rows[0]?.all_done === true;
+
+      res.json({ reading, allDone: allDone2 });
     } catch (err) {
       console.error('[groups] assignment read error:', err);
       res.status(500).json({ error: 'فشل تسجيل القراءة' });
