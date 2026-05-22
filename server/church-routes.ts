@@ -48,10 +48,9 @@ export function registerChurchRoutes(app: Express) {
         .innerJoin(readingGroups, eq(groupMembers.groupId, readingGroups.id))
         .where(eq(groupMembers.phone, normalizedPhone));
 
+      // مستخدم جديد — مش في أي مجموعة بعد، نسمح له بالدخول بمجموعات فاضية
       if (members.length === 0) {
-        return res.status(401).json({
-          error: 'رقم الموبايل غير مسجل. يرجى الانضمام لمجموعة أولاً باستخدام كود المجموعة.'
-        });
+        return res.json({ role: 'user', groups: [], isNew: true });
       }
 
       // Verify name matches at least one record
