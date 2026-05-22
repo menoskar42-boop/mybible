@@ -155,10 +155,6 @@ export default function MinistryAuth() {
               <Link href="/groups/join" className="text-primary underline" data-testid="link-join-group">
                 انضم الآن
               </Link>
-              {' '}أو{' '}
-              <Link href="/groups/create" className="text-primary underline" data-testid="link-create-group">
-                أنشئ مجموعة
-              </Link>
             </p>
           </div>
         </Card>
