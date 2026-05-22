@@ -473,6 +473,15 @@ export async function autoSeedIfNeeded(): Promise<void> {
        WHERE completed = true AND completed_at IS NOT NULL AND completed_date IS NULL`
     ));
 
+    // ── Migration: أعمدة group_reading_logs الناقصة ──
+    await migrationDb.execute(sql.raw(
+      `ALTER TABLE group_reading_logs ADD COLUMN IF NOT EXISTS scroll_percent integer DEFAULT 0`
+    ));
+    await migrationDb.execute(sql.raw(
+      `ALTER TABLE group_reading_logs ADD COLUMN IF NOT EXISTS quality text DEFAULT 'unknown'`
+    ));
+    console.log('[auto-seed] group_reading_logs columns ensured');
+
     const emotions = await storage.getAllEmotions();
     if (emotions.length === 0) {
       console.log('[auto-seed] Seeding emotions...');

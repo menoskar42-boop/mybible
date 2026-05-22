@@ -1044,19 +1044,17 @@ export function registerGroupRoutes(app: Express) {
         // سجّل في group_reading_logs حتى تُحتسب للإحصائيات اليومية
         try {
           const date = new Date().toISOString().split('T')[0];
-          const scrollPct = (scrollCount || 0) > 0 ? Math.min((scrollCount || 0) * 10, 100) : 0;
-          const quality = (timeSpent || 0) < 30 ? 'fast' : (scrollPct > 70 && (timeSpent || 0) > 60 ? 'genuine' : 'normal');
           await pool.query(
-            `INSERT INTO group_reading_logs (group_id, user_name, book, chapter, date, time_spent, scroll_percent, quality)
-             SELECT $1,$2,$3,$4,$5,$6,$7,$8
+            `INSERT INTO group_reading_logs (group_id, user_name, book, chapter, date, time_spent)
+             SELECT $1,$2,$3,$4,$5,$6
              WHERE NOT EXISTS (
                SELECT 1 FROM group_reading_logs
                WHERE group_id=$1 AND user_name=$2 AND date=$5 AND book=$3 AND chapter=$4
              )`,
-            [group.id, userName, bookName, chapter, date, timeSpent || 0, scrollPct, quality]
+            [group.id, userName, bookName, chapter, date, timeSpent || 0]
           );
         } catch (logErr) {
-          console.error('[groups] assignment read - log insert error:', logErr);
+          console.error('[groups] assignment read - log insert error (update path):', logErr);
         }
 
         // تحقق هل أتم العضو كل إصحاحات كل القراءات
@@ -1097,19 +1095,17 @@ export function registerGroupRoutes(app: Express) {
 
       try {
         const date = new Date().toISOString().split('T')[0];
-        const scrollPct = (scrollCount || 0) > 0 ? Math.min((scrollCount || 0) * 10, 100) : 0;
-        const quality = (timeSpent || 0) < 30 ? 'fast' : (scrollPct > 70 && (timeSpent || 0) > 60 ? 'genuine' : 'normal');
         await pool.query(
-          `INSERT INTO group_reading_logs (group_id, user_name, book, chapter, date, time_spent, scroll_percent, quality)
-           SELECT $1,$2,$3,$4,$5,$6,$7,$8
+          `INSERT INTO group_reading_logs (group_id, user_name, book, chapter, date, time_spent)
+           SELECT $1,$2,$3,$4,$5,$6
            WHERE NOT EXISTS (
              SELECT 1 FROM group_reading_logs
              WHERE group_id=$1 AND user_name=$2 AND date=$5 AND book=$3 AND chapter=$4
            )`,
-          [group.id, userName, bookName, chapter, date, timeSpent || 0, scrollPct, quality]
+          [group.id, userName, bookName, chapter, date, timeSpent || 0]
         );
       } catch (logErr) {
-        console.error('[groups] assignment read - log insert error (new):', logErr);
+        console.error('[groups] assignment read - log insert error (insert path):', logErr);
       }
 
       try {
