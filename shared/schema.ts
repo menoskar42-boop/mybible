@@ -328,6 +328,7 @@ export const churchAdmins = pgTable("church_admins", {
   churchId: integer("church_id").notNull(),
   phone: text("phone").notNull(),
   name: text("name").notNull(),
+  role: text("role").notNull().default('admin'), // 'admin' | 'servant'
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

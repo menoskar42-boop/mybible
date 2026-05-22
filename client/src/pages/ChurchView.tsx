@@ -25,6 +25,9 @@ export default function ChurchView() {
   const [description, setDescription] = useState('');
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminPhone, setNewAdminPhone] = useState('');
+  const [addServantOpen, setAddServantOpen] = useState(false);
+  const [newServantName, setNewServantName] = useState('');
+  const [newServantPhone, setNewServantPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
   const user = getMinistryUser();
@@ -54,7 +57,9 @@ export default function ChurchView() {
     enabled: churchId > 0 && !!user?.phone,
   });
 
-  const isChurchAdmin = adminCheck?.isAdmin || false;
+  const userRole: 'admin' | 'servant' | null = adminCheck?.role ?? null;
+  const isAuthorized = userRole !== null;
+  const isFullAdmin  = userRole === 'admin';
 
   const handleCreateGroup = async () => {
     if (!groupName.trim()) {
@@ -133,6 +138,33 @@ export default function ChurchView() {
     }
   };
 
+  const handleAddServant = async () => {
+    if (!newServantName.trim() || !newServantPhone.trim()) {
+      toast.error('الاسم والموبايل مطلوبان');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/churches/${churchId}/servants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newServantName.trim(),
+          phone: newServantPhone.trim(),
+          requestorPhone: user?.phone || '',
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      toast.success(result.alreadyExists ? 'هذا الشخص مسجّل بالفعل' : 'تم إضافة الخادم');
+      setAddServantOpen(false);
+      setNewServantName('');
+      setNewServantPhone('');
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل إضافة الخادم');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-6 max-w-4xl flex items-center justify-center min-h-[50vh]">
@@ -171,12 +203,20 @@ export default function ChurchView() {
               </div>
             </div>
           </div>
-          {isChurchAdmin && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setAddAdminOpen(true)} data-testid="button-add-admin">
-                <UserPlus className="w-4 h-4 ml-1" />
-                إضافة أدمن
-              </Button>
+          {isAuthorized && (
+            <div className="flex gap-2 flex-wrap">
+              {isFullAdmin && (
+                <Button variant="outline" size="sm" onClick={() => setAddAdminOpen(true)} data-testid="button-add-admin">
+                  <UserPlus className="w-4 h-4 ml-1" />
+                  إضافة أدمن
+                </Button>
+              )}
+              {isFullAdmin && (
+                <Button variant="outline" size="sm" onClick={() => setAddServantOpen(true)} data-testid="button-add-servant">
+                  <UserPlus className="w-4 h-4 ml-1" />
+                  إضافة خادم
+                </Button>
+              )}
               <Button size="sm" onClick={() => setCreateOpen(true)} data-testid="button-create-church-group">
                 <Plus className="w-4 h-4 ml-1" />
                 إنشاء مجموعة
@@ -185,7 +225,7 @@ export default function ChurchView() {
           )}
         </div>
 
-        {isChurchAdmin && (
+        {userRole === 'admin' && (
           <div className="flex items-center gap-2 mb-4">
             <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 gap-1">
               <Shield className="w-3 h-3" />
@@ -193,8 +233,16 @@ export default function ChurchView() {
             </Badge>
           </div>
         )}
+        {userRole === 'servant' && (
+          <div className="flex items-center gap-2 mb-4">
+            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 gap-1">
+              <Users className="w-3 h-3" />
+              خادم
+            </Badge>
+          </div>
+        )}
 
-        {admins && admins.length > 0 && isChurchAdmin && (
+        {admins && admins.length > 0 && isAuthorized && (
           <Card className="p-4 mb-4">
             <h3 className="font-display font-bold text-foreground mb-2 text-sm">مسؤولو الكنيسة ({admins.length})</h3>
             <div className="flex flex-wrap gap-2">
@@ -212,7 +260,7 @@ export default function ChurchView() {
             <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-display text-lg font-bold text-foreground mb-2">لا توجد مجموعات بعد</h3>
             <p className="text-sm text-muted-foreground">
-              {isChurchAdmin ? 'أنشئ أول مجموعة لكنيستك' : 'لم يتم إنشاء مجموعات لهذه الكنيسة بعد'}
+              {isAuthorized ? 'أنشئ أول مجموعة لكنيستك' : 'لم يتم إنشاء مجموعات لهذه الكنيسة بعد'}
             </p>
           </Card>
         ) : (
@@ -308,6 +356,28 @@ export default function ChurchView() {
               </div>
               <Button onClick={handleAddAdmin} className="w-full" data-testid="button-confirm-add-admin">
                 إضافة
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={addServantOpen} onOpenChange={setAddServantOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>إضافة خادم</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground -mt-2">الخادم يستطيع إنشاء مجموعات تحت الكنيسة فقط</p>
+            <div className="space-y-4">
+              <div>
+                <Label>اسم الخادم *</Label>
+                <Input value={newServantName} onChange={e => setNewServantName(e.target.value)} placeholder="الاسم" data-testid="input-new-servant-name" />
+              </div>
+              <div>
+                <Label>رقم الموبايل *</Label>
+                <Input value={newServantPhone} onChange={e => setNewServantPhone(e.target.value)} placeholder="01000000000" type="tel" dir="ltr" className="text-left" data-testid="input-new-servant-phone" />
+              </div>
+              <Button onClick={handleAddServant} className="w-full" data-testid="button-confirm-add-servant">
+                إضافة الخادم
               </Button>
             </div>
           </DialogContent>
