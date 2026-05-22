@@ -800,6 +800,8 @@ export default function GroupView() {
   const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
   const [linkJoinMode, setLinkJoinMode] = useState<'approval' | 'auto'>('approval');
   const [linkModeLoading, setLinkModeLoading] = useState(false);
+  const [reportActiveOpen, setReportActiveOpen] = useState(false);
+  const [reportInactiveOpen, setReportInactiveOpen] = useState(false);
 
   const [missionTitle, setMissionTitle] = useState('');
   const [missionBook, setMissionBook] = useState('');
@@ -1458,19 +1460,16 @@ export default function GroupView() {
                 <span className="text-muted-foreground">إصحاحات هذا الأسبوع</span>
                 <span className="font-semibold text-green-600">{leaderReport.chaptersThisWeek}</span>
               </div>
-              {leaderReport.inactiveMembers.length > 0 && (
-                <div className="mt-3 pt-3 border-t">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-500" />
-                    <span className="font-bold text-amber-600 dark:text-amber-400">أعضاء لم يقرأوا منذ عدة أيام</span>
-                  </div>
-                  <div className="space-y-1">
-                    {leaderReport.inactiveMembers.map((name: string) => (
-                      <p key={name} className="text-muted-foreground pr-6">• {name}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="mt-3 pt-3 border-t flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1 text-green-700 border-green-300"
+                  onClick={() => setReportActiveOpen(true)}>
+                  قرأوا ({leaderReport.activeMembers?.length || 0})
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 text-amber-700 border-amber-300"
+                  onClick={() => setReportInactiveOpen(true)}>
+                  لم يقرأوا ({leaderReport.inactiveMembers?.length || 0})
+                </Button>
+              </div>
             </div>
           </Card>
         )}
@@ -1481,6 +1480,57 @@ export default function GroupView() {
             مغادرة المجموعة
           </Button>
         </div>
+
+        {/* ── تقرير: الأعضاء الذين قرأوا ── */}
+        <Dialog open={reportActiveOpen} onOpenChange={setReportActiveOpen}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-green-700">الأعضاء الذين قرأوا هذا الأسبوع ({leaderReport?.activeMembers?.length || 0})</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              {(leaderReport?.activeMembers || []).map((m: any) => (
+                <div key={m.userName} className="border rounded-lg p-3">
+                  <p className="font-bold text-foreground mb-2">{m.userName}</p>
+                  <div className="space-y-2">
+                    {m.chapters.map((ch: any, i: number) => (
+                      <div key={i} className="bg-muted/40 rounded p-2 text-xs space-y-1">
+                        <p className="font-semibold text-sm">{ch.bookName} — إصحاح {ch.chapter}</p>
+                        <div className="grid grid-cols-3 gap-1 text-muted-foreground">
+                          <span>⏱ {Math.round((ch.timeSpent || 0) / 60)} د {(ch.timeSpent || 0) % 60} ث</span>
+                          <span>📜 سكرول: {ch.scrollCount || 0}</span>
+                          <span>📊 عمق: {ch.scrollDepth || 0}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {(!leaderReport?.activeMembers?.length) && (
+                <p className="text-center text-muted-foreground py-4">لا يوجد أعضاء قرأوا هذا الأسبوع</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── تقرير: الأعضاء الذين لم يقرأوا ── */}
+        <Dialog open={reportInactiveOpen} onOpenChange={setReportInactiveOpen}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-amber-700">لم يقرأوا منذ 3+ أيام ({leaderReport?.inactiveMembers?.length || 0})</DialogTitle>
+            </DialogHeader>
+            <div className="mt-2 space-y-1">
+              {(leaderReport?.inactiveMembers || []).map((name: string) => (
+                <div key={name} className="flex items-center gap-2 py-2 border-b last:border-0">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span className="text-foreground">{name}</span>
+                </div>
+              ))}
+              {(!leaderReport?.inactiveMembers?.length) && (
+                <p className="text-center text-muted-foreground py-4">🎉 كل الأعضاء قرأوا مؤخراً</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={adminOpen} onOpenChange={setAdminOpen}>
           <DialogContent>

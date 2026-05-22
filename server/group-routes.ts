@@ -810,11 +810,38 @@ export function registerGroupRoutes(app: Express) {
         return !lastRead || lastRead < threeDaysAgo;
       }).map(m => m.userName);
 
+      // تفاصيل قراءات الأعضاء النشطين هذا الأسبوع
+      const detailsResult = await pool.query(
+        `SELECT user_name, book_name, chapter, time_spent, scroll_count, scroll_depth,
+                COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) AS read_date,
+                completed_at
+         FROM assignment_readings
+         WHERE group_id = $1 AND completed = true
+           AND COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) >= $2
+         ORDER BY user_name, completed_at DESC`,
+        [group.id, weekAgo]
+      );
+
+      const activeMembersMap: Record<string, any[]> = {};
+      for (const row of detailsResult.rows) {
+        if (!activeMembersMap[row.user_name]) activeMembersMap[row.user_name] = [];
+        activeMembersMap[row.user_name].push({
+          bookName: row.book_name,
+          chapter: row.chapter,
+          timeSpent: row.time_spent || 0,
+          scrollCount: row.scroll_count || 0,
+          scrollDepth: row.scroll_depth || 0,
+          readDate: row.read_date,
+        });
+      }
+      const activeMembers = Object.entries(activeMembersMap).map(([userName, chapters]) => ({ userName, chapters }));
+
       res.json({
         groupName: group.name,
         totalMembers: members.length,
         chaptersThisWeek: weeklyChapters,
         inactiveMembers,
+        activeMembers,
       });
     } catch (err) {
       console.error('[groups] leader report error:', err);
