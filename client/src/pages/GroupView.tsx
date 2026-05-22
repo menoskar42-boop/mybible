@@ -930,16 +930,13 @@ export default function GroupView() {
 
   const handleCopyInviteLink = async () => {
     const link = `${window.location.origin}/invite/${groupCode}`;
+    const shareText = `انضم لمجموعة "${data?.group?.name || groupCode}" في تطبيق الكتاب المقدس رفيقي:\n${link}`;
     try {
-      if (navigator.share) {
-        await navigator.share({ title: 'انضم لمجموعة القراءة', text: `انضم لمجموعة "${data?.group?.name}" في تطبيق الكتاب المقدس رفيقي`, url: link });
-      } else {
-        await navigator.clipboard.writeText(link);
-        toast.success('تم نسخ رابط الدعوة');
-      }
+      await navigator.clipboard.writeText(shareText);
+      toast.success('تم نسخ رابط الدعوة — شاركه مع أعضاء مجموعتك');
     } catch {
-      await navigator.clipboard.writeText(link);
-      toast.success('تم نسخ رابط الدعوة');
+      // clipboard غير متاح — نعرض الرابط في toast
+      toast.info(link, { duration: 8000 });
     }
   };
 
@@ -1392,8 +1389,22 @@ export default function GroupView() {
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={handleCopyInviteLink} data-testid="button-copy-invite-link">
                     <Copy className="w-3.5 h-3.5 ml-1" />
-                    نسخ / مشاركة الرابط
+                    نسخ الرابط
                   </Button>
+                  {typeof navigator !== 'undefined' && 'share' in navigator && (
+                    <Button variant="outline" size="sm" className="flex-1 text-xs" data-testid="button-share-invite-native"
+                      onClick={async () => {
+                        const link = `${window.location.origin}/invite/${groupCode}`;
+                        try {
+                          await navigator.share({ url: link });
+                        } catch {
+                          handleCopyInviteLink();
+                        }
+                      }}>
+                      <Share2 className="w-3.5 h-3.5 ml-1" />
+                      مشاركة
+                    </Button>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground mb-2 block">وضع الانضمام عبر الرابط</Label>
