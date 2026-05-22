@@ -894,7 +894,7 @@ export default function GroupView() {
     },
     enabled: !!groupCode,
   });
-  const todayAssignment = ((pageAssignmentsData || []) as any[]).find(
+  const todayAssignment = ((pageAssignmentsData?.assignments || []) as any[]).find(
     (a: any) => a.type === 'daily' && a.isActive !== false
   ) ?? null;
 
