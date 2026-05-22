@@ -32,7 +32,6 @@ interface ActiveChurch {
 
 export default function AdminDashboard() {
   const [, navigate] = useLocation();
-  const [tab, setTab] = useState<'pending' | 'active'>('pending');
   const [pending, setPending] = useState<ChurchRequest[]>([]);
   const [active, setActive] = useState<ActiveChurch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,23 +173,11 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* تابات */}
-        <div className="flex gap-2 mb-6">
-          <Button variant={tab === 'pending' ? 'default' : 'outline'} size="sm" onClick={() => setTab('pending')} data-testid="tab-pending">
-            الطلبات المعلقة
-            {pending.length > 0 && <Badge variant="destructive" className="mr-2 text-xs">{pending.length}</Badge>}
-          </Button>
-          <Button variant={tab === 'active' ? 'default' : 'outline'} size="sm" onClick={() => setTab('active')} data-testid="tab-active">
-            الكنائس النشطة
-            {active.length > 0 && <Badge variant="secondary" className="mr-2 text-xs">{active.length}</Badge>}
-          </Button>
-        </div>
-
-        {/* ── قسم الطلبات المعلقة ── */}
-        {tab === 'pending' && (loading ? (
+        {/* ── قسم الطلبات المعلقة (بنفس المنطق الأصلي) ── */}
+        {loading ? (
           <div className="text-center py-12 text-muted-foreground">جاري التحميل...</div>
         ) : pending.length === 0 ? (
-          <Card className="p-8 text-center">
+          <Card className="p-8 text-center mb-8">
             <Church className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-lg font-bold text-foreground mb-1">لا توجد طلبات معلقة</p>
             <p className="text-sm text-muted-foreground">جميع الطلبات تمت مراجعتها</p>
@@ -259,10 +246,10 @@ export default function AdminDashboard() {
               </Card>
             ))}
           </div>
-        ))}
+        )}
 
-        {/* ── قسم الكنائس النشطة ── */}
-        {tab === 'active' && (
+        {/* ── قسم الكنائس النشطة (يظهر دائماً تحت الطلبات) ── */}
+        {!loading && (
           <div className="space-y-4">
             {active.length === 0 ? (
               <Card className="p-8 text-center">
