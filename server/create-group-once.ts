@@ -13,6 +13,9 @@ const CHURCH_NAME  = 'كنيسة مارمرقس بأسيوط';
 const LEADER_NAME  = 'ابونا متى';
 const LEADER_PHONE = '01200801212';
 
+const ADMIN2_NAME  = 'مينا اسكاروس';
+const ADMIN2_PHONE = '01552406406';
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     console.error('❌  يجب تعيين DATABASE_URL أولاً');
@@ -40,19 +43,30 @@ async function main() {
     leaderKey,
   }).returning();
 
-  await db.insert(groupMembers).values({
-    groupId:   group.id,
-    userName:  LEADER_NAME,
-    memberKey: leaderKey,
-    phone:     LEADER_PHONE,
-    isAdmin:   true,
-  });
+  const admin2Key = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+
+  await db.insert(groupMembers).values([
+    {
+      groupId:   group.id,
+      userName:  LEADER_NAME,
+      memberKey: leaderKey,
+      phone:     LEADER_PHONE,
+      isAdmin:   true,
+    },
+    {
+      groupId:   group.id,
+      userName:  ADMIN2_NAME,
+      memberKey: admin2Key,
+      phone:     ADMIN2_PHONE,
+      isAdmin:   true,
+    },
+  ]);
 
   console.log('✅  تم إنشاء المجموعة بنجاح!');
-  console.log('   الاسم    :', GROUP_NAME);
-  console.log('   الكود    :', GROUP_CODE);
-  console.log('   الأدمن   :', LEADER_NAME, '-', LEADER_PHONE);
-  console.log('   leaderKey:', leaderKey, '(احتفظ به لتسجيل دخول الأدمن)');
+  console.log('   الاسم      :', GROUP_NAME);
+  console.log('   الكود      :', GROUP_CODE);
+  console.log('   أدمن 1     :', LEADER_NAME, '-', LEADER_PHONE, '| key:', leaderKey);
+  console.log('   أدمن 2     :', ADMIN2_NAME, '-', ADMIN2_PHONE, '| key:', admin2Key);
 
   await pool.end();
 }
