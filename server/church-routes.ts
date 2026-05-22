@@ -147,15 +147,12 @@ export function registerChurchRoutes(app: Express) {
 
       if (!church) return res.status(404).json({ error: 'الكنيسة غير موجودة' });
 
-      const existing = await db.select().from(churchAdmins)
-        .where(and(eq(churchAdmins.churchId, id), eq(churchAdmins.phone, church.adminPhone)));
-      if (existing.length === 0) {
-        await db.insert(churchAdmins).values({
-          churchId: id,
-          phone: church.adminPhone,
-          name: church.adminName,
-        });
-      }
+      await pool.query(
+        `INSERT INTO church_admins (church_id, phone, name)
+         SELECT $1, $2, $3
+         WHERE NOT EXISTS (SELECT 1 FROM church_admins WHERE church_id = $1 AND phone = $2)`,
+        [id, church.adminPhone, church.adminName]
+      );
 
       res.json({ church });
     } catch (err) {
@@ -189,9 +186,12 @@ export function registerChurchRoutes(app: Express) {
       }
 
       const groups = await db.select().from(readingGroups).where(eq(readingGroups.churchId, id));
-      const admins = await db.select().from(churchAdmins).where(eq(churchAdmins.churchId, id));
+      const adminsResult = await pool.query(
+        `SELECT id, church_id AS "churchId", phone, name, COALESCE(role, 'admin') AS role, created_at AS "createdAt"
+         FROM church_admins WHERE church_id = $1`, [id]
+      );
 
-      res.json({ church, groups, admins });
+      res.json({ church, groups, admins: adminsResult.rows });
     } catch (err) {
       console.error('[churches] get error:', err);
       res.status(500).json({ error: 'فشل تحميل الكنيسة' });
@@ -204,10 +204,12 @@ export function registerChurchRoutes(app: Express) {
       const phone = req.query.phone as string;
       if (!phone) return res.json({ isAdmin: false });
 
-      const admins = await db.select().from(churchAdmins)
-        .where(and(eq(churchAdmins.churchId, id), eq(churchAdmins.phone, phone)));
+      const adminsResult = await pool.query(
+        `SELECT COALESCE(role, 'admin') AS role FROM church_admins WHERE church_id = $1 AND phone = $2`,
+        [id, phone]
+      );
 
-      res.json({ isAdmin: admins.length > 0, role: admins[0]?.role ?? null });
+      res.json({ isAdmin: adminsResult.rows.length > 0, role: adminsResult.rows[0]?.role ?? null });
     } catch (err) {
       res.json({ isAdmin: false, role: null });
     }
@@ -227,9 +229,11 @@ export function registerChurchRoutes(app: Express) {
         return res.status(404).json({ error: 'الكنيسة غير موجودة' });
       }
 
-      const admins = await db.select().from(churchAdmins)
-        .where(and(eq(churchAdmins.churchId, churchId), eq(churchAdmins.phone, leaderPhone)));
-      if (admins.length === 0) {
+      const authCheck = await pool.query(
+        `SELECT id FROM church_admins WHERE church_id = $1 AND phone = $2`,
+        [churchId, leaderPhone]
+      );
+      if (authCheck.rows.length === 0) {
         return res.status(403).json({ error: 'غير مسموح - يجب أن تكون أدمن الكنيسة' });
       }
 
@@ -270,24 +274,27 @@ export function registerChurchRoutes(app: Express) {
         return res.status(400).json({ error: 'الاسم والموبايل مطلوبان' });
       }
 
-      const admins = await db.select().from(churchAdmins)
-        .where(and(eq(churchAdmins.churchId, churchId), eq(churchAdmins.phone, requestorPhone)));
-      if (admins.length === 0) {
+      const reqCheck = await pool.query(
+        `SELECT id FROM church_admins WHERE church_id = $1 AND phone = $2`,
+        [churchId, requestorPhone]
+      );
+      if (reqCheck.rows.length === 0) {
         return res.status(403).json({ error: 'غير مسموح' });
       }
 
-      const existing = await db.select().from(churchAdmins)
-        .where(and(eq(churchAdmins.churchId, churchId), eq(churchAdmins.phone, phone)));
-      if (existing.length > 0) {
-        return res.json({ admin: existing[0], alreadyExists: true });
+      const existingCheck = await pool.query(
+        `SELECT id, church_id AS "churchId", phone, name, COALESCE(role, 'admin') AS role FROM church_admins WHERE church_id = $1 AND phone = $2`,
+        [churchId, phone]
+      );
+      if (existingCheck.rows.length > 0) {
+        return res.json({ admin: existingCheck.rows[0], alreadyExists: true });
       }
 
-      const [admin] = await db.insert(churchAdmins).values({
-        churchId,
-        phone,
-        name,
-        role: 'admin',
-      }).returning();
+      const adminInsert = await pool.query(
+        `INSERT INTO church_admins (church_id, phone, name, role) VALUES ($1, $2, $3, 'admin') RETURNING id, church_id AS "churchId", phone, name, COALESCE(role, 'admin') AS role`,
+        [churchId, phone, name]
+      );
+      const admin = adminInsert.rows[0];
 
       res.json({ admin });
     } catch (err) {
@@ -306,25 +313,28 @@ export function registerChurchRoutes(app: Express) {
       }
 
       // فقط أدمن كامل (role='admin') يقدر يضيف خادم
-      const requestor = await db.select().from(churchAdmins)
-        .where(and(eq(churchAdmins.churchId, churchId), eq(churchAdmins.phone, requestorPhone)));
-      if (requestor.length === 0 || requestor[0].role !== 'admin') {
+      const requestorCheck = await pool.query(
+        `SELECT COALESCE(role, 'admin') AS role FROM church_admins WHERE church_id = $1 AND phone = $2`,
+        [churchId, requestorPhone]
+      );
+      if (requestorCheck.rows.length === 0 || requestorCheck.rows[0].role !== 'admin') {
         return res.status(403).json({ error: 'غير مسموح - يجب أن تكون أدمن الكنيسة' });
       }
 
-      const existing = await db.select().from(churchAdmins)
-        .where(and(eq(churchAdmins.churchId, churchId), eq(churchAdmins.phone, phone)));
-      if (existing.length > 0) {
-        return res.json({ servant: existing[0], alreadyExists: true });
+      const existingServant = await pool.query(
+        `SELECT id, church_id AS "churchId", phone, name, COALESCE(role, 'admin') AS role FROM church_admins WHERE church_id = $1 AND phone = $2`,
+        [churchId, phone]
+      );
+      if (existingServant.rows.length > 0) {
+        return res.json({ servant: existingServant.rows[0], alreadyExists: true });
       }
 
       const normalizedPhone = String(phone).replace(/\s/g, '');
-      const [servant] = await db.insert(churchAdmins).values({
-        churchId,
-        phone: normalizedPhone,
-        name,
-        role: 'servant',
-      }).returning();
+      const servantInsert = await pool.query(
+        `INSERT INTO church_admins (church_id, phone, name, role) VALUES ($1, $2, $3, 'servant') RETURNING id, church_id AS "churchId", phone, name, role`,
+        [churchId, normalizedPhone, name]
+      );
+      const servant = servantInsert.rows[0];
 
       res.json({ servant });
     } catch (err) {
