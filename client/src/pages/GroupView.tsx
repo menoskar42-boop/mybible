@@ -254,12 +254,13 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   );
 }
 
-function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }: {
+function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, onReadComplete }: {
   groupCode: string;
   isAdmin: boolean;
   memberKey: string;
   userName: string;
   allBooks: any[];
+  onReadComplete?: () => void;
 }) {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -389,6 +390,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
     refetchProgress();
     refetchAssignments();
     queryClient.invalidateQueries({ queryKey: ['leaderboard', groupCode] });
+    onReadComplete?.();
   };
 
   const getMyProgress = (assignmentId: number, chapters: number[]) => {
@@ -1266,6 +1268,7 @@ export default function GroupView() {
           memberKey={memberKey}
           userName={userName}
           allBooks={allBooks || []}
+          onReadComplete={fetchGroup}
         />
 
         {mission && (
