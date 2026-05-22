@@ -9,7 +9,7 @@ import { readingGroups, groupMembers } from '../shared/schema.js';
 
 const GROUP_CODE   = 'AZK3P';
 const GROUP_NAME   = 'درس كتاب مارمرقس';
-const CHURCH_NAME  = 'مجموعات مدارس الاحد';
+const CHURCH_NAME  = 'كنيسة مارمرقس بأسيوط';
 const LEADER_NAME  = 'ابونا متى';
 const LEADER_PHONE = '01200801212';
 
