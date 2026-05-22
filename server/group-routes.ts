@@ -810,31 +810,38 @@ export function registerGroupRoutes(app: Express) {
         return !lastRead || lastRead < threeDaysAgo;
       }).map(m => m.userName);
 
-      // تفاصيل قراءات الأعضاء النشطين هذا الأسبوع
-      const detailsResult = await pool.query(
-        `SELECT user_name, book_name, chapter, time_spent, scroll_count, scroll_depth,
-                COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) AS read_date,
-                completed_at
-         FROM assignment_readings
-         WHERE group_id = $1 AND completed = true
-           AND COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) >= $2
-         ORDER BY user_name, completed_at DESC`,
-        [group.id, weekAgo]
-      );
+      // تفاصيل قراءات الأعضاء النشطين — نجيب المستخدمين من weeklyResult أولاً ثم تفاصيلهم
+      const activeUserNames = [...new Set(weeklyResult.rows.map((r: any) => r.user_name as string))];
+      let activeMembers: any[] = [];
 
-      const activeMembersMap: Record<string, any[]> = {};
-      for (const row of detailsResult.rows) {
-        if (!activeMembersMap[row.user_name]) activeMembersMap[row.user_name] = [];
-        activeMembersMap[row.user_name].push({
-          bookName: row.book_name,
-          chapter: row.chapter,
-          timeSpent: row.time_spent || 0,
-          scrollCount: row.scroll_count || 0,
-          scrollDepth: row.scroll_depth || 0,
-          readDate: row.read_date,
-        });
+      if (activeUserNames.length > 0) {
+        const placeholders = activeUserNames.map((_: any, i: number) => `$${i + 2}`).join(',');
+        const detailsResult = await pool.query(
+          `SELECT user_name, book_name, chapter, time_spent, scroll_count, scroll_depth,
+                  COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) AS read_date
+           FROM assignment_readings
+           WHERE group_id = $1 AND completed = true AND user_name IN (${placeholders})
+           ORDER BY user_name, COALESCE(completed_at, created_at) DESC NULLS LAST`,
+          [group.id, ...activeUserNames]
+        );
+
+        const activeMembersMap: Record<string, any[]> = {};
+        for (const row of detailsResult.rows) {
+          if (!activeMembersMap[row.user_name]) activeMembersMap[row.user_name] = [];
+          activeMembersMap[row.user_name].push({
+            bookName: row.book_name,
+            chapter: row.chapter,
+            timeSpent: row.time_spent || 0,
+            scrollCount: row.scroll_count || 0,
+            scrollDepth: row.scroll_depth || 0,
+            readDate: row.read_date || '',
+          });
+        }
+        activeMembers = activeUserNames.map(userName => ({
+          userName,
+          chapters: activeMembersMap[userName] || [],
+        }));
       }
-      const activeMembers = Object.entries(activeMembersMap).map(([userName, chapters]) => ({ userName, chapters }));
 
       res.json({
         groupName: group.name,
