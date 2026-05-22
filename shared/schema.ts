@@ -508,6 +508,7 @@ export const assignmentReadings = pgTable("assignment_readings", {
   completed: boolean("completed").default(false),
   openedAt: timestamp("opened_at"),
   completedAt: timestamp("completed_at"),
+  completedDate: text("completed_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -339,14 +339,13 @@ export function registerGroupRoutes(app: Express) {
       const members = await db.select().from(groupMembers).where(eq(groupMembers.groupId, group.id));
       const today = new Date().toISOString().split('T')[0];
 
-      // عداد "قرأوا اليوم" من assignment_readings باستخدام completed_date النصي
+      // عداد "قرأوا اليوم" — بدون JOIN، مباشرة من group_id في assignment_readings
       const readTodayResult = await pool.query(
-        `SELECT DISTINCT ar.user_name
-         FROM assignment_readings ar
-         JOIN group_assignments ga ON ga.id = ar.assignment_id
-         WHERE ga.group_id = $1
-           AND ar.completed = true
-           AND ar.completed_date = $2`,
+        `SELECT DISTINCT user_name
+         FROM assignment_readings
+         WHERE group_id = $1
+           AND completed = true
+           AND completed_date = $2`,
         [group.id, today]
       );
       const readTodayNames = new Set<string>(readTodayResult.rows.map((r: any) => r.user_name));
@@ -1081,20 +1080,17 @@ export function registerGroupRoutes(app: Express) {
       }
 
       const todayStr = new Date().toISOString().split('T')[0];
-      const [reading] = await db.insert(assignmentReadings).values({
-        assignmentId,
-        groupId: group.id,
-        userName,
-        bookName,
-        chapter,
-        timeSpent: timeSpent || 0,
-        scrollCount: scrollCount || 0,
-        scrollDepth: scrollDepth || 0,
-        completed: true,
-        openedAt: new Date(),
-        completedAt: new Date(),
-        completedDate: todayStr,
-      } as any).returning();
+      const insertResult = await pool.query(
+        `INSERT INTO assignment_readings
+           (assignment_id, group_id, user_name, book_name, chapter,
+            time_spent, scroll_count, scroll_depth,
+            completed, opened_at, completed_at, completed_date, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true,NOW(),NOW(),$9,NOW())
+         RETURNING *`,
+        [assignmentId, group.id, userName, bookName, chapter,
+         timeSpent || 0, scrollCount || 0, scrollDepth || 0, todayStr]
+      );
+      const reading = insertResult.rows[0];
 
       try {
         const date = new Date().toISOString().split('T')[0];
