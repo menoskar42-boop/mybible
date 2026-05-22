@@ -459,6 +459,20 @@ export async function autoSeedIfNeeded(): Promise<void> {
     }
     console.log('[auto-seed] performance indexes ensured');
 
+    // تأكد من وجود عمود completed_at في assignment_readings
+    await migrationDb.execute(sql.raw(
+      `ALTER TABLE assignment_readings ADD COLUMN IF NOT EXISTS completed_at TIMESTAMP`
+    ));
+    // عمود completed_date كـ TEXT لمقارنة التواريخ بشكل موثوق
+    await migrationDb.execute(sql.raw(
+      `ALTER TABLE assignment_readings ADD COLUMN IF NOT EXISTS completed_date TEXT`
+    ));
+    // حدّث completed_date للسجلات المكتملة التي ليس لها تاريخ
+    await migrationDb.execute(sql.raw(
+      `UPDATE assignment_readings SET completed_date = TO_CHAR(completed_at, 'YYYY-MM-DD')
+       WHERE completed = true AND completed_at IS NOT NULL AND completed_date IS NULL`
+    ));
+
     const emotions = await storage.getAllEmotions();
     if (emotions.length === 0) {
       console.log('[auto-seed] Seeding emotions...');

@@ -339,30 +339,17 @@ export function registerGroupRoutes(app: Express) {
       const members = await db.select().from(groupMembers).where(eq(groupMembers.groupId, group.id));
       const today = new Date().toISOString().split('T')[0];
 
-      // عداد "قرأوا اليوم" من assignment_readings مباشرةً — موثوق ومُثبت
+      // عداد "قرأوا اليوم" — بدون JOIN، مباشرة من group_id في assignment_readings
       const readTodayResult = await pool.query(
-        `SELECT COUNT(DISTINCT ar.user_name)::int AS count
-         FROM assignment_readings ar
-         JOIN group_assignments ga ON ga.id = ar.assignment_id
-         WHERE ga.group_id = $1
-           AND ar.completed = true
-           AND ar.completed_at::date = $2::date`,
+        `SELECT DISTINCT user_name
+         FROM assignment_readings
+         WHERE group_id = $1
+           AND completed = true
+           AND completed_date = $2`,
         [group.id, today]
       );
-      const readTodayCount: number = readTodayResult.rows[0]?.count || 0;
-
-      // تحديد من قرأ اليوم لكل عضو (لعرض الشارة)
-      const readTodayNames = new Set<string>(
-        readTodayResult.rows.length > 0
-          ? (await pool.query(
-              `SELECT DISTINCT ar.user_name
-               FROM assignment_readings ar
-               JOIN group_assignments ga ON ga.id = ar.assignment_id
-               WHERE ga.group_id = $1 AND ar.completed = true AND ar.completed_at::date = $2::date`,
-              [group.id, today]
-            )).rows.map((r: any) => r.user_name)
-          : []
-      );
+      const readTodayNames = new Set<string>(readTodayResult.rows.map((r: any) => r.user_name));
+      const readTodayCount: number = readTodayNames.size;
 
       const membersWithStatus = members.map((m: any) => ({
         ...m,
@@ -1037,16 +1024,19 @@ export function registerGroupRoutes(app: Express) {
         ));
 
       if (existing.length > 0) {
-        const [updated] = await db.update(assignmentReadings)
-          .set({
-            timeSpent: Math.max(existing[0].timeSpent || 0, timeSpent || 0),
-            scrollCount: Math.max(existing[0].scrollCount || 0, scrollCount || 0),
-            scrollDepth: Math.max(existing[0].scrollDepth || 0, scrollDepth || 0),
-            completed: true,
-            completedAt: new Date(),
-          })
-          .where(eq(assignmentReadings.id, existing[0].id))
-          .returning();
+        const today = new Date().toISOString().split('T')[0];
+        await pool.query(
+          `UPDATE assignment_readings SET
+            time_spent = GREATEST(COALESCE(time_spent,0), $1),
+            scroll_count = GREATEST(COALESCE(scroll_count,0), $2),
+            scroll_depth = GREATEST(COALESCE(scroll_depth,0), $3),
+            completed = true,
+            completed_at = NOW(),
+            completed_date = $4
+           WHERE id = $5`,
+          [timeSpent || 0, scrollCount || 0, scrollDepth || 0, today, existing[0].id]
+        );
+        const updated = { ...existing[0], completed: true, completedAt: new Date() };
 
         // سجّل في group_reading_logs حتى تُحتسب للإحصائيات اليومية
         try {
@@ -1089,19 +1079,18 @@ export function registerGroupRoutes(app: Express) {
         return res.json({ reading: updated, allDone });
       }
 
-      const [reading] = await db.insert(assignmentReadings).values({
-        assignmentId,
-        groupId: group.id,
-        userName,
-        bookName,
-        chapter,
-        timeSpent: timeSpent || 0,
-        scrollCount: scrollCount || 0,
-        scrollDepth: scrollDepth || 0,
-        completed: true,
-        openedAt: new Date(),
-        completedAt: new Date(),
-      }).returning();
+      const todayStr = new Date().toISOString().split('T')[0];
+      const insertResult = await pool.query(
+        `INSERT INTO assignment_readings
+           (assignment_id, group_id, user_name, book_name, chapter,
+            time_spent, scroll_count, scroll_depth,
+            completed, opened_at, completed_at, completed_date, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true,NOW(),NOW(),$9,NOW())
+         RETURNING *`,
+        [assignmentId, group.id, userName, bookName, chapter,
+         timeSpent || 0, scrollCount || 0, scrollDepth || 0, todayStr]
+      );
+      const reading = insertResult.rows[0];
 
       try {
         const date = new Date().toISOString().split('T')[0];
