@@ -208,9 +208,9 @@ export function registerChurchRoutes(app: Express) {
       const admins = await db.select().from(churchAdmins)
         .where(and(eq(churchAdmins.churchId, id), eq(churchAdmins.phone, phone)));
 
-      res.json({ isAdmin: admins.length > 0 });
+      res.json({ isAdmin: admins.length > 0, role: admins[0]?.role ?? null });
     } catch (err) {
-      res.json({ isAdmin: false });
+      res.json({ isAdmin: false, role: null });
     }
   });
 
@@ -287,12 +287,50 @@ export function registerChurchRoutes(app: Express) {
         churchId,
         phone,
         name,
+        role: 'admin',
       }).returning();
 
       res.json({ admin });
     } catch (err) {
       console.error('[churches] add admin error:', err);
       res.status(500).json({ error: 'فشل إضافة أدمن' });
+    }
+  });
+
+  app.post('/api/churches/:id/servants', async (req, res) => {
+    try {
+      const churchId = parseInt(req.params.id);
+      const { name, phone, requestorPhone } = req.body;
+
+      if (!name || !phone) {
+        return res.status(400).json({ error: 'الاسم والموبايل مطلوبان' });
+      }
+
+      // فقط أدمن كامل (role='admin') يقدر يضيف خادم
+      const requestor = await db.select().from(churchAdmins)
+        .where(and(eq(churchAdmins.churchId, churchId), eq(churchAdmins.phone, requestorPhone)));
+      if (requestor.length === 0 || requestor[0].role !== 'admin') {
+        return res.status(403).json({ error: 'غير مسموح - يجب أن تكون أدمن الكنيسة' });
+      }
+
+      const existing = await db.select().from(churchAdmins)
+        .where(and(eq(churchAdmins.churchId, churchId), eq(churchAdmins.phone, phone)));
+      if (existing.length > 0) {
+        return res.json({ servant: existing[0], alreadyExists: true });
+      }
+
+      const normalizedPhone = String(phone).replace(/\s/g, '');
+      const [servant] = await db.insert(churchAdmins).values({
+        churchId,
+        phone: normalizedPhone,
+        name,
+        role: 'servant',
+      }).returning();
+
+      res.json({ servant });
+    } catch (err) {
+      console.error('[churches] add servant error:', err);
+      res.status(500).json({ error: 'فشل إضافة الخادم' });
     }
   });
 }
