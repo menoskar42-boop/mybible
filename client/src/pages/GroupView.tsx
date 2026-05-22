@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus } from 'lucide-react';
+import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -643,6 +643,8 @@ export default function GroupView() {
   const [addAdminPhone, setAddAdminPhone] = useState('');
   const [addAdminLoading, setAddAdminLoading] = useState(false);
   const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
+  const [linkJoinMode, setLinkJoinMode] = useState<'approval' | 'auto'>('approval');
+  const [linkModeLoading, setLinkModeLoading] = useState(false);
 
   const [missionTitle, setMissionTitle] = useState('');
   const [missionBook, setMissionBook] = useState('');
@@ -673,6 +675,7 @@ export default function GroupView() {
       setTodayBook(d.group.todayBook || '');
       setTodayChapter(d.group.todayChapter?.toString() || '');
       setChallengeTotal(d.group.challengeTotal?.toString() || '');
+      setLinkJoinMode((d.group.linkJoinMode as 'approval' | 'auto') || 'approval');
     } catch {
       toast.error('فشل تحميل بيانات المجموعة');
     } finally {
@@ -925,6 +928,39 @@ export default function GroupView() {
     }
   };
 
+  const handleCopyInviteLink = async () => {
+    const link = `${window.location.origin}/invite/${groupCode}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'انضم لمجموعة القراءة', text: `انضم لمجموعة "${data?.group?.name}" في تطبيق الكتاب المقدس رفيقي`, url: link });
+      } else {
+        await navigator.clipboard.writeText(link);
+        toast.success('تم نسخ رابط الدعوة');
+      }
+    } catch {
+      await navigator.clipboard.writeText(link);
+      toast.success('تم نسخ رابط الدعوة');
+    }
+  };
+
+  const handleToggleLinkMode = async (newMode: 'approval' | 'auto') => {
+    setLinkModeLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/link-mode`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, mode: newMode }),
+      });
+      if (!res.ok) throw new Error();
+      setLinkJoinMode(newMode);
+      toast.success(newMode === 'auto' ? 'الانضمام أصبح فورياً عبر الرابط' : 'الانضمام يتطلب موافقتك الآن');
+    } catch {
+      toast.error('فشل تحديث الإعداد');
+    } finally {
+      setLinkModeLoading(false);
+    }
+  };
+
   const handleAddAdmin = async () => {
     if (!addAdminName.trim() || !addAdminPhone.trim()) {
       toast.error('الاسم ورقم الموبايل مطلوبان');
@@ -1018,6 +1054,9 @@ export default function GroupView() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={copyCode} data-testid="button-copy-group-code">
               {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleCopyInviteLink} title="مشاركة رابط الانضمام" data-testid="button-share-invite">
+              <Link2 className="w-4 h-4" />
             </Button>
             {isAdminFinal && (
               <Button variant="ghost" size="icon" onClick={() => setAdminOpen(true)} data-testid="button-admin">
@@ -1344,6 +1383,47 @@ export default function GroupView() {
                 <Input type="number" min="0" value={challengeTotal} onChange={e => setChallengeTotal(e.target.value)} data-testid="input-challenge-total" />
               </div>
               <Button onClick={updateToday} className="w-full" data-testid="button-save-admin">حفظ التغييرات</Button>
+
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-indigo-500" />
+                  <Label className="font-bold">رابط الدعوة</Label>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={handleCopyInviteLink} data-testid="button-copy-invite-link">
+                    <Copy className="w-3.5 h-3.5 ml-1" />
+                    نسخ / مشاركة الرابط
+                  </Button>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">وضع الانضمام عبر الرابط</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={linkJoinMode === 'approval' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={linkModeLoading}
+                      onClick={() => handleToggleLinkMode('approval')}
+                      data-testid="button-mode-approval"
+                    >
+                      بعد موافقتي
+                    </Button>
+                    <Button
+                      variant={linkJoinMode === 'auto' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={linkModeLoading}
+                      onClick={() => handleToggleLinkMode('auto')}
+                      data-testid="button-mode-auto"
+                    >
+                      انضمام فوري
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {linkJoinMode === 'auto' ? 'كل من يفتح الرابط ينضم فوراً بدون موافقة' : 'تصلك طلبات ويمكنك قبول أو رفض كل شخص'}
+                  </p>
+                </div>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

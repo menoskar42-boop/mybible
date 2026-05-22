@@ -437,6 +437,12 @@ export async function autoSeedIfNeeded(): Promise<void> {
     );
     console.log('[auto-seed] church_admins.role column ensured');
 
+    // ── Migration: رابط الانضمام للمجموعة ──
+    await migrationDb.execute(
+      sql`ALTER TABLE reading_groups ADD COLUMN IF NOT EXISTS link_join_mode text NOT NULL DEFAULT 'approval'`
+    );
+    console.log('[auto-seed] reading_groups.link_join_mode column ensured');
+
     // ── Indexes: أداء عند آلاف الأعضاء ──
     const indexSql = [
       `CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members(group_id)`,

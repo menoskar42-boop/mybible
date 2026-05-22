@@ -37,6 +37,98 @@ async function isAdminByLeaderKey(group: any, memberKey: string): Promise<boolea
 
 export function registerGroupRoutes(app: Express) {
 
+  // ── معلومات الدعوة (endpoint عام بدون auth) ──
+  app.get('/api/groups/:code/invite-info', async (req, res) => {
+    try {
+      const [group] = await db.select({
+        groupCode: readingGroups.groupCode,
+        name: readingGroups.name,
+        churchName: readingGroups.churchName,
+        leaderName: readingGroups.leaderName,
+        linkJoinMode: readingGroups.linkJoinMode,
+      }).from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+      res.json({ group });
+    } catch (err) {
+      res.status(500).json({ error: 'فشل تحميل بيانات المجموعة' });
+    }
+  });
+
+  // ── الانضمام عبر رابط الدعوة ──
+  app.post('/api/groups/:code/invite-join', async (req, res) => {
+    try {
+      const { userName, phone } = req.body;
+      const code = req.params.code.toUpperCase();
+
+      if (!userName || !phone) return res.status(400).json({ error: 'الاسم ورقم الموبايل مطلوبان' });
+      if (phone.trim().length < 10) return res.status(400).json({ error: 'رقم الموبايل غير صحيح' });
+
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, code));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      // هل هو عضو بالفعل؟
+      const [existing] = await db.select().from(groupMembers)
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, userName.trim())));
+      if (existing) {
+        if (!existing.phone && phone) {
+          await db.update(groupMembers).set({ phone: phone.trim() }).where(eq(groupMembers.id, existing.id));
+        }
+        return res.json({ group, member: existing, status: 'already_member' });
+      }
+
+      // هل يوجد طلب انضمام معلق؟
+      const [pending] = await db.select().from(groupJoinRequests)
+        .where(and(eq(groupJoinRequests.groupId, group.id), eq(groupJoinRequests.userName, userName.trim()), eq(groupJoinRequests.status, 'pending')));
+      if (pending) return res.json({ group, status: 'pending', request: pending });
+
+      if (group.linkJoinMode === 'auto') {
+        // انضمام مباشر
+        const memberKey = generateKey();
+        const [member] = await db.insert(groupMembers).values({
+          groupId: group.id,
+          userName: userName.trim(),
+          memberKey,
+          phone: phone.trim(),
+          isAdmin: false,
+        }).returning();
+        return res.json({ group, member, status: 'joined', memberKey });
+      }
+
+      // وضع الموافقة — إنشاء طلب انضمام
+      const [request] = await db.insert(groupJoinRequests).values({
+        groupId: group.id,
+        userName: userName.trim(),
+        phone: phone.trim(),
+        status: 'pending',
+      }).returning();
+      res.json({ group, status: 'pending', request });
+    } catch (err) {
+      console.error('[groups] invite-join error:', err);
+      res.status(500).json({ error: 'فشل الانضمام' });
+    }
+  });
+
+  // ── تغيير وضع الانضمام عبر الرابط ──
+  app.put('/api/groups/:code/link-mode', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const { leaderKey, mode } = req.body;
+      if (!['auto', 'approval'].includes(mode)) return res.status(400).json({ error: 'وضع غير صحيح' });
+
+      const authorized = await isAdminByLeaderKey(group, leaderKey);
+      if (!authorized) return res.status(403).json({ error: 'غير مسموح' });
+
+      await db.update(readingGroups).set({ linkJoinMode: mode }).where(eq(readingGroups.id, group.id));
+      res.json({ success: true, mode });
+    } catch (err) {
+      console.error('[groups] link-mode error:', err);
+      res.status(500).json({ error: 'فشل تحديث الإعداد' });
+    }
+  });
+
   // endpoint مؤقت لإنشاء مجموعة بكود محدد مسبقاً (للاستخدام الإداري فقط)
   app.post('/api/groups/seed-once', async (req, res) => {
     try {
