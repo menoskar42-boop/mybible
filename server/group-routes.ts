@@ -763,16 +763,45 @@ export function registerGroupRoutes(app: Express) {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      const logs = await db.select().from(groupReadingLogs)
-        .where(eq(groupReadingLogs.groupId, group.id));
+      // إحصاءات الأسبوع — يجمع من group_reading_logs و assignment_readings معاً
+      const weeklyResult = await pool.query(
+        `SELECT DISTINCT user_name, book, chapter, read_date FROM (
+           SELECT user_name, book, chapter::text AS chapter, date AS read_date
+           FROM group_reading_logs WHERE group_id = $1 AND date >= $2
+           UNION
+           SELECT user_name, book_name AS book, chapter::text AS chapter,
+                  COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) AS read_date
+           FROM assignment_readings
+           WHERE group_id = $1 AND completed = true
+             AND COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) >= $2
+         ) t WHERE read_date IS NOT NULL`,
+        [group.id, weekAgo]
+      );
 
-      const weeklyLogs = logs.filter(l => l.date >= weekAgo);
-      const weeklyChapters = new Set(weeklyLogs.map(l => `${l.book}-${l.chapter}`)).size;
+      const weeklyChapters = new Set(weeklyResult.rows.map((r: any) => `${r.book}-${r.chapter}`)).size;
 
       const lastReadByMember: Record<string, string> = {};
-      for (const log of logs) {
-        if (!lastReadByMember[log.userName] || log.date > lastReadByMember[log.userName]) {
-          lastReadByMember[log.userName] = log.date;
+      for (const row of weeklyResult.rows) {
+        const d = row.read_date as string;
+        if (d && (!lastReadByMember[row.user_name] || d > lastReadByMember[row.user_name])) {
+          lastReadByMember[row.user_name] = d;
+        }
+      }
+
+      // أيضاً نفحص قبل الأسبوع لمعرفة آخر قراءة لكل عضو
+      const olderResult = await pool.query(
+        `SELECT DISTINCT user_name, MAX(date) AS last_date FROM group_reading_logs
+         WHERE group_id = $1 AND date < $2 GROUP BY user_name
+         UNION
+         SELECT user_name, MAX(COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD'))) AS last_date
+         FROM assignment_readings WHERE group_id = $1 AND completed = true
+           AND COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) < $2
+         GROUP BY user_name`,
+        [group.id, weekAgo]
+      );
+      for (const row of olderResult.rows) {
+        if (row.last_date && !lastReadByMember[row.user_name]) {
+          lastReadByMember[row.user_name] = row.last_date;
         }
       }
 
