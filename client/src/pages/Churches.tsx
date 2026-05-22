@@ -1,9 +1,7 @@
-import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Church, MapPin, ChevronLeft, Plus, ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Link, useLocation } from 'wouter';
 import { SEOHead } from '@/components/SEOHead';
 import { useQuery } from '@tanstack/react-query';
@@ -12,12 +10,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function Churches() {
   const [, navigate] = useLocation();
-
-  useEffect(() => {
-    if (!getMinistryUser()) {
-      navigate('/ministry-auth');
-    }
-  }, [navigate]);
+  const user = getMinistryUser();
 
   const { data, isLoading } = useQuery({
     queryKey: ['churches'],

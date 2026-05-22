@@ -77,12 +77,10 @@ export function registerGroupRoutes(app: Express) {
         return res.json({ group, member: existing, status: 'already_member' });
       }
 
-      // هل يوجد طلب انضمام معلق؟
-      const [pending] = await db.select().from(groupJoinRequests)
-        .where(and(eq(groupJoinRequests.groupId, group.id), eq(groupJoinRequests.userName, userName.trim()), eq(groupJoinRequests.status, 'pending')));
-      if (pending) return res.json({ group, status: 'pending', request: pending });
-
       if (group.linkJoinMode === 'auto') {
+        // في وضع auto: إذا كان هناك طلب معلق نلغيه ونضيف العضو مباشرة
+        await db.delete(groupJoinRequests)
+          .where(and(eq(groupJoinRequests.groupId, group.id), eq(groupJoinRequests.userName, userName.trim())));
         // انضمام مباشر — نتحقق مرة أخرى بـ INSERT WHERE NOT EXISTS لمنع التكرار
         const memberKey = generateKey();
         const result = await pool.query(
@@ -102,7 +100,12 @@ export function registerGroupRoutes(app: Express) {
         return res.json({ group, member: result.rows[0], status: 'joined', memberKey });
       }
 
-      // وضع الموافقة — إنشاء طلب انضمام
+      // وضع الموافقة — هل يوجد طلب معلق؟
+      const [pending] = await db.select().from(groupJoinRequests)
+        .where(and(eq(groupJoinRequests.groupId, group.id), eq(groupJoinRequests.userName, userName.trim()), eq(groupJoinRequests.status, 'pending')));
+      if (pending) return res.json({ group, status: 'pending', request: pending });
+
+      // إنشاء طلب انضمام جديد
       const [request] = await db.insert(groupJoinRequests).values({
         groupId: group.id,
         userName: userName.trim(),
