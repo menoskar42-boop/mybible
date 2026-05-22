@@ -100,6 +100,33 @@ export const deaconResponses: DeaconResponse[] = [
   { id: 'd12', text: 'الإيمان الواحد\nالمعمودية الواحدة\nإله واحد', category: 'إيمان' },
 ];
 
+// ── واجهة القراءات اليومية الديناميكية
+export interface DailyReadingSlides {
+  pauline:  { title: string; slides: string[] };
+  catholic: { title: string; slides: string[] };
+  praxis:   { title: string; slides: string[] };
+  psalm:    { title: string; slides: string[] };
+  gospel:   { title: string; slides: string[] };
+}
+
+// ── أقسام القراءات (تُستبدَل ديناميكياً في شاشة العرض)
+export const READINGS_SECTION_KEYS = new Set([
+  'basil-pauline',  'greg-pauline',  'cyril-pauline',
+  'basil-catholic', 'greg-catholic', 'cyril-catholic',
+  'basil-praxis',   'greg-praxis',   'cyril-praxis',
+  'basil-synaxar',  'greg-synaxar',  'cyril-synaxar',
+  'basil-gospel',   'greg-gospel',   'cyril-gospel',
+]);
+
+export function getReadingType(sectionKey: string): keyof DailyReadingSlides | null {
+  if (sectionKey.includes('pauline'))  return 'pauline';
+  if (sectionKey.includes('catholic')) return 'catholic';
+  if (sectionKey.includes('praxis'))   return 'praxis';
+  if (sectionKey.includes('synaxar'))  return 'psalm';
+  if (sectionKey.includes('gospel'))   return 'gospel';
+  return null;
+}
+
 // ── واجهة حالة الجلسة
 export interface LiturgySession {
   sessionId: string;
@@ -108,6 +135,7 @@ export interface LiturgySession {
   slideIndex: number;
   deaconOverride: DeaconResponse | null;
   copticMode: 'script' | 'arabic';
+  readingsOverride: DailyReadingSlides | null;
   updatedAt: number;
 }
 
@@ -118,6 +146,7 @@ export const defaultSession: LiturgySession = {
   slideIndex: 0,
   deaconOverride: null,
   copticMode: 'script',
+  readingsOverride: null,
   updatedAt: Date.now(),
 };
 
