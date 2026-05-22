@@ -267,6 +267,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
   const [reportAssignmentId, setReportAssignmentId] = useState<number | null>(null);
   const [readingChapter, setReadingChapter] = useState<{ assignmentId: number; bookName: string; chapter: number } | null>(null);
   const [expandedAssignment, setExpandedAssignment] = useState<number | null>(null);
+  const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<number>>(new Set());
 
   const [assignType, setAssignType] = useState<'daily' | 'weekly'>('daily');
   const [assignTestament, setAssignTestament] = useState<'old' | 'new' | ''>('');
@@ -403,6 +404,14 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
 
   return (
     <>
+      {assignments.length > 0 && completedAssignmentIds.size === assignments.length && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 text-center mb-4">
+          <p className="text-2xl mb-1">🎉</p>
+          <p className="font-display font-bold text-green-700 dark:text-green-400">مبروك! أنهيت كل القراءات المطلوبة</p>
+          <p className="text-xs text-green-600/80 dark:text-green-400/70 mt-1">«اَلَّذِينَ يَزْرَعُونَ بِالدُّمُوعِ يَحْصُدُونَ بِالتَّرَنُّمِ» (مز ١٢٦: ٥)</p>
+        </div>
+      )}
+
       {assignments.length > 0 && (
         <div className="mb-6 space-y-4">
           {assignments.map((a: any) => {
@@ -453,11 +462,28 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks }
                     </div>
                     <Progress value={myProg.total > 0 ? Math.min((myProg.completed / myProg.total) * 100, 100) : 0} className="h-2 mb-3" />
 
-                    {myProg.completed >= myProg.total && myProg.total > 0 && (
-                      <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950/30 text-center mb-3">
-                        <p className="text-green-600 dark:text-green-400 font-bold text-sm">🎉 مبروك! أنهيت كل القراءات المطلوبة</p>
-                      </div>
-                    )}
+                    {myProg.completed >= myProg.total && myProg.total > 0 && (() => {
+                      // تسجيل هذه القراءة كمكتملة
+                      if (!completedAssignmentIds.has(a.id)) {
+                        setCompletedAssignmentIds(prev => new Set([...prev, a.id]));
+                      }
+                      // هل هذه آخر قراءة غير مكتملة؟
+                      const isLastOne = assignments.length === 1;
+                      if (isLastOne) {
+                        return (
+                          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 text-center mb-3">
+                            <p className="text-green-600 dark:text-green-400 font-bold text-sm">🎉 مبروك! أنهيت كل القراءات المطلوبة</p>
+                            <p className="text-xs text-green-600/70 dark:text-green-400/70 mt-1">«اَلَّذِينَ يَزْرَعُونَ بِالدُّمُوعِ يَحْصُدُونَ بِالتَّرَنُّمِ» (مز ١٢٦: ٥)</p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-center mb-3">
+                          <p className="text-amber-700 dark:text-amber-400 font-bold text-sm">✝️ أحسنت! واصل جهادك الروحي</p>
+                          <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-1">«مَنْ يَثْبُتْ إِلَى الْمُنْتَهَى فَذَاكَ يَخْلُصُ» (مت ٢٤: ١٣) — لا يزال أمامك قراءات، واصل بنفس الشوق 📖</p>
+                        </div>
+                      );
+                    })()}
 
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                       {chapters.map((ch: number) => {
