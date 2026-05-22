@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, LogIn, Church, Shield, ShieldCheck, ChevronLeft, Plus, LogOut, Trophy } from 'lucide-react';
+import { Users, LogIn, Church, Shield, ShieldCheck, ChevronLeft, Plus, LogOut, Trophy, PenLine } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -131,39 +131,57 @@ export default function Groups() {
           </Card>
         </Link>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link href="/church">
-            <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-amber-200 dark:border-amber-800/30" data-testid="card-browse-churches">
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4 mb-4">
+          <Link href="/groups/create">
+            <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer border-indigo-200 dark:border-indigo-800/30 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-background" data-testid="card-create-group">
               <div className="flex flex-col items-center text-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-                  <Church className="w-7 h-7 text-white" />
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md">
+                  <PenLine className="w-7 h-7 text-white" />
                 </div>
-                <h2 className="font-display text-lg font-bold text-foreground">الكنائس</h2>
-                <p className="text-sm text-muted-foreground">تصفح الكنائس وانضم لمجموعاتها</p>
+                <h2 className="font-display text-base font-bold text-foreground">إنشاء مجموعة</h2>
+                <p className="text-xs text-muted-foreground">أنشئ مجموعة قراءة جديدة</p>
               </div>
             </Card>
           </Link>
 
           <Link href="/groups/join">
-            <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-primary/20" data-testid="card-join-group">
+            <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer border-green-200 dark:border-green-800/30" data-testid="card-join-group">
               <div className="flex flex-col items-center text-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-md">
                   <LogIn className="w-7 h-7 text-white" />
                 </div>
-                <h2 className="font-display text-lg font-bold text-foreground">الانضمام لمجموعة</h2>
-                <p className="text-sm text-muted-foreground">انضم بكود المجموعة</p>
+                <h2 className="font-display text-base font-bold text-foreground">الانضمام لمجموعة</h2>
+                <p className="text-xs text-muted-foreground">انضم بكود المجموعة</p>
+              </div>
+            </Card>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link href="/church">
+            <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer border-amber-200 dark:border-amber-800/30" data-testid="card-browse-churches">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center flex-shrink-0">
+                  <Church className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-display text-base font-bold text-foreground">الكنائس</h2>
+                  <p className="text-xs text-muted-foreground">تصفح وانضم لمجموعات كنيستك</p>
+                </div>
               </div>
             </Card>
           </Link>
 
           <Link href="/church-request">
-            <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-primary/20" data-testid="card-request-church">
-              <div className="flex flex-col items-center text-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                  <Plus className="w-7 h-7 text-white" />
+            <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer border-primary/20" data-testid="card-request-church">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center flex-shrink-0">
+                  <Plus className="w-6 h-6 text-white" />
                 </div>
-                <h2 className="font-display text-lg font-bold text-foreground">طلب إنشاء صفحة للكنيسة</h2>
-                <p className="text-sm text-muted-foreground">سجل كنيستك لإنشاء مجموعات</p>
+                <div>
+                  <h2 className="font-display text-base font-bold text-foreground">تسجيل كنيسة</h2>
+                  <p className="text-xs text-muted-foreground">سجل كنيستك وأنشئ مجموعاتها</p>
+                </div>
               </div>
             </Card>
           </Link>
