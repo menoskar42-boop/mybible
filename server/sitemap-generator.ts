@@ -4,6 +4,7 @@ import { getAllVideoSeoEntries } from "./video-seo-data";
 import { agpeyaHoursFull } from "../client/src/lib/agpeya-content";
 import { synaxariumMonths } from "../client/src/lib/synaxarium-content";
 import { liturgies } from "../client/src/lib/liturgy-content";
+import { kidsBibleVideos } from "../client/src/lib/kids-bible-videos-data";
 
 const SITE = "https://mybible.oscardevs.com";
 const CACHE_TTL = 1 * 60 * 60 * 1000;
@@ -162,6 +163,17 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
   for (const storyId of KIDS_STORY_IDS) {
     urls.push(buildUrl(`${SITE}/kids/story/${storyId}`, "weekly", "0.7", today));
   }
+
+  // Individual video pages — each has full VideoObject schema for Google Video Search
+  const seenVideoIds = new Set<string>();
+  for (const video of kidsBibleVideos) {
+    if (!seenVideoIds.has(video.youtubeId)) {
+      seenVideoIds.add(video.youtubeId);
+      const priority = video.category === "ترانيم للأطفال" ? "0.7" : "0.8";
+      urls.push(buildUrl(`${SITE}/video/${video.youtubeId}`, "monthly", priority, today));
+    }
+  }
+
   for (const date of lastNDays(30)) {
     urls.push(buildUrl(`${SITE}/daily-verse/${date}`, "daily", "0.7", date));
   }

@@ -7,6 +7,7 @@ import { liturgies } from "../client/src/lib/liturgy-content";
 import { getVideoSeoById } from "./video-seo-data";
 import { agpeyaHoursFull, commonOpeningPrayers } from "../client/src/lib/agpeya-content";
 import { synaxariumMonths, getMonthById, getDayEntries, entryTypeIcon } from "../client/src/lib/synaxarium-content";
+import { kidsHymnsPlaylist, kidsBibleVideos } from "../client/src/lib/kids-bible-videos-data";
 import { buildChapterOgUrl, buildBookOgUrl, buildOrthodoxOgUrl } from "./og-image";
 
 const BOT_UA_PATTERN = /Googlebot|Googlebot-Image|Googlebot-Video|Google-InspectionTool|bingbot|BingPreview|GPTBot|ClaudeBot|PerplexityBot|Applebot|DuckDuckBot|YandexBot|Baiduspider|Slurp|facebookexternalhit|Twitterbot|LinkedInBot|WhatsApp|AdsBot-Google|Mediapartners-Google|APIs-Google/i;
@@ -290,19 +291,59 @@ function buildStaticPageSnapshot(path: string): string | null {
       schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "قصص الكتاب المقدس للأطفال", "inLanguage": "ar" }
     },
     "/kids/hymns": {
-      title: "ترانيم الأطفال المسيحية | رفيقي",
-      desc: "أكبر مكتبة ترانيم أطفال مسيحية قبطية بالعربية - TaranemToon والحياة الأفضل",
-      schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "ترانيم الأطفال المسيحية", "inLanguage": "ar" }
+      title: "ترانيم الأطفال المسيحية | أكبر مكتبة ترانيم قبطية للأطفال | رفيقي",
+      desc: `أكبر مكتبة ترانيم أطفال مسيحية قبطية بالعربية — ${kidsHymnsPlaylist.length} ترنيمة من TaranemToon والحياة الأفضل وكوجي TV. ترانيم تسبيح، ترانيم العذراء، ترانيم النيروز، ترانيم القيامة.`,
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "ترانيم الأطفال المسيحية القبطية",
+        "description": `مكتبة ${kidsHymnsPlaylist.length} ترنيمة أطفال مسيحية بالعربية`,
+        "inLanguage": "ar",
+        "numberOfItems": kidsHymnsPlaylist.length,
+        "itemListElement": kidsHymnsPlaylist.slice(0, 50).map((h, i) => ({
+          "@type": "ListItem",
+          "position": i + 1,
+          "item": {
+            "@type": "VideoObject",
+            "name": h.title,
+            "description": h.keywords.join(", "),
+            "thumbnailUrl": `https://img.youtube.com/vi/${h.youtubeId}/hqdefault.jpg`,
+            "embedUrl": `https://www.youtube.com/embed/${h.youtubeId}`,
+            "url": `${SITE}/video/${h.youtubeId}`,
+            "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+          }
+        }))
+      }
     },
     "/kids/videos": {
-      title: "قصص الكتاب المقدس للأطفال بالفيديو | رفيقي",
-      desc: "قصص العهدين القديم والجديد بالفيديو للأطفال. تعليم ديني مناسب للأعمار الصغيرة.",
-      schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "قصص الكتاب المقدس بالفيديو", "inLanguage": "ar" }
+      title: "قصص الكتاب المقدس للأطفال بالفيديو | العهد القديم والجديد | رفيقي",
+      desc: "قصص العهدين القديم والجديد بالفيديو للأطفال — آدم وحواء، نوح، يوسف، داود وجليات، ميلاد يسوع، القيامة. فيديوهات كارتون تعليمية آمنة للأطفال المسيحيين.",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "قصص الكتاب المقدس للأطفال بالفيديو",
+        "description": "قصص الكتاب المقدس بالفيديو للأطفال من العهدين القديم والجديد",
+        "inLanguage": "ar",
+        "numberOfItems": kidsBibleVideos.filter(v => v.category !== "ترانيم للأطفال").length,
+        "itemListElement": kidsBibleVideos.filter(v => v.category !== "ترانيم للأطفال").slice(0, 40).map((v, i) => ({
+          "@type": "ListItem",
+          "position": i + 1,
+          "item": {
+            "@type": "VideoObject",
+            "name": v.title,
+            "description": `${v.category} — ${v.keywords.join(", ")}`,
+            "thumbnailUrl": `https://img.youtube.com/vi/${v.youtubeId}/hqdefault.jpg`,
+            "embedUrl": `https://www.youtube.com/embed/${v.youtubeId}`,
+            "url": `${SITE}/video/${v.youtubeId}`,
+            "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+          }
+        }))
+      }
     },
     "/kids/stories": {
-      title: "قصص مصورة للأطفال | رفيقي",
-      desc: "قصص مصورة تفاعلية من الكتاب المقدس للأطفال مع صور ملونة وصوت.",
-      schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "قصص مصورة للأطفال", "inLanguage": "ar" }
+      title: "قصص مصورة للأطفال من الكتاب المقدس | رفيقي",
+      desc: "قصص مصورة تفاعلية من الكتاب المقدس للأطفال مع صور ملونة وصوت — قصة موسى، يوسف، داود، يونان، ميلاد يسوع وغيرها.",
+      schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "قصص مصورة للأطفال من الكتاب المقدس", "description": "قصص مصورة تفاعلية من الكتاب المقدس للأطفال", "inLanguage": "ar", "url": `${SITE}/kids/stories` }
     },
     "/search": {
       title: "البحث في الكتاب المقدس | بحث ذكي في أكثر من 31,000 آية",
@@ -471,6 +512,72 @@ function buildStaticPageSnapshot(path: string): string | null {
 <li><a href="${SITE}/daily-verse">آية اليوم من الكتاب المقدس</a></li>
 <li><a href="${SITE}/search">البحث في الكتاب المقدس</a></li>
 </ul></nav>`,
+
+    "/kids/hymns": `<h1>ترانيم الأطفال المسيحية القبطية — ${kidsHymnsPlaylist.length} ترنيمة</h1>
+<p>أكبر مكتبة ترانيم أطفال مسيحية قبطية بالعربية على الإنترنت. تضم ترانيم من قنوات TaranemToon والحياة الأفضل وكوجي TV.</p>
+<h2>تصنيفات الترانيم</h2>
+<ul>
+<li>ترانيم التسبيح والعبادة</li>
+<li>ترانيم العذراء مريم</li>
+<li>ترانيم النيروز (رأس السنة القبطية)</li>
+<li>ترانيم القيامة والفصح</li>
+<li>صوم الرسل وترانيم الصوم</li>
+<li>قصص الأنبياء بالترانيم (نوح، يونان، داود، موسى)</li>
+<li>ترانيم عن الشهداء والقديسين</li>
+<li>سلوكيات وقيم مسيحية</li>
+</ul>
+<h2>أبرز ترانيم الأطفال</h2>
+<ul>
+${kidsHymnsPlaylist.slice(0, 30).map(h => `<li><a href="${SITE}/video/${h.youtubeId}">${esc(h.title)}</a></li>`).join("\n")}
+</ul>
+<h2>جميع الترانيم (${kidsHymnsPlaylist.length} ترنيمة)</h2>
+<ul>
+${kidsHymnsPlaylist.slice(30).map(h => `<li><a href="${SITE}/video/${h.youtubeId}">${esc(h.title)}</a></li>`).join("\n")}
+</ul>
+<p><a href="${SITE}/kids/videos">قصص الكتاب المقدس بالفيديو</a> | <a href="${SITE}/kids/stories">قصص مصورة للأطفال</a> | <a href="${SITE}/kids">قسم الأطفال</a></p>`,
+
+    "/kids/videos": `<h1>قصص الكتاب المقدس للأطفال بالفيديو</h1>
+<p>مجموعة متكاملة من قصص الكتاب المقدس بالفيديو للأطفال — العهد القديم والجديد بأسلوب كارتون جذاب.</p>
+<h2>قصص العهد القديم</h2>
+<ul>
+${kidsBibleVideos.filter(v => v.category === "قصص العهد القديم").map(v => `<li><a href="${SITE}/video/${v.youtubeId}">${esc(v.title)}</a></li>`).join("\n")}
+</ul>
+<h2>سلسلة حكايات دانيال النبي</h2>
+<ul>
+${kidsBibleVideos.filter(v => v.category === "سلسلة حكايات دانيال النبي").map(v => `<li><a href="${SITE}/video/${v.youtubeId}">${esc(v.title)}</a></li>`).join("\n")}
+</ul>
+<h2>حكايات من العهد الجديد وأمثال السيد المسيح</h2>
+<ul>
+${kidsBibleVideos.filter(v => v.category === "حكايات من العهد الجديد وأمثال السيد المسيح").map(v => `<li><a href="${SITE}/video/${v.youtubeId}">${esc(v.title)}</a></li>`).join("\n")}
+</ul>
+<h2>سلسلة آحاد الصوم الكبير</h2>
+<ul>
+${kidsBibleVideos.filter(v => v.category === "سلسلة آحاد الصوم الكبير").map(v => `<li><a href="${SITE}/video/${v.youtubeId}">${esc(v.title)}</a></li>`).join("\n")}
+</ul>
+<h2>قصص العذراء والقديسين</h2>
+<ul>
+${kidsBibleVideos.filter(v => v.category === "قصص العذراء والقديسين").map(v => `<li><a href="${SITE}/video/${v.youtubeId}">${esc(v.title)}</a></li>`).join("\n")}
+</ul>
+<h2>قصص وأناشيد متنوعة</h2>
+<ul>
+${kidsBibleVideos.filter(v => v.category === "قصص وأناشيد متنوعة").map(v => `<li><a href="${SITE}/video/${v.youtubeId}">${esc(v.title)}</a></li>`).join("\n")}
+</ul>
+<p><a href="${SITE}/kids/hymns">ترانيم الأطفال</a> | <a href="${SITE}/kids/stories">قصص مصورة</a> | <a href="${SITE}/kids">قسم الأطفال</a></p>`,
+
+    "/kids/stories": `<h1>قصص مصورة للأطفال من الكتاب المقدس</h1>
+<p>قصص مصورة تفاعلية من الكتاب المقدس للأطفال مع صور ملونة وإمكانية الاستماع للقصة بصوت بشري.</p>
+<h2>القصص المتاحة</h2>
+<ul>
+<li><a href="${SITE}/kids/story/1">قصة النبي موسى وعبور البحر الأحمر</a></li>
+<li><a href="${SITE}/kids/story/2">قصة يوسف وإخوته</a></li>
+<li><a href="${SITE}/kids/story/3">قصة داوود وجالوت</a></li>
+<li><a href="${SITE}/kids/story/4">ميلاد السيد المسيح</a></li>
+<li><a href="${SITE}/kids/story/5">قصة نوح والفلك</a></li>
+<li><a href="${SITE}/kids/story/6">قصة إبراهيم أبو الآباء</a></li>
+<li><a href="${SITE}/kids/story/7">قصة يونان النبي والحوت</a></li>
+<li><a href="${SITE}/kids/story/8">قصة دانيال في جب الأسود</a></li>
+</ul>
+<p><a href="${SITE}/kids/hymns">ترانيم الأطفال</a> | <a href="${SITE}/kids/videos">قصص بالفيديو</a> | <a href="${SITE}/kids">قسم الأطفال</a></p>`,
 
     "/kids": `<h1>قصص الكتاب المقدس للأطفال</h1>
 <p>${page.desc}</p>
