@@ -49,3 +49,5 @@ mockupState = "FULLSTACK"
 [userenv]
 
 [userenv.shared]
+VAPID_PUBLIC_KEY = "BItUxi6TMrm_bscSjodB3kZ1QAGcpH2z3GaosLXMQl_sdlfY15jT7B1G8t3-7ueqdTu5r7lu25f52La1nOKjcZM"
+VAPID_EMAIL = "mailto:admin@mybible.oscardevs.com"
