@@ -12,8 +12,12 @@ export function setupVapid() {
     return;
   }
 
-  webpush.setVapidDetails(email, publicKey, privateKey);
-  console.log("[push] VAPID initialized");
+  try {
+    webpush.setVapidDetails(email, publicKey, privateKey);
+    console.log("[push] VAPID initialized");
+  } catch (err) {
+    console.error("[push] Invalid VAPID keys — push notifications disabled:", err);
+  }
 }
 
 export async function sendDailyVerseNotification() {
