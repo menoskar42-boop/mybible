@@ -530,6 +530,27 @@ const kidsHymns: KidsVideo[] = [
     keywords: ["ترنيمة", "فجر يشقشق", "فجر", "صباح", "أطفال"],
     category: "ترانيم للأطفال",
   },
+  {
+    id: "hymn-el-masih-kam",
+    title: "المسيح قام",
+    youtubeId: "TpnJK2KPp5U",
+    keywords: ["ترنيمة", "المسيح قام", "قيامة", "فرح", "أطفال"],
+    category: "ترانيم للأطفال",
+  },
+  {
+    id: "hymn-asghar-raey-daoud",
+    title: "أصغر راعي داود",
+    youtubeId: "q28cfZHEWAY",
+    keywords: ["ترنيمة", "أصغر راعي", "داود", "شجاعة", "أطفال"],
+    category: "ترانيم للأطفال",
+  },
+  {
+    id: "hymn-ana-lazem-ashkor-raby",
+    title: "أنا لازم أشكر ربي",
+    youtubeId: "eY6txE8obFc",
+    keywords: ["ترنيمة", "أنا لازم أشكر ربي", "شكر", "عبادة", "أطفال"],
+    category: "ترانيم للأطفال",
+  },
 ];
 
 // Combined list: hymns first, then stories/videos
