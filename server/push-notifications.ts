@@ -5,7 +5,7 @@ import { storage } from "./storage";
 export function setupVapid() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const email = process.env.VAPID_EMAIL || "mailto:admin@mybible.oscardevs.com";
+  const email = process.env.VAPID_EMAIL || "mailto:contact@oscardevs.com";
 
   if (!publicKey || !privateKey) {
     console.warn("[push] VAPID keys not set — push notifications disabled");
