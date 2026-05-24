@@ -12,13 +12,6 @@ export function setupVapid() {
     return;
   }
 
-<<<<<<< HEAD
-  try {
-    webpush.setVapidDetails(email, publicKey, privateKey);
-    console.log("[push] VAPID initialized");
-  } catch (err) {
-    console.error("[push] Invalid VAPID keys — push notifications disabled:", err);
-=======
   const safePublicKey = publicKey.replace(/=+$/, "");
   const safePrivateKey = privateKey.replace(/=+$/, "");
 
@@ -26,8 +19,7 @@ export function setupVapid() {
     webpush.setVapidDetails(email, safePublicKey, safePrivateKey);
     console.log("[push] VAPID initialized");
   } catch (err) {
-    console.warn("[push] VAPID initialization failed — push notifications disabled:", err);
->>>>>>> c989392 (Handle invalid VAPID keys gracefully and disable push notifications)
+    console.error("[push] Invalid VAPID keys — push notifications disabled:", err);
   }
 }
 
