@@ -723,6 +723,47 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
   const bookParam = req.query.book as string | undefined;
   const chapterParam = req.query.chapter as string | undefined;
 
+  // ── Path-based: /bible/:book/:chapter/:view (video, tafsir, lesson) ─────
+  const bibleChapterViewPath = path.match(/^\/bible\/([^/]+)\/(\d+)\/(video|tafsir|lesson)$/);
+  if (bibleChapterViewPath) {
+    try {
+      const bookName = decodeURIComponent(bibleChapterViewPath[1]);
+      const chapter = parseInt(bibleChapterViewPath[2], 10);
+      const view = bibleChapterViewPath[3];
+      const books = await ensureBooks();
+      const book = books.find(b => b.name === bookName);
+      if (!book || isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) return next();
+
+      const cacheKey = `ch:${bookName}:${chapter}:${view}`;
+      if (serveCached(res, cacheKey)) return;
+
+      const verses = await storage.getVersesByBook(book.id, chapter);
+      if (!verses || verses.length === 0) return next();
+
+      // Re-use chapter snapshot with canonical pointing to the sub-view URL
+      const html = buildChapterSnapshot(
+        book.name, chapter,
+        verses.map(v => ({ verse: v.verse, text: v.text })),
+        books
+      );
+      // Inject view-specific canonical (replace the chapter canonical)
+      const viewLabel = view === 'video' ? 'استماع' : view === 'tafsir' ? 'تفسير' : 'درس';
+      const fixedHtml = html
+        .replace(
+          `<link rel="canonical" href="${SITE}/bible/${encodeURIComponent(book.name)}/${chapter}">`,
+          `<link rel="canonical" href="${SITE}/bible/${encodeURIComponent(book.name)}/${chapter}/${view}">`
+        )
+        .replace(
+          `<title>`,
+          `<!-- ${viewLabel} ${bookName} ${chapter} -->\n  <title>`
+        );
+      return cacheAndServe(res, cacheKey, fixedHtml);
+    } catch (err) {
+      console.error("[bot-snapshot] Error:", err);
+      return next();
+    }
+  }
+
   // ── Path-based: /bible/:book/:chapter ────────────────────────────────────
   const bibleChapterPath = path.match(/^\/bible\/([^/]+)\/(\d+)$/);
   if (bibleChapterPath) {

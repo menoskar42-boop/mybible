@@ -250,7 +250,13 @@ export async function sitemapBibleHandler(_req: Request, res: Response) {
     for (const book of books) {
       urls.push(buildUrl(`${SITE}/bible/${encodeURIComponent(book.name)}`, "weekly", "0.9", today));
       for (let ch = 1; ch <= book.chaptersCount; ch++) {
-        urls.push(buildUrl(`${SITE}/bible/${encodeURIComponent(book.name)}/${ch}`, "monthly", "0.8", today));
+        const encodedBook = encodeURIComponent(book.name);
+        urls.push(buildUrl(`${SITE}/bible/${encodedBook}/${ch}`, "monthly", "0.8", today));
+        // Sub-view URLs for Google indexing
+        if (videoLinks[book.name]?.[ch] || chanteVideos[book.name]?.[ch]) {
+          urls.push(buildUrl(`${SITE}/bible/${encodedBook}/${ch}/video`, "monthly", "0.8", today));
+        }
+        urls.push(buildUrl(`${SITE}/bible/${encodedBook}/${ch}/tafsir`, "monthly", "0.7", today));
       }
     }
 

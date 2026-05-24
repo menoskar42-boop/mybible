@@ -268,7 +268,7 @@ export function getBibleBookSEO(bookName: string, chaptersCount: number): PageSE
       inLanguage: 'ar',
       about: 'الكتاب المقدس',
       numberOfPages: chaptersCount,
-      url: `https://mybible.oscardevs.com/bible?book=${encodeURIComponent(bookName)}`,
+      url: `https://mybible.oscardevs.com/bible/${encodeURIComponent(bookName)}`,
       publisher: {
         '@type': 'Organization',
         name: 'الكتاب المقدس رفيقي',
@@ -289,7 +289,7 @@ export function getBibleChapterSEO(bookName: string, chapter: number): PageSEO {
       name: `تفسير ${bookName} الإصحاح ${chapter}`,
       description: `اقرأ تفسير ${bookName} الإصحاح ${chapter} كامل مع إمكانية الاستماع والمشاركة.`,
       inLanguage: 'ar',
-      url: `https://mybible.oscardevs.com/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter}`,
+      url: `https://mybible.oscardevs.com/bible/${encodeURIComponent(bookName)}/${chapter}`,
       isPartOf: {
         '@type': 'Book',
         name: bookName,

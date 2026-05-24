@@ -60,6 +60,7 @@ function Router() {
       <Route path="/liturgy-control/:slot" component={LiturgyControl} />
       <Route path="/liturgy-control" component={LiturgyControl} />
       <Route path="/" component={Home} />
+      <Route path="/bible/:book/:chapter/:view" component={Bible} />
       <Route path="/bible/:book/:chapter" component={Bible} />
       <Route path="/bible/:book" component={Bible} />
       <Route path="/bible" component={Bible} />

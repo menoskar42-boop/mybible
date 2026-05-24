@@ -167,7 +167,10 @@ Languages: Arabic (ar), Coptic (cop)
 
 ### الكتاب المقدس — Bible
 - /bible — الكتاب المقدس كاملاً (66 سفراً + أسفار ديوتيروكانونية) بالعربية
-- /bible/:bookName/:chapter — كل إصحاح له رابط مستقل مع تفسير وصوت ودرس بالفيديو
+- /bible/:bookName/:chapter — كل إصحاح له رابط مستقل (قراءة الآيات)
+- /bible/:bookName/:chapter/video — صفحة استماع لإصحاح (فيديو يوتيوب)
+- /bible/:bookName/:chapter/tafsir — صفحة تفسير إصحاح
+- /bible/:bookName/:chapter/lesson — صفحة درس كتاب (فيديو ديوتيروكانونية)
 - /video/:youtubeId — صفحة فيديو مستقلة لكل إصحاح (استمع للإصحاح) — 1000+ فيديو
 
 ### أرثوذوكسيات — Orthodox
