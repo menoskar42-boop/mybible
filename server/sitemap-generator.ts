@@ -252,11 +252,13 @@ export async function sitemapBibleHandler(_req: Request, res: Response) {
       for (let ch = 1; ch <= book.chaptersCount; ch++) {
         const encodedBook = encodeURIComponent(book.name);
         urls.push(buildUrl(`${SITE}/bible/${encodedBook}/${ch}`, "monthly", "0.8", today));
-        // Sub-view URLs for Google indexing
+        // Sub-view URLs — only include when real content exists for Googlebot
         if (videoLinks[book.name]?.[ch] || chanteVideos[book.name]?.[ch]) {
           urls.push(buildUrl(`${SITE}/bible/${encodedBook}/${ch}/video`, "monthly", "0.8", today));
         }
+        // Tafsir: include for all chapters (CSV covers most books)
         urls.push(buildUrl(`${SITE}/bible/${encodedBook}/${ch}/tafsir`, "monthly", "0.7", today));
+        // Lesson (/lesson) excluded — dynamic RSS content, not pre-renderable
       }
     }
 
