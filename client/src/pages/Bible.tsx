@@ -38,11 +38,12 @@ export default function Bible() {
   useExitTracker('/bible');
   const searchString = useSearch();
   const [, navigate] = useLocation();
-  const pathParams = useParams<{ book?: string; chapter?: string }>();
+  const pathParams = useParams<{ book?: string; chapter?: string; view?: string }>();
   const urlParams = new URLSearchParams(searchString);
   // Path params take priority over query string params
   const urlBook = pathParams.book ? decodeURIComponent(pathParams.book) : urlParams.get('book');
   const urlChapter = pathParams.chapter ? pathParams.chapter : urlParams.get('chapter');
+  const urlView = pathParams.view as 'verses' | 'tafsir' | 'lesson' | 'video' | undefined;
   const isPathBased = !!pathParams.book;
   const initialLoadDone = useRef(false);
 
@@ -50,7 +51,7 @@ export default function Bible() {
   const [selectedChapter, setSelectedChapter] = useState<number>(1);
   const [skipChapterReset, setSkipChapterReset] = useState<boolean>(false);
   const [bibleViewMode, setBibleViewMode] = useState<'browse' | 'chapter'>('browse');
-  const [chapterSubView, setChapterSubView] = useState<'verses' | 'tafsir' | 'lesson' | 'video'>('verses');
+  const [chapterSubView, setChapterSubView] = useState<'verses' | 'tafsir' | 'lesson' | 'video'>(urlView ?? 'verses');
   const [selectedVerseForHighlight, setSelectedVerseForHighlight] = useState<number | null>(null);
   const [tafsirDialogType, setTafsirDialogType] = useState<'intro' | 'chapter' | 'verse'>('chapter');
   const [tafsirVerseNum, setTafsirVerseNum] = useState<number>(0);
@@ -66,6 +67,15 @@ export default function Bible() {
   const [listenChoiceChante, setListenChoiceChante] = useState<string | null>(null);
   const [listenChoiceRegular, setListenChoiceRegular] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const changeSubView = useCallback((view: 'verses' | 'tafsir' | 'lesson' | 'video', book?: BibleBook | null, chapter?: number) => {
+    setChapterSubView(view);
+    const b = book ?? selectedBook;
+    const ch = chapter ?? selectedChapter;
+    if (!b) return;
+    const base = `/bible/${encodeURIComponent(b.name)}/${ch}`;
+    navigate(view === 'verses' ? base : `${base}/${view}`, { replace: true });
+  }, [navigate, selectedBook, selectedChapter]);
 
   const { data: oldTestamentBooks, isLoading: oldLoading } = useQuery({
     queryKey: ['books', 'old'],
@@ -200,7 +210,11 @@ export default function Bible() {
 
   const handleChapterClick = (chapter: number) => {
     setSelectedChapter(chapter);
+    setChapterSubView('verses');
     setBibleViewMode('chapter');
+    if (selectedBook) {
+      navigate(`/bible/${encodeURIComponent(selectedBook.name)}/${chapter}`, { replace: true });
+    }
   };
 
   const handleListenClick = () => {
@@ -213,7 +227,7 @@ export default function Bible() {
       return;
     }
     setCurrentVideoId(getVideoId(selectedBook.name, selectedChapter));
-    setChapterSubView('video');
+    changeSubView('video');
   };
 
   const openLessonResults = (parts: { videoId: string; partNum: number; title: string }[]) => {
@@ -225,7 +239,7 @@ export default function Bible() {
       setLessonParts(parts);
       setLessonVideoId(null);
     }
-    setChapterSubView('lesson');
+    changeSubView('lesson');
   };
 
   const handleLessonClick = async () => {
@@ -237,7 +251,7 @@ export default function Bible() {
     } catch {
       setLessonParts([]);
       setLessonVideoId(null);
-      setChapterSubView('lesson');
+      changeSubView('lesson');
     } finally {
       setLessonLoading(false);
     }
@@ -496,7 +510,7 @@ export default function Bible() {
             {chapterSubView !== 'verses' && (
               <Button
                 variant="outline"
-                onClick={() => setChapterSubView('verses')}
+                onClick={() => changeSubView('verses')}
                 className="mb-4 w-full border-primary text-primary font-semibold"
                 data-testid="button-back-to-verses"
               >
@@ -543,7 +557,7 @@ export default function Bible() {
                     onClick={() => {
                       if (!selectedBook) return;
                       setTafsirDialogType('intro');
-                      setChapterSubView('tafsir');
+                      changeSubView('tafsir');
                       setTafsirText(null);
                       setTafsirLoading(true);
                       fetchBookIntro(selectedBook.name)
@@ -562,7 +576,7 @@ export default function Bible() {
                     onClick={() => {
                       if (!selectedBook) return;
                       setTafsirDialogType('chapter');
-                      setChapterSubView('tafsir');
+                      changeSubView('tafsir');
                       setTafsirText(null);
                       setTafsirLoading(true);
                       fetchChapterTafsir(selectedBook.name, selectedChapter)
@@ -635,7 +649,7 @@ export default function Bible() {
                                 if (!selectedBook) return;
                                 setTafsirDialogType('verse');
                                 setTafsirVerseNum(verse.verse);
-                                setChapterSubView('tafsir');
+                                changeSubView('tafsir');
                                 setTafsirText(null);
                                 setTafsirLoading(true);
                                 fetchVerseTafsir(selectedBook.name, selectedChapter, verse.verse)
@@ -698,7 +712,7 @@ export default function Bible() {
                 ) : (
                   <p className="text-sm text-muted-foreground text-center p-4" data-testid="text-no-tafsir">لا يوجد تفسير متاح حاليًا.</p>
                 )}
-                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                <Button variant="outline" onClick={() => changeSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
                   <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
                 </Button>
               </div>
@@ -745,7 +759,7 @@ export default function Bible() {
                     <p className="text-base">لا يوجد شرح متاح حالياً</p>
                   </div>
                 )}
-                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                <Button variant="outline" onClick={() => changeSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
                   <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
                 </Button>
               </div>
@@ -764,7 +778,7 @@ export default function Bible() {
                     <p className="text-muted-foreground text-center p-8 font-display">لا توجد ملفات صوتية أو مرئية لهذا الإصحاح</p>
                   </div>
                 )}
-                <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
+                <Button variant="outline" onClick={() => changeSubView('verses')} className="mt-4 w-full border-primary text-primary font-semibold">
                   <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
                 </Button>
                 <div className="flex items-center justify-between gap-3 pt-3 mt-3 border-t">
@@ -823,7 +837,7 @@ export default function Bible() {
             style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
             onClick={() => {
               setCurrentVideoId(listenChoiceChante);
-              setChapterSubView('video');
+              changeSubView('video');
               setListenChoiceOpen(false);
             }}
           >
@@ -835,7 +849,7 @@ export default function Bible() {
             className="gap-2 justify-start"
             onClick={() => {
               setCurrentVideoId(listenChoiceRegular);
-              setChapterSubView('video');
+              changeSubView('video');
               setListenChoiceOpen(false);
             }}
           >

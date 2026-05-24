@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack } from 'lucide-react';
+import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,9 +13,23 @@ import { Input } from '@/components/ui/input';
 import { childrenStoriesData, type ChildrenStory } from '@/lib/children-stories-data';
 import { YouTubeCard } from '@/components/YouTubeCard';
 import { getStoryAudioFile } from '@/lib/stories-audio-mapping';
-import { kidsBibleVideos, videoCategories, getYouTubeThumbnail, searchVideos, kidsHymnsPlaylist, type KidsVideo } from '@/lib/kids-bible-videos-data';
+import { kidsBibleVideos, videoCategories, getYouTubeThumbnail, searchVideos, kidsHymnsPlaylist, getHymnCategory, hymnCategories, type KidsVideo } from '@/lib/kids-bible-videos-data';
 import { SEOHead } from '@/components/SEOHead';
 import { getVideoSchema } from '@/lib/seo-config';
+
+function useFavoriteHymns() {
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('favorite-hymns') || '[]'); } catch { return []; }
+  });
+  const toggle = (id: string) => {
+    setFavorites(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem('favorite-hymns', JSON.stringify(next));
+      return next;
+    });
+  };
+  return { favorites, toggle, isFavorite: (id: string) => favorites.includes(id) };
+}
 
 function ImageSlider({ images, title }: { images: string[]; title: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -226,11 +241,19 @@ function StoryAudioPlayer({ storyId }: { storyId: number }) {
 export default function Kids() {
   usePageTracker('/kids');
   useExitTracker('/kids');
+  const [location, navigate] = useLocation();
+  const activeTab = location.includes('/kids/hymns') ? 'hymns'
+    : location.includes('/kids/videos') ? 'videos'
+    : location.includes('/kids/stories') ? 'stories'
+    : 'hymns';
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
   const [videoSearch, setVideoSearch] = useState('');
+  const [hymnSearch, setHymnSearch] = useState('');
+  const [hymnCat, setHymnCat] = useState('الكل');
   const [playlistActive, setPlaylistActive] = useState(false);
   const [playlistIndex, setPlaylistIndex] = useState(0);
+  const { favorites, toggle, isFavorite } = useFavoriteHymns();
 
   const openVideo = (video: KidsVideo, inPlaylist = false) => {
     setSelectedVideo(video);
@@ -270,13 +293,30 @@ export default function Kids() {
 
   const story = childrenStoriesData.find(s => s.id === selectedStory);
   const filteredVideos = searchVideos(videoSearch);
-  
-  const videoSchema = getVideoSchema(kidsBibleVideos.map(v => ({
-    id: v.id,
-    title: v.title,
-    youtubeId: v.youtubeId,
-    description: v.title
-  })));
+
+  const kidsHymns = kidsBibleVideos.filter(v => v.category === "ترانيم للأطفال");
+  const filteredHymns = kidsHymns.filter(h => {
+    const matchesCat = hymnCat === 'الكل' || getHymnCategory(h) === hymnCat;
+    const lowerSearch = hymnSearch.toLowerCase();
+    const matchesSearch = !hymnSearch.trim() || h.title.toLowerCase().includes(lowerSearch) || h.keywords.some(kw => kw.toLowerCase().includes(lowerSearch));
+    return matchesCat && matchesSearch;
+  });
+  const favoriteHymns = kidsHymns.filter(h => isFavorite(h.id));
+
+  const startHymnsPlaylist = () => {
+    setPlaylistIndex(0);
+    setSelectedVideo(filteredHymns[0]);
+    setPlaylistActive(true);
+  };
+
+  const videoSchema = getVideoSchema(
+    (activeTab === 'hymns' ? kidsHymns : kidsBibleVideos).map(v => ({
+      id: v.id,
+      title: v.title,
+      youtubeId: v.youtubeId,
+      description: v.title
+    }))
+  );
 
   const getNextStory = () => {
     if (!story) return;
@@ -318,11 +358,15 @@ export default function Kids() {
           </div>
         </div>
 
-        <Tabs defaultValue="videos" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 mb-6 h-14">
+        <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
+          <TabsList className="w-full grid grid-cols-3 mb-6 h-14">
+            <TabsTrigger value="hymns" className="text-base py-3" data-testid="tab-hymns">
+              <Music className="w-5 h-5 ml-2" />
+              ترانيم
+            </TabsTrigger>
             <TabsTrigger value="videos" className="text-base py-3" data-testid="tab-videos">
               <Video className="w-5 h-5 ml-2" />
-              فيديوهات
+              قصص الكتاب
             </TabsTrigger>
             <TabsTrigger value="stories" className="text-base py-3" data-testid="tab-stories">
               <BookOpen className="w-5 h-5 ml-2" />
@@ -482,6 +526,140 @@ export default function Kids() {
             </AnimatePresence>
           </TabsContent>
 
+          <TabsContent value="hymns">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {/* Favorites section */}
+              {favoriteHymns.length > 0 && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/30 dark:to-pink-950/30 rounded-xl border border-red-100 dark:border-red-900/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                      <span className="font-semibold text-foreground">المفضلة ({favoriteHymns.length})</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-red-500 hover:bg-red-600 text-white gap-1"
+                      onClick={() => { setPlaylistIndex(0); setSelectedVideo(favoriteHymns[0]); setPlaylistActive(true); }}
+                    >
+                      <Play className="w-3 h-3" />
+                      تشغيل المفضلة
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {favoriteHymns.map(h => (
+                      <span key={h.id} className="text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded-full border text-muted-foreground line-clamp-1 max-w-[120px] truncate" title={h.title}>{h.title}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Search */}
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="ابحث عن ترنيمة..."
+                    value={hymnSearch}
+                    onChange={(e) => setHymnSearch(e.target.value)}
+                    className="pr-10 pl-10 h-12 text-lg rounded-xl"
+                    data-testid="input-hymn-search"
+                  />
+                  {hymnSearch && (
+                    <button onClick={() => setHymnSearch('')} className="absolute left-3 top-1/2 -translate-y-1/2" data-testid="button-clear-hymn-search">
+                      <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Category filters */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {hymnCategories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setHymnCat(cat)}
+                    className={`px-3 py-1 rounded-full text-sm border transition-colors ${hymnCat === cat ? 'bg-purple-500 text-white border-purple-500' : 'bg-background text-muted-foreground border-border hover:border-purple-300'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Toolbar */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-muted-foreground">{filteredHymns.length} ترنيمة</span>
+                {filteredHymns.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                    onClick={startHymnsPlaylist}
+                    data-testid="button-start-hymns-playlist"
+                  >
+                    <ListMusic className="w-4 h-4" />
+                    <span className="text-xs">تشغيل الكل</span>
+                  </Button>
+                )}
+              </div>
+
+              {/* Hymns grid */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                {filteredHymns.map((hymn, index) => (
+                  <motion.div
+                    key={hymn.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.03 }}
+                  >
+                    <Card
+                      className="overflow-hidden cursor-pointer hover:shadow-lg transition-all group"
+                      onClick={() => openVideo(hymn, false)}
+                      data-testid={`hymn-card-${hymn.id}`}
+                    >
+                      <div className="relative h-40 overflow-hidden">
+                        <img
+                          src={getYouTubeThumbnail(hymn.youtubeId)}
+                          alt={hymn.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
+                            <Play className="w-8 h-8 text-purple-600 mr-[-4px]" />
+                          </div>
+                        </div>
+                        <button
+                          className="absolute top-2 left-2 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800/80 flex items-center justify-center shadow hover:bg-white transition-colors z-10"
+                          onClick={(e) => { e.stopPropagation(); toggle(hymn.id); }}
+                          data-testid={`hymn-fav-${hymn.id}`}
+                        >
+                          <Heart className={`w-4 h-4 ${isFavorite(hymn.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                        </button>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-display text-lg font-bold text-foreground line-clamp-2">{hymn.title}</h3>
+                        <p className="text-xs text-purple-500 mt-1">{getHymnCategory(hymn)}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {hymn.keywords.slice(0, 3).map((kw) => (
+                            <Badge key={kw} variant="secondary" className="text-xs">{kw}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+
+              {filteredHymns.length === 0 && (
+                <div className="text-center py-12">
+                  <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-lg text-muted-foreground">لا توجد ترانيم مطابقة</p>
+                </div>
+              )}
+            </motion.div>
+          </TabsContent>
+
           <TabsContent value="videos">
             <motion.div
               initial={{ opacity: 0 }}
@@ -513,33 +691,20 @@ export default function Kids() {
               {videoSearch ? (
                 <div className="mb-4">
                   <span className="text-sm text-muted-foreground">
-                    نتائج البحث: {filteredVideos.length} فيديو
+                    نتائج البحث: {filteredVideos.filter(v => v.category !== "ترانيم للأطفال").length} فيديو
                   </span>
                 </div>
               ) : null}
 
-              {videoCategories.map((category) => {
+              {videoCategories.filter(c => c !== "ترانيم للأطفال").map((category) => {
                 const categoryVideos = filteredVideos.filter(v => v.category === category);
                 if (categoryVideos.length === 0) return null;
-                const isHymns = category === "ترانيم للأطفال";
 
                 return (
                   <div key={category} className="mb-8">
                     <div className="flex items-center gap-2 mb-4">
                       <Video className="w-5 h-5 text-purple-500" />
                       <h2 className="font-display text-xl font-bold text-foreground flex-1">{category}</h2>
-                      {isHymns && !videoSearch && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
-                          onClick={startPlaylist}
-                          data-testid="button-start-hymns-playlist"
-                        >
-                          <ListMusic className="w-4 h-4" />
-                          <span className="text-xs">تشغيل الكل</span>
-                        </Button>
-                      )}
                     </div>
 
                     <div className="grid sm:grid-cols-2 gap-4">
@@ -552,7 +717,7 @@ export default function Kids() {
                         >
                           <Card
                             className="overflow-hidden cursor-pointer hover:shadow-lg transition-all group"
-                            onClick={() => openVideo(video, isHymns)}
+                            onClick={() => openVideo(video, false)}
                             data-testid={`video-card-${video.id}`}
                           >
                             <div className="relative h-40 overflow-hidden">
@@ -588,7 +753,7 @@ export default function Kids() {
                 );
               })}
 
-              {filteredVideos.length === 0 && (
+              {filteredVideos.filter(v => v.category !== "ترانيم للأطفال").length === 0 && (
                 <div className="text-center py-12">
                   <Video className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                   <p className="text-lg text-muted-foreground">لا توجد فيديوهات مطابقة للبحث</p>

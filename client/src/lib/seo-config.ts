@@ -41,6 +41,48 @@ export const pageSEOConfig: Record<string, PageSEO> = {
       }
     }
   },
+  '/kids/hymns': {
+    title: 'ترانيم الأطفال المسيحية القبطية | TaranemToon | رفيقي',
+    description: 'أكبر مكتبة ترانيم أطفال مسيحية قبطية بالعربية — ترانيم كارتون من TaranemToon والحياة الأفضل وكوجي TV. ترانيم تسبيح وعبادة، ترانيم العذراء، ترانيم النيروز والقيامة.',
+    keywords: ['ترانيم أطفال مسيحية', 'TaranemToon', 'ترانيم قبطية', 'كارتون مسيحي', 'ترانيم العذراء', 'ترانيم النيروز', 'ترانيم القيامة', 'الحياة الأفضل أطفال'],
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      'name': 'ترانيم الأطفال المسيحية القبطية',
+      'description': 'أكبر مكتبة ترانيم أطفال مسيحية قبطية بالعربية',
+      'inLanguage': 'ar',
+      'url': 'https://mybible.oscardevs.com/kids/hymns',
+      'isPartOf': { '@type': 'WebApplication', 'name': 'الكتاب المقدس رفيقي' }
+    }
+  },
+  '/kids/videos': {
+    title: 'قصص الكتاب المقدس للأطفال بالفيديو | العهد القديم والجديد | رفيقي',
+    description: 'قصص الكتاب المقدس للأطفال بالفيديو — آدم وحواء، نوح، يوسف، داود، ميلاد يسوع، القيامة وغيرها. فيديوهات كارتون تعليمية مسيحية آمنة للأطفال.',
+    keywords: ['قصص الكتاب المقدس فيديو', 'قصص أطفال مسيحية', 'كارتون ديني', 'قصص العهد القديم', 'قصص يسوع للأطفال', 'أطفال مسيحيين'],
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      'name': 'قصص الكتاب المقدس للأطفال بالفيديو',
+      'description': 'قصص الكتاب المقدس للأطفال من العهدين القديم والجديد بالفيديو',
+      'inLanguage': 'ar',
+      'url': 'https://mybible.oscardevs.com/kids/videos',
+      'isPartOf': { '@type': 'WebApplication', 'name': 'الكتاب المقدس رفيقي' }
+    }
+  },
+  '/kids/stories': {
+    title: 'قصص مصورة للأطفال من الكتاب المقدس | رفيقي',
+    description: 'قصص مصورة تفاعلية من الكتاب المقدس للأطفال مع صور ملونة وصوت — قصة موسى، يوسف، داود، يونان، نوح، ميلاد يسوع وغيرها.',
+    keywords: ['قصص مصورة أطفال', 'كتاب مقدس أطفال', 'قصص مسيحية مصورة', 'تعليم ديني أطفال', 'قصص الأنبياء للأطفال'],
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      'name': 'قصص مصورة للأطفال من الكتاب المقدس',
+      'description': 'قصص مصورة تفاعلية من الكتاب المقدس للأطفال',
+      'inLanguage': 'ar',
+      'url': 'https://mybible.oscardevs.com/kids/stories',
+      'isPartOf': { '@type': 'WebApplication', 'name': 'الكتاب المقدس رفيقي' }
+    }
+  },
   '/emotions': {
     title: 'التغذية الروحية | آيات الكتاب المقدس حسب مشاعرك',
     description: 'اعثر على آيات الكتاب المقدس التي تناسب مشاعرك. آيات للتعزية عند الحزن، القوة عند الخوف، والأمل عند اليأس.',
@@ -226,7 +268,7 @@ export function getBibleBookSEO(bookName: string, chaptersCount: number): PageSE
       inLanguage: 'ar',
       about: 'الكتاب المقدس',
       numberOfPages: chaptersCount,
-      url: `https://mybible.oscardevs.com/bible?book=${encodeURIComponent(bookName)}`,
+      url: `https://mybible.oscardevs.com/bible/${encodeURIComponent(bookName)}`,
       publisher: {
         '@type': 'Organization',
         name: 'الكتاب المقدس رفيقي',
@@ -247,7 +289,7 @@ export function getBibleChapterSEO(bookName: string, chapter: number): PageSEO {
       name: `تفسير ${bookName} الإصحاح ${chapter}`,
       description: `اقرأ تفسير ${bookName} الإصحاح ${chapter} كامل مع إمكانية الاستماع والمشاركة.`,
       inLanguage: 'ar',
-      url: `https://mybible.oscardevs.com/bible?book=${encodeURIComponent(bookName)}&chapter=${chapter}`,
+      url: `https://mybible.oscardevs.com/bible/${encodeURIComponent(bookName)}/${chapter}`,
       isPartOf: {
         '@type': 'Book',
         name: bookName,

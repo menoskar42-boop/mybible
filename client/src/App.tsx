@@ -60,11 +60,15 @@ function Router() {
       <Route path="/liturgy-control/:slot" component={LiturgyControl} />
       <Route path="/liturgy-control" component={LiturgyControl} />
       <Route path="/" component={Home} />
+      <Route path="/bible/:book/:chapter/:view" component={Bible} />
       <Route path="/bible/:book/:chapter" component={Bible} />
       <Route path="/bible/:book" component={Bible} />
       <Route path="/bible" component={Bible} />
       <Route path="/plans" component={Plans} />
       <Route path="/emotions" component={Emotions} />
+      <Route path="/kids/hymns" component={Kids} />
+      <Route path="/kids/videos" component={Kids} />
+      <Route path="/kids/stories" component={Kids} />
       <Route path="/kids" component={Kids} />
       <Route path="/highlights" component={Highlights} />
       <Route path="/premium" component={Premium} />
