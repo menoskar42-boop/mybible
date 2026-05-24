@@ -289,6 +289,21 @@ function buildStaticPageSnapshot(path: string): string | null {
       desc: "قصص الكتاب المقدس المصورة للأطفال مع فيديوهات تعليمية. محتوى آمن ومناسب للأعمار الصغيرة.",
       schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "قصص الكتاب المقدس للأطفال", "inLanguage": "ar" }
     },
+    "/kids/hymns": {
+      title: "ترانيم الأطفال المسيحية | رفيقي",
+      desc: "أكبر مكتبة ترانيم أطفال مسيحية قبطية بالعربية - TaranemToon والحياة الأفضل",
+      schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "ترانيم الأطفال المسيحية", "inLanguage": "ar" }
+    },
+    "/kids/videos": {
+      title: "قصص الكتاب المقدس للأطفال بالفيديو | رفيقي",
+      desc: "قصص العهدين القديم والجديد بالفيديو للأطفال. تعليم ديني مناسب للأعمار الصغيرة.",
+      schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "قصص الكتاب المقدس بالفيديو", "inLanguage": "ar" }
+    },
+    "/kids/stories": {
+      title: "قصص مصورة للأطفال | رفيقي",
+      desc: "قصص مصورة تفاعلية من الكتاب المقدس للأطفال مع صور ملونة وصوت.",
+      schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "قصص مصورة للأطفال", "inLanguage": "ar" }
+    },
     "/search": {
       title: "البحث في الكتاب المقدس | بحث ذكي في أكثر من 31,000 آية",
       desc: "ابحث في نصوص الكتاب المقدس كاملة. بحث ذكي في أكثر من 31,000 آية باللغة العربية.",

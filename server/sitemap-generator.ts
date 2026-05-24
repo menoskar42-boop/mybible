@@ -115,8 +115,10 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
     { path: "/bible",    changefreq: "weekly",  priority: "0.9" },
     { path: "/plans",    changefreq: "weekly",  priority: "0.7" },
     { path: "/emotions", changefreq: "weekly",  priority: "0.8" },
-    { path: "/kids",     changefreq: "weekly",  priority: "0.7" },
-    { path: "/kids/stories", changefreq: "weekly", priority: "0.7" },
+    { path: "/kids",          changefreq: "weekly",  priority: "0.7" },
+    { path: "/kids/hymns",   changefreq: "weekly",  priority: "0.8" },
+    { path: "/kids/videos",  changefreq: "weekly",  priority: "0.7" },
+    { path: "/kids/stories", changefreq: "weekly",  priority: "0.7" },
     { path: "/search",   changefreq: "weekly",  priority: "0.7" },
     { path: "/about",    changefreq: "monthly", priority: "0.6" },
     { path: "/contact",  changefreq: "monthly", priority: "0.5" },
@@ -350,6 +352,8 @@ Allow: /emotions
 Allow: /emotions/
 Allow: /kids
 Allow: /kids/
+Allow: /kids/hymns
+Allow: /kids/videos
 Allow: /kids/stories
 Allow: /kids/story/
 Allow: /search
