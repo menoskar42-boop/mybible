@@ -620,3 +620,14 @@ export const pageEngagement = pgTable("page_engagement", {
 export const insertPageEngagementSchema = createInsertSchema(pageEngagement).omit({ id: true, createdAt: true });
 export type PageEngagement = typeof pageEngagement.$inferSelect;
 export type InsertPageEngagement = z.infer<typeof insertPageEngagementSchema>;
+
+// Web Push Subscriptions
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;

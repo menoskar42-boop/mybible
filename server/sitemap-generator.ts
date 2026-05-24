@@ -203,7 +203,7 @@ export async function sitemapBibleHandler(_req: Request, res: Response) {
     sendXml(res, xml);
   } catch (err) {
     console.error("[sitemap-bible] Error:", err);
-    res.status(500).send("Error generating bible sitemap");
+    sendXml(res, wrapUrlset([]));
   }
 }
 
@@ -312,7 +312,7 @@ export async function sitemapListenHandler(_req: Request, res: Response) {
     sendXml(res, xml);
   } catch (err) {
     console.error("[sitemap-listen] Error:", err);
-    res.status(500).send("Error generating listen sitemap");
+    sendXml(res, wrapUrlset([]));
   }
 }
 
