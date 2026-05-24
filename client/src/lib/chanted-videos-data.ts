@@ -1,5 +1,5 @@
 // فيديوهات المزامير والإصحاحات المرتلة — يُضاف إليها تدريجياً
-const chanteVideos: Record<string, Record<number, string>> = {
+export const chanteVideos: Record<string, Record<number, string>> = {
   "المزامير": {
     1:   "iUssc_nQQ5s",
     2:   "mJVnJ_f91fQ",

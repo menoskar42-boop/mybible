@@ -5,6 +5,9 @@ import { agpeyaHoursFull } from "../client/src/lib/agpeya-content";
 import { synaxariumMonths } from "../client/src/lib/synaxarium-content";
 import { liturgies } from "../client/src/lib/liturgy-content";
 import { kidsBibleVideos } from "../client/src/lib/kids-bible-videos-data";
+import { videoLinks } from "../client/src/lib/video-links-data";
+import { chanteVideos } from "../client/src/lib/chanted-videos-data";
+import { popeShenoudaQAVideos } from "../client/src/lib/orthodox-data";
 
 const SITE = "https://mybible.oscardevs.com";
 const CACHE_TTL = 1 * 60 * 60 * 1000;
@@ -164,13 +167,52 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
     urls.push(buildUrl(`${SITE}/kids/story/${storyId}`, "weekly", "0.7", today));
   }
 
-  // Individual video pages — each has full VideoObject schema for Google Video Search
+  // ── Individual video pages — full VideoObject schema for Google Video Search ──
   const seenVideoIds = new Set<string>();
+
+  // Kids Bible videos & hymns
   for (const video of kidsBibleVideos) {
     if (!seenVideoIds.has(video.youtubeId)) {
       seenVideoIds.add(video.youtubeId);
       const priority = video.category === "ترانيم للأطفال" ? "0.7" : "0.8";
       urls.push(buildUrl(`${SITE}/video/${video.youtubeId}`, "monthly", priority, today));
+    }
+  }
+
+  // Bible chapter audio/video (استمع للإصحاح) — ~1000+ videos
+  for (const chapters of Object.values(videoLinks)) {
+    for (const youtubeId of Object.values(chapters)) {
+      if (youtubeId && !seenVideoIds.has(youtubeId)) {
+        seenVideoIds.add(youtubeId);
+        urls.push(buildUrl(`${SITE}/video/${youtubeId}`, "monthly", "0.8", today));
+      }
+    }
+  }
+
+  // Chanted Bible videos (ترتيل المزامير والإصحاحات)
+  for (const chapters of Object.values(chanteVideos)) {
+    for (const youtubeId of Object.values(chapters)) {
+      if (youtubeId && !seenVideoIds.has(youtubeId)) {
+        seenVideoIds.add(youtubeId);
+        urls.push(buildUrl(`${SITE}/video/${youtubeId}`, "monthly", "0.8", today));
+      }
+    }
+  }
+
+  // Pope Shenouda QA videos (تاب أسئلة البابا شنودة)
+  for (const v of popeShenoudaQAVideos) {
+    if (v.videoId && !seenVideoIds.has(v.videoId)) {
+      seenVideoIds.add(v.videoId);
+      urls.push(buildUrl(`${SITE}/video/${v.videoId}`, "monthly", "0.8", today));
+    }
+  }
+
+  // Agpeya hour videos (أجبية — ساعات الصلاة السبع)
+  const agpeyaHourVideos = ['GHdBAQSvJKE','S0j7u_ofox0','gLF5RdzeUiU','PaYAUeyPcxk','HLvvnxMA_JI','N6sfbh3bmMk','YHtnFevTKx0'];
+  for (const youtubeId of agpeyaHourVideos) {
+    if (!seenVideoIds.has(youtubeId)) {
+      seenVideoIds.add(youtubeId);
+      urls.push(buildUrl(`${SITE}/video/${youtubeId}`, "monthly", "0.9", today));
     }
   }
 
@@ -287,17 +329,39 @@ export async function sitemapTopicsHandler(_req: Request, res: Response) {
   sendXml(res, xml);
 }
 
-// ── sitemap-videos.xml: video pages ──────────────────────────────────────────
+// ── sitemap-videos.xml: all video pages (Bible, Kids, Agpeya, Pope QA) ────────
 export function sitemapVideosHandler(_req: Request, res: Response) {
-  const cacheKey = "videos";
+  const cacheKey = "videos-v2";
   const cached = getCache(cacheKey);
   if (cached) return sendXml(res, cached);
 
   const today = new Date().toISOString().split("T")[0];
-  const videoEntries = getAllVideoSeoEntries();
-  const urls = videoEntries.map(v =>
-    buildUrl(`${SITE}/video/${v.youtubeId}`, "monthly", "0.8", today)
-  );
+  const seen = new Set<string>();
+  const urls: string[] = [];
+
+  const add = (id: string, priority = "0.8") => {
+    if (id && !seen.has(id)) { seen.add(id); urls.push(buildUrl(`${SITE}/video/${id}`, "monthly", priority, today)); }
+  };
+
+  // Video SEO entries (existing)
+  for (const v of getAllVideoSeoEntries()) add(v.youtubeId);
+
+  // Bible chapter videos (استمع للإصحاح)
+  for (const chapters of Object.values(videoLinks))
+    for (const id of Object.values(chapters)) add(id);
+
+  // Chanted Bible (ترتيل)
+  for (const chapters of Object.values(chanteVideos))
+    for (const id of Object.values(chapters)) add(id);
+
+  // Kids videos & hymns
+  for (const v of kidsBibleVideos) add(v.youtubeId, v.category === "ترانيم للأطفال" ? "0.7" : "0.8");
+
+  // Pope Shenouda QA
+  for (const v of popeShenoudaQAVideos) add(v.videoId);
+
+  // Agpeya hours
+  for (const id of ['GHdBAQSvJKE','S0j7u_ofox0','gLF5RdzeUiU','PaYAUeyPcxk','HLvvnxMA_JI','N6sfbh3bmMk','YHtnFevTKx0']) add(id, "0.9");
 
   const xml = wrapUrlset(urls);
   setCache(cacheKey, xml);
