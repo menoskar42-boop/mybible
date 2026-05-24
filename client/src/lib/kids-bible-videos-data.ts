@@ -516,6 +516,20 @@ const kidsHymns: KidsVideo[] = [
     keywords: ["ترنيمة", "عيد ميلاد", "ميلاد", "عيد", "أطفال", "أغنية"],
     category: "ترانيم للأطفال",
   },
+  {
+    id: "hymn-rehla-gamila",
+    title: "رحلة جميلة ويا يسوع",
+    youtubeId: "jma8AsQb8aM",
+    keywords: ["ترنيمة", "رحلة جميلة", "يسوع", "أطفال", "فرح"],
+    category: "ترانيم للأطفال",
+  },
+  {
+    id: "hymn-fagr-yeshashsesh",
+    title: "فجر يشقشق",
+    youtubeId: "LcB2xjK5rYU",
+    keywords: ["ترنيمة", "فجر يشقشق", "فجر", "صباح", "أطفال"],
+    category: "ترانيم للأطفال",
+  },
 ];
 
 // Combined list: hymns first, then stories/videos
