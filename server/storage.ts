@@ -179,6 +179,11 @@ export interface IStorage {
   // Churches
   getApprovedChurches(): Promise<schema.Church[]>;
   getChurchById(id: number): Promise<schema.Church | undefined>;
+
+  // Push Subscriptions
+  getAllPushSubscriptions(): Promise<schema.PushSubscription[]>;
+  savePushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void>;
+  deletePushSubscription(endpoint: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1217,6 +1222,21 @@ export class DatabaseStorage implements IStorage {
   async getChurchById(id: number): Promise<schema.Church | undefined> {
     const [church] = await this.db.select().from(schema.churches).where(eq(schema.churches.id, id));
     return church;
+  }
+
+  async getAllPushSubscriptions(): Promise<schema.PushSubscription[]> {
+    return this.db.select().from(schema.pushSubscriptions);
+  }
+
+  async savePushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void> {
+    await this.db.insert(schema.pushSubscriptions)
+      .values({ endpoint, p256dh, auth })
+      .onConflictDoNothing();
+  }
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    await this.db.delete(schema.pushSubscriptions)
+      .where(eq(schema.pushSubscriptions.endpoint, endpoint));
   }
 }
 

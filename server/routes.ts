@@ -805,6 +805,37 @@ export async function registerRoutes(
     }
   });
 
+  // Push notification endpoints
+  app.get('/api/push/vapid-key', (_req, res) => {
+    const key = process.env.VAPID_PUBLIC_KEY;
+    if (!key) return res.status(503).json({ message: 'Push notifications not configured' });
+    res.json({ publicKey: key });
+  });
+
+  app.post('/api/push/subscribe', async (req, res) => {
+    try {
+      const { endpoint, keys } = req.body as { endpoint: string; keys: { p256dh: string; auth: string } };
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ message: 'Invalid subscription data' });
+      }
+      await storage.savePushSubscription(endpoint, keys.p256dh, keys.auth);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to save subscription' });
+    }
+  });
+
+  app.delete('/api/push/unsubscribe', async (req, res) => {
+    try {
+      const { endpoint } = req.body as { endpoint: string };
+      if (!endpoint) return res.status(400).json({ message: 'Missing endpoint' });
+      await storage.deletePushSubscription(endpoint);
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to remove subscription' });
+    }
+  });
+
   app.get('/api/reading-plans', async (_req, res) => {
     try {
       const plans = await storage.getAllReadingPlans();

@@ -12,6 +12,7 @@ import { autoSeedIfNeeded } from "./auto-seed";
 import { botSnapshotMiddleware } from "./bot-snapshot";
 import { sitemapHandler, robotsHandler, sitemapBibleHandler, sitemapOrthodoxHandler, sitemapPagesHandler, sitemapTopicsHandler, sitemapVideosHandler, sitemapListenHandler, sitemapChurchesHandler, sitemapKholagyHandler, sitemapNewsHandler } from "./sitemap-generator";
 import { ogImageHandler } from "./og-image";
+import { setupVapid, scheduleDailyNotification } from "./push-notifications";
 
 const app = express();
 const httpServer = createServer(app);
@@ -134,6 +135,9 @@ app.use((req, res, next) => {
   app.get("/sitemap-news.xml", sitemapNewsHandler);
   app.get("/api/og-image", ogImageHandler);
   app.get("/robots.txt", robotsHandler);
+
+  setupVapid();
+  scheduleDailyNotification();
 
   app.get("/llms.txt", (_req, res) => {
     res.set("Content-Type", "text/plain; charset=utf-8");

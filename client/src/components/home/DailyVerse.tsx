@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Share2, Bookmark, RefreshCw, Download, ImageIcon } from 'lucide-react';
+import { Share2, Bookmark, RefreshCw, Download, ImageIcon, Bell, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
@@ -10,9 +10,61 @@ import { toast } from 'sonner';
 import { getSavedVerses, saveVerse, isVerseSaved } from '@/lib/saved-verses';
 import { downloadVerseImage, shareVerseImage } from '@/lib/verse-image';
 
+type NotifState = 'unsupported' | 'idle' | 'loading' | 'subscribed';
+
+async function registerPushSubscription(): Promise<boolean> {
+  try {
+    const keyRes = await fetch('/api/push/vapid-key');
+    if (!keyRes.ok) return false;
+    const { publicKey } = await keyRes.json();
+
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(existing.toJSON()),
+      });
+      return true;
+    }
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: publicKey,
+    });
+
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub.toJSON()),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function unregisterPushSubscription(): Promise<void> {
+  const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+  if (!reg) return;
+  const sub = await reg.pushManager.getSubscription();
+  if (sub) {
+    await fetch('/api/push/unsubscribe', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    });
+    await sub.unsubscribe();
+  }
+}
+
 export function DailyVerse() {
   const [saved, setSaved] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
+  const [notifState, setNotifState] = useState<NotifState>('idle');
 
   const { data: dailyVerse, isLoading } = useQuery({
     queryKey: ['dailyVerse'],
@@ -25,6 +77,48 @@ export function DailyVerse() {
       setSaved(isVerseSaved(ref));
     }
   }, [dailyVerse]);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setNotifState('unsupported');
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      setNotifState('idle');
+      return;
+    }
+    navigator.serviceWorker.getRegistration('/sw.js').then(reg => {
+      if (!reg) return;
+      reg.pushManager.getSubscription().then(sub => {
+        if (sub) setNotifState('subscribed');
+      });
+    });
+  }, []);
+
+  const handleNotification = async () => {
+    if (notifState === 'subscribed') {
+      setNotifState('loading');
+      await unregisterPushSubscription();
+      setNotifState('idle');
+      toast.success('تم إلغاء الإشعارات اليومية');
+      return;
+    }
+    setNotifState('loading');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      setNotifState('idle');
+      toast.error('لم يتم منح إذن الإشعارات');
+      return;
+    }
+    const ok = await registerPushSubscription();
+    if (ok) {
+      setNotifState('subscribed');
+      toast.success('سيصلك إشعار بآية اليوم كل صباح الساعة 8 ✓');
+    } else {
+      setNotifState('idle');
+      toast.error('حدث خطأ أثناء تفعيل الإشعارات');
+    }
+  };
 
   const handleShare = async () => {
     if (!dailyVerse) return;
@@ -209,6 +303,25 @@ export function DailyVerse() {
               مشاركة كصورة
             </Button>
           </div>
+
+          {notifState !== 'unsupported' && (
+            <div className="flex justify-center pt-3">
+              <Button
+                variant={notifState === 'subscribed' ? 'default' : 'outline'}
+                size="sm"
+                onClick={handleNotification}
+                disabled={notifState === 'loading'}
+                className={cn(notifState === 'subscribed' && 'bg-green-600 hover:bg-green-700 text-white')}
+                data-testid="button-toggle-notifications"
+              >
+                {notifState === 'subscribed' ? (
+                  <><BellOff className="w-4 h-4 ml-1" />إلغاء إشعار آية اليوم</>
+                ) : (
+                  <><Bell className="w-4 h-4 ml-1" />إشعار آية اليوم يومياً</>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
     </motion.div>
