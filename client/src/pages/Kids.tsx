@@ -775,6 +775,16 @@ export default function Kids() {
                 <DialogTitle className="text-right font-display text-xl flex-1" data-testid="text-video-title">
                   {selectedVideo?.title}
                 </DialogTitle>
+                {selectedVideo && (
+                  <button
+                    onClick={() => toggle(selectedVideo.id)}
+                    className="shrink-0 p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                    data-testid="button-favorite-video"
+                    aria-label={isFavorite(selectedVideo.id) ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+                  >
+                    <Heart className={`w-6 h-6 transition-all ${isFavorite(selectedVideo.id) ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-400'}`} />
+                  </button>
+                )}
               </div>
             </DialogHeader>
             <div className="w-full">
