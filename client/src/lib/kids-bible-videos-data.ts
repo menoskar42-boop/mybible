@@ -384,27 +384,6 @@ const kidsHymns: KidsVideo[] = [
     category: "ترانيم للأطفال",
   },
   {
-    id: "hymn-his-name-is-jesus",
-    title: "اسمه يسوع",
-    youtubeId: "Fb2J_KZCTvI",
-    keywords: ["ترنيمة", "اسمه يسوع", "اسم", "الحياة الأفضل", "تسبيح"],
-    category: "ترانيم للأطفال",
-  },
-  {
-    id: "hymn-great-is-our-lord",
-    title: "عظيم هو ربنا",
-    youtubeId: "GeHDDPRsmj8",
-    keywords: ["ترنيمة", "عظيم هو ربنا", "تعبد", "الحياة الأفضل", "تسبيح"],
-    category: "ترانيم للأطفال",
-  },
-  {
-    id: "hymn-holy-spirit",
-    title: "روح الله القدوس",
-    youtubeId: "xIvb7i50KEw",
-    keywords: ["ترنيمة", "روح القدس", "الله القدوس", "الحياة الأفضل", "عبادة"],
-    category: "ترانيم للأطفال",
-  },
-  {
     id: "hymn-ana-farhan",
     title: "أنا فرحان (بالحركات)",
     youtubeId: "RHD08VjiooI",
