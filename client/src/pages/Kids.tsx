@@ -245,7 +245,7 @@ export default function Kids() {
   const activeTab = location.includes('/kids/hymns') ? 'hymns'
     : location.includes('/kids/videos') ? 'videos'
     : location.includes('/kids/stories') ? 'stories'
-    : 'hymns';
+    : 'videos';
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
   const [videoSearch, setVideoSearch] = useState('');
@@ -360,13 +360,13 @@ export default function Kids() {
 
         <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
           <TabsList className="w-full grid grid-cols-3 mb-6 h-14">
-            <TabsTrigger value="hymns" className="text-base py-3" data-testid="tab-hymns">
-              <Music className="w-5 h-5 ml-2" />
-              ترانيم
-            </TabsTrigger>
             <TabsTrigger value="videos" className="text-base py-3" data-testid="tab-videos">
               <Video className="w-5 h-5 ml-2" />
               قصص الكتاب
+            </TabsTrigger>
+            <TabsTrigger value="hymns" className="text-base py-3" data-testid="tab-hymns">
+              <Music className="w-5 h-5 ml-2" />
+              ترانيم
             </TabsTrigger>
             <TabsTrigger value="stories" className="text-base py-3" data-testid="tab-stories">
               <BookOpen className="w-5 h-5 ml-2" />
@@ -775,6 +775,16 @@ export default function Kids() {
                 <DialogTitle className="text-right font-display text-xl flex-1" data-testid="text-video-title">
                   {selectedVideo?.title}
                 </DialogTitle>
+                {selectedVideo && (
+                  <button
+                    onClick={() => toggle(selectedVideo.id)}
+                    className="shrink-0 p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                    data-testid="button-favorite-video"
+                    aria-label={isFavorite(selectedVideo.id) ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+                  >
+                    <Heart className={`w-6 h-6 transition-all ${isFavorite(selectedVideo.id) ? 'fill-red-500 text-red-500 scale-110' : 'text-gray-400'}`} />
+                  </button>
+                )}
               </div>
             </DialogHeader>
             <div className="w-full">
