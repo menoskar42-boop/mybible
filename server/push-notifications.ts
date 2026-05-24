@@ -19,7 +19,7 @@ export function setupVapid() {
     webpush.setVapidDetails(email, safePublicKey, safePrivateKey);
     console.log("[push] VAPID initialized");
   } catch (err) {
-    console.error("[push] Invalid VAPID keys — push notifications disabled:", err);
+    console.warn("[push] VAPID initialization failed — push notifications disabled:", err);
   }
 }
 

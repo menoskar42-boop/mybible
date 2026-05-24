@@ -530,6 +530,13 @@ const kidsHymns: KidsVideo[] = [
     keywords: ["ترنيمة", "حبة قش", "كوجي", "كارتون", "تواضع"],
     category: "ترانيم للأطفال",
   },
+  {
+    id: "hymn-eid-milad",
+    title: "عيد ميلاد",
+    youtubeId: "w6tJXV-wWOM",
+    keywords: ["ترنيمة", "عيد ميلاد", "ميلاد", "عيد", "أطفال", "أغنية"],
+    category: "ترانيم للأطفال",
+  },
 ];
 
 // Combined list: hymns first, then stories/videos
