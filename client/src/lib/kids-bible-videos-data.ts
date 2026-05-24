@@ -8,6 +8,20 @@ export interface KidsVideo {
 
 const kidsStoriesVideos: KidsVideo[] = [
   {
+    id: "creation-beginning",
+    title: "قصة بداية الخليقة",
+    youtubeId: "CP6zi8IfnKg",
+    keywords: ["الخليقة", "البداية", "الله", "السماء", "الأرض"],
+    category: "قصص العهد القديم"
+  },
+  {
+    id: "jonah-prophet-2",
+    title: "قصة يونان النبي",
+    youtubeId: "cBc1JumiGo0",
+    keywords: ["يونان", "الحوت", "نينوى", "التوبة", "الطاعة"],
+    category: "قصص العهد القديم"
+  },
+  {
     id: "adam-eve",
     title: "حكاية آدم وحواء وبداية الخليقة",
     youtubeId: "R2qW0MJlbEI",
@@ -99,6 +113,13 @@ const kidsStoriesVideos: KidsVideo[] = [
     category: "سلسلة حكايات دانيال النبي"
   },
   {
+    id: "susanna-2",
+    title: "قصة سوسنة العفيفة",
+    youtubeId: "DoMNbKYnUMo",
+    keywords: ["سوسنة", "العفيفة", "الطهارة", "الحق", "دانيال"],
+    category: "سلسلة حكايات دانيال النبي"
+  },
+  {
     id: "susanna",
     title: "حكاية سوسنة العفيفة (الجزء الخامس)",
     youtubeId: "89aKXVr98D4",
@@ -166,6 +187,34 @@ const kidsStoriesVideos: KidsVideo[] = [
     title: "قصة زكّا العشار - اتغير لما شاف يسوع",
     youtubeId: "bnCtTi9zuo0",
     keywords: ["زكا", "زكّا", "العشار", "يسوع", "التوبة", "التغيير", "الخلاص", "كرتون"],
+    category: "حكايات من العهد الجديد وأمثال السيد المسيح"
+  },
+  {
+    id: "prodigal-son-2",
+    title: "قصة الابن الضال",
+    youtubeId: "B1Z19qk7Qm4",
+    keywords: ["الابن الضال", "التوبة", "الغفران", "الأب", "العودة"],
+    category: "حكايات من العهد الجديد وأمثال السيد المسيح"
+  },
+  {
+    id: "paul-mission-1",
+    title: "قصة رحلة بولس التبشيرية الأولى",
+    youtubeId: "WEDYjRXlYpI",
+    keywords: ["بولس", "التبشير", "الرسول", "الإيمان", "الكنيسة"],
+    category: "حكايات من العهد الجديد وأمثال السيد المسيح"
+  },
+  {
+    id: "paul-mission-2",
+    title: "قصة رحلة بولس التبشيرية الثانية",
+    youtubeId: "L_3Gae3hopc",
+    keywords: ["بولس", "التبشير", "الرسول", "الإيمان", "الكنيسة"],
+    category: "حكايات من العهد الجديد وأمثال السيد المسيح"
+  },
+  {
+    id: "tabitha",
+    title: "قصة طابيثا",
+    youtubeId: "nPHDyMHS_ls",
+    keywords: ["طابيثا", "بطرس", "القيامة", "المعجزة", "الإيمان"],
     category: "حكايات من العهد الجديد وأمثال السيد المسيح"
   },
   {
