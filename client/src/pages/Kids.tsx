@@ -245,7 +245,7 @@ export default function Kids() {
   const activeTab = location.includes('/kids/hymns') ? 'hymns'
     : location.includes('/kids/videos') ? 'videos'
     : location.includes('/kids/stories') ? 'stories'
-    : 'hymns';
+    : 'videos';
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
   const [videoSearch, setVideoSearch] = useState('');
@@ -360,13 +360,13 @@ export default function Kids() {
 
         <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
           <TabsList className="w-full grid grid-cols-3 mb-6 h-14">
-            <TabsTrigger value="hymns" className="text-base py-3" data-testid="tab-hymns">
-              <Music className="w-5 h-5 ml-2" />
-              ترانيم
-            </TabsTrigger>
             <TabsTrigger value="videos" className="text-base py-3" data-testid="tab-videos">
               <Video className="w-5 h-5 ml-2" />
               قصص الكتاب
+            </TabsTrigger>
+            <TabsTrigger value="hymns" className="text-base py-3" data-testid="tab-hymns">
+              <Music className="w-5 h-5 ml-2" />
+              ترانيم
             </TabsTrigger>
             <TabsTrigger value="stories" className="text-base py-3" data-testid="tab-stories">
               <BookOpen className="w-5 h-5 ml-2" />
