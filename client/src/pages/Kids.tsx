@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack } from 'lucide-react';
+import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,9 +13,23 @@ import { Input } from '@/components/ui/input';
 import { childrenStoriesData, type ChildrenStory } from '@/lib/children-stories-data';
 import { YouTubeCard } from '@/components/YouTubeCard';
 import { getStoryAudioFile } from '@/lib/stories-audio-mapping';
-import { kidsBibleVideos, videoCategories, getYouTubeThumbnail, searchVideos, kidsHymnsPlaylist, type KidsVideo } from '@/lib/kids-bible-videos-data';
+import { kidsBibleVideos, videoCategories, getYouTubeThumbnail, searchVideos, kidsHymnsPlaylist, getHymnCategory, hymnCategories, type KidsVideo } from '@/lib/kids-bible-videos-data';
 import { SEOHead } from '@/components/SEOHead';
 import { getVideoSchema } from '@/lib/seo-config';
+
+function useFavoriteHymns() {
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('favorite-hymns') || '[]'); } catch { return []; }
+  });
+  const toggle = (id: string) => {
+    setFavorites(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem('favorite-hymns', JSON.stringify(next));
+      return next;
+    });
+  };
+  return { favorites, toggle, isFavorite: (id: string) => favorites.includes(id) };
+}
 
 function ImageSlider({ images, title }: { images: string[]; title: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -226,11 +241,19 @@ function StoryAudioPlayer({ storyId }: { storyId: number }) {
 export default function Kids() {
   usePageTracker('/kids');
   useExitTracker('/kids');
+  const [location, navigate] = useLocation();
+  const activeTab = location.includes('/kids/hymns') ? 'hymns'
+    : location.includes('/kids/videos') ? 'videos'
+    : location.includes('/kids/stories') ? 'stories'
+    : 'hymns';
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
   const [videoSearch, setVideoSearch] = useState('');
+  const [hymnSearch, setHymnSearch] = useState('');
+  const [hymnCat, setHymnCat] = useState('الكل');
   const [playlistActive, setPlaylistActive] = useState(false);
   const [playlistIndex, setPlaylistIndex] = useState(0);
+  const { favorites, toggle, isFavorite } = useFavoriteHymns();
 
   const openVideo = (video: KidsVideo, inPlaylist = false) => {
     setSelectedVideo(video);
@@ -270,13 +293,30 @@ export default function Kids() {
 
   const story = childrenStoriesData.find(s => s.id === selectedStory);
   const filteredVideos = searchVideos(videoSearch);
-  
-  const videoSchema = getVideoSchema(kidsBibleVideos.map(v => ({
-    id: v.id,
-    title: v.title,
-    youtubeId: v.youtubeId,
-    description: v.title
-  })));
+
+  const kidsHymns = kidsBibleVideos.filter(v => v.category === "ترانيم للأطفال");
+  const filteredHymns = kidsHymns.filter(h => {
+    const matchesCat = hymnCat === 'الكل' || getHymnCategory(h) === hymnCat;
+    const lowerSearch = hymnSearch.toLowerCase();
+    const matchesSearch = !hymnSearch.trim() || h.title.toLowerCase().includes(lowerSearch) || h.keywords.some(kw => kw.toLowerCase().includes(lowerSearch));
+    return matchesCat && matchesSearch;
+  });
+  const favoriteHymns = kidsHymns.filter(h => isFavorite(h.id));
+
+  const startHymnsPlaylist = () => {
+    setPlaylistIndex(0);
+    setSelectedVideo(filteredHymns[0]);
+    setPlaylistActive(true);
+  };
+
+  const videoSchema = getVideoSchema(
+    (activeTab === 'hymns' ? kidsHymns : kidsBibleVideos).map(v => ({
+      id: v.id,
+      title: v.title,
+      youtubeId: v.youtubeId,
+      description: v.title
+    }))
+  );
 
   const getNextStory = () => {
     if (!story) return;
@@ -318,11 +358,15 @@ export default function Kids() {
           </div>
         </div>
 
-        <Tabs defaultValue="videos" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 mb-6 h-14">
+        <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
+          <TabsList className="w-full grid grid-cols-3 mb-6 h-14">
+            <TabsTrigger value="hymns" className="text-base py-3" data-testid="tab-hymns">
+              <Music className="w-5 h-5 ml-2" />
+              ترانيم
+            </TabsTrigger>
             <TabsTrigger value="videos" className="text-base py-3" data-testid="tab-videos">
               <Video className="w-5 h-5 ml-2" />
-              فيديوهات
+              قصص الكتاب
             </TabsTrigger>
             <TabsTrigger value="stories" className="text-base py-3" data-testid="tab-stories">
               <BookOpen className="w-5 h-5 ml-2" />

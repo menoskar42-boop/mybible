@@ -1637,6 +1637,40 @@ export function getYouTubeThumbnail(youtubeId: string): string {
   return `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`;
 }
 
+const HYMN_CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
+  { category: "ترانيم العذراء", keywords: ["العذراء", "عدرا", "ماما العدرا", "مريم", "طوباكى", "توتة"] },
+  { category: "ترانيم النيروز", keywords: ["النيروز", "نيروز"] },
+  { category: "ترانيم القيامة", keywords: ["القيامة", "قيامة", "الفصح"] },
+  { category: "صوم الرسل", keywords: ["الرسل", "كارز", "٧٠ كارز", "يا رسل"] },
+  { category: "ترانيم الصوم", keywords: ["الصوم", "صوم"] },
+  { category: "قصص الأنبياء", keywords: ["نوح", "يونان", "داود", "موسى", "إيليا", "يوسف", "دانيال", "صموئيل", "شمشون", "راعوث", "حنة"] },
+  { category: "شهداء وقديسون", keywords: ["مارجرجس", "دميانة", "فيلومينا", "شهداء", "قديسين"] },
+  { category: "سلوكيات وقيم", keywords: ["سلوكيات", "تسامح", "نظام", "تسبح"] },
+];
+
+export function getHymnCategory(hymn: KidsVideo): string {
+  const searchText = (hymn.title + " " + hymn.keywords.join(" ")).toLowerCase();
+  for (const rule of HYMN_CATEGORY_RULES) {
+    if (rule.keywords.some(kw => searchText.includes(kw.toLowerCase()))) {
+      return rule.category;
+    }
+  }
+  return "ترانيم تسبيح وعبادة";
+}
+
+export const hymnCategories = [
+  "الكل",
+  "ترانيم تسبيح وعبادة",
+  "ترانيم العذراء",
+  "ترانيم النيروز",
+  "ترانيم القيامة",
+  "صوم الرسل",
+  "ترانيم الصوم",
+  "قصص الأنبياء",
+  "شهداء وقديسون",
+  "سلوكيات وقيم",
+];
+
 export function searchVideos(query: string): KidsVideo[] {
   if (!query.trim()) return kidsBibleVideos;
   const lowerQuery = query.toLowerCase();

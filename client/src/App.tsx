@@ -65,6 +65,9 @@ function Router() {
       <Route path="/bible" component={Bible} />
       <Route path="/plans" component={Plans} />
       <Route path="/emotions" component={Emotions} />
+      <Route path="/kids/hymns" component={Kids} />
+      <Route path="/kids/videos" component={Kids} />
+      <Route path="/kids/stories" component={Kids} />
       <Route path="/kids" component={Kids} />
       <Route path="/highlights" component={Highlights} />
       <Route path="/premium" component={Premium} />
