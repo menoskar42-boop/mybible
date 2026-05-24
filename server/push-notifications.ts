@@ -12,8 +12,11 @@ export function setupVapid() {
     return;
   }
 
+  const safePublicKey = publicKey.replace(/=+$/, "");
+  const safePrivateKey = privateKey.replace(/=+$/, "");
+
   try {
-    webpush.setVapidDetails(email, publicKey, privateKey);
+    webpush.setVapidDetails(email, safePublicKey, safePrivateKey);
     console.log("[push] VAPID initialized");
   } catch (err) {
     console.error("[push] Invalid VAPID keys — push notifications disabled:", err);

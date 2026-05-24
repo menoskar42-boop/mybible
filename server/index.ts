@@ -15,7 +15,7 @@ import { ogImageHandler } from "./og-image";
 import { setupVapid, scheduleDailyNotification } from "./push-notifications";
 
 const app = express();
-const httpServer = createServer(app);
+const httpServer = createServer({ maxHeaderSize: 65536 }, app);
 
 // Trust the proxy in production (Replit's reverse proxy)
 app.set('trust proxy', 1);
