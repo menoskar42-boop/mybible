@@ -12,6 +12,19 @@ import { downloadVerseImage, shareVerseImage } from '@/lib/verse-image';
 
 type NotifState = 'unsupported' | 'idle' | 'loading' | 'subscribed';
 
+// VAPID public key (base64url string) must be converted to a Uint8Array —
+// Chrome/Firefox/Edge reject a raw string for applicationServerKey.
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 async function registerPushSubscription(): Promise<boolean> {
   try {
     const keyRes = await fetch('/api/push/vapid-key');
@@ -33,7 +46,7 @@ async function registerPushSubscription(): Promise<boolean> {
 
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: publicKey,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
 
     await fetch('/api/push/subscribe', {
