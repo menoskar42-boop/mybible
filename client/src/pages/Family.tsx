@@ -5,6 +5,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { familyVerses, familyPrayers, familyWorshipIdeas } from '@/lib/family-data';
+import FamilyCounseling from '@/components/FamilyCounseling';
 
 const familySEO = {
   title: 'ركن العائلة المسيحية - رفيقي | آيات وصلوات وأفكار للعبادة الأسرية',
@@ -65,6 +66,9 @@ export default function Family() {
               ))}
             </div>
           </section>
+
+          {/* مشورة أسرية */}
+          <FamilyCounseling />
 
           {/* أفكار للعبادة الأسرية */}
           <section>
