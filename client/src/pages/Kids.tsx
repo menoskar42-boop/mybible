@@ -3,8 +3,10 @@ import { useLocation } from 'wouter';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle } from 'lucide-react';
+import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle, Compass, RotateCcw, Users, Printer } from 'lucide-react';
 import { memorizationVerses, kidsBadges, computeEarnedBadges, type AgeGroup } from '@/lib/kids-memorization-data';
+import { interactiveStories, type InteractiveStory } from '@/lib/interactive-stories-data';
+import { weeklyFamilyGuide, parentTips } from '@/lib/kids-parents-data';
 import { getRandomQuiz, QUIZ_LENGTH, type QuizQuestion } from '@/lib/kids-quiz-data';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
@@ -264,6 +266,8 @@ export default function Kids() {
     : location.includes('/kids/stories') ? 'stories'
     : location.includes('/kids/memorize') ? 'memorize'
     : location.includes('/kids/games') ? 'games'
+    : location.includes('/kids/adventures') ? 'adventures'
+    : location.includes('/kids/parents') ? 'parents'
     : 'videos';
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
@@ -286,6 +290,62 @@ export default function Kids() {
   const [totalQuizCorrect, setTotalQuizCorrect] = useState(() => parseInt(localStorage.getItem('quiz-total-correct') || '0'));
   const [hadPerfectQuiz, setHadPerfectQuiz] = useState(() => localStorage.getItem('quiz-had-perfect') === 'true');
   const earnedBadges = computeEarnedBadges(memorized, totalQuizCorrect, hadPerfectQuiz);
+
+  // ===== محرك القصص التفاعلية (المغامرات) =====
+  const [adventure, setAdventure] = useState<InteractiveStory | null>(null);
+  const [advNodeId, setAdvNodeId] = useState<string>('');
+  const [advPhase, setAdvPhase] = useState<'story' | 'questions' | 'done'>('story');
+  const [advQ, setAdvQ] = useState(0);
+  const [advAnswer, setAdvAnswer] = useState<number | null>(null);
+  const [advScore, setAdvScore] = useState(0);
+
+  const startAdventure = (story: InteractiveStory) => {
+    setAdventure(story);
+    setAdvNodeId(story.startNode);
+    setAdvPhase('story');
+    setAdvQ(0);
+    setAdvAnswer(null);
+    setAdvScore(0);
+  };
+
+  const exitAdventure = () => {
+    setAdventure(null);
+    setAdvNodeId('');
+    setAdvPhase('story');
+  };
+
+  const goToNode = (nodeId: string | undefined) => {
+    if (!adventure) return;
+    if (!nodeId) {
+      setAdvPhase('questions');
+      setAdvQ(0);
+      setAdvAnswer(null);
+      setAdvScore(0);
+      return;
+    }
+    setAdvNodeId(nodeId);
+  };
+
+  const handleAdvAnswer = (idx: number) => {
+    if (advAnswer !== null) return;
+    setAdvAnswer(idx);
+  };
+
+  const handleAdvNext = () => {
+    if (!adventure || advAnswer === null) return;
+    const isCorrect = advAnswer === adventure.questions[advQ].correctIndex;
+    const newScore = advScore + (isCorrect ? 1 : 0);
+    if (advQ < adventure.questions.length - 1) {
+      setAdvScore(newScore);
+      setAdvQ(q => q + 1);
+      setAdvAnswer(null);
+    } else {
+      setAdvScore(newScore);
+      setAdvPhase('done');
+    }
+  };
+
+  const advNode = adventure ? adventure.nodes[advNodeId] : null;
 
   const openVideo = (video: KidsVideo, inPlaylist = false) => {
     setSelectedVideo(video);
@@ -472,6 +532,14 @@ export default function Kids() {
             <TabsTrigger value="games" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-games">
               <Trophy className="w-5 h-5" />
               ألعاب
+            </TabsTrigger>
+            <TabsTrigger value="adventures" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-adventures">
+              <Compass className="w-5 h-5" />
+              مغامرات
+            </TabsTrigger>
+            <TabsTrigger value="parents" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-parents">
+              <Users className="w-5 h-5" />
+              للآباء
             </TabsTrigger>
           </TabsList>
 
@@ -1076,6 +1144,229 @@ export default function Kids() {
                     <Button onClick={startQuiz} variant="outline" data-testid="button-quiz-retry">العب مرة أخرى</Button>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* ===== تاب المغامرات (قصص تفاعلية) ===== */}
+          <TabsContent value="adventures">
+            <AnimatePresence mode="wait">
+              {!adventure ? (
+                <motion.div key="adv-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Compass className="w-5 h-5 text-purple-500" />
+                    <span className="font-semibold text-foreground">قصص تفاعلية — اختر مغامرتك ({interactiveStories.length})</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-5">اقرأ القصة، اتخذ القرارات، ثم أجب على الأسئلة واحفظ آية اليوم 🌟</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {interactiveStories.map((s, i) => (
+                      <motion.div key={s.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                        <Card
+                          className="p-5 cursor-pointer hover:shadow-lg hover:border-purple-300 transition-all"
+                          onClick={() => startAdventure(s)}
+                          data-testid={`adventure-card-${s.id}`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <span className="text-4xl">{s.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-display text-lg font-bold text-foreground mb-1">{s.title}</h3>
+                              <p className="text-sm text-muted-foreground mb-2">{s.summary}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <BookOpen className="w-3 h-3" />
+                                <span>{s.bibleReference}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key="adv-play" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <Button variant="ghost" size="sm" onClick={exitAdventure} className="mb-4" data-testid="button-exit-adventure">
+                    <ChevronLeft className="w-4 h-4 ml-1" />
+                    رجوع للمغامرات
+                  </Button>
+
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-3xl">{adventure.emoji}</span>
+                    <h2 className="font-display text-2xl font-bold text-foreground">{adventure.title}</h2>
+                  </div>
+
+                  {/* مرحلة القصة */}
+                  {advPhase === 'story' && advNode && (
+                    <Card className="p-5 sm:p-6">
+                      {advNode.image && (
+                        <img src={advNode.image} alt={adventure.title} className="w-full h-48 sm:h-64 object-contain rounded-xl mb-5 bg-purple-50 dark:bg-purple-950/20" loading="lazy" />
+                      )}
+                      <p className="font-display text-lg sm:text-xl leading-loose text-foreground mb-6">{advNode.text}</p>
+
+                      {advNode.choices ? (
+                        <div className="grid gap-3">
+                          {advNode.choices.map((c, ci) => (
+                            <button
+                              key={ci}
+                              onClick={() => goToNode(c.next)}
+                              className="w-full text-right p-4 rounded-xl border-2 border-purple-200 dark:border-purple-900/40 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all font-medium text-foreground"
+                              data-testid={`adventure-choice-${ci}`}
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => goToNode(advNode.next)}
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                          data-testid="button-adventure-continue"
+                        >
+                          {advNode.next ? 'تابع القصة' : 'أجب على الأسئلة'}
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                        </Button>
+                      )}
+                    </Card>
+                  )}
+
+                  {/* مرحلة الأسئلة */}
+                  {advPhase === 'questions' && (
+                    <Card className="p-5 sm:p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-medium text-purple-600">سؤال {advQ + 1} من {adventure.questions.length}</span>
+                        <Star className="w-5 h-5 text-amber-500" />
+                      </div>
+                      <p className="font-display text-lg font-bold text-foreground mb-5">{adventure.questions[advQ].question}</p>
+                      <div className="grid gap-3 mb-5">
+                        {adventure.questions[advQ].options.map((opt, oi) => {
+                          const correct = oi === adventure.questions[advQ].correctIndex;
+                          const showResult = advAnswer !== null;
+                          return (
+                            <button
+                              key={oi}
+                              onClick={() => handleAdvAnswer(oi)}
+                              disabled={advAnswer !== null}
+                              className={`w-full text-right p-4 rounded-xl border-2 transition-all font-medium flex items-center justify-between ${
+                                showResult && correct ? 'border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300'
+                                : showResult && advAnswer === oi ? 'border-red-400 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300'
+                                : 'border-border hover:border-purple-400 text-foreground'
+                              }`}
+                              data-testid={`adventure-answer-${oi}`}
+                            >
+                              {opt}
+                              {showResult && correct && <CheckCircle2 className="w-5 h-5" />}
+                              {showResult && !correct && advAnswer === oi && <XCircle className="w-5 h-5" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {advAnswer !== null && (
+                        <Button onClick={handleAdvNext} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white" data-testid="button-adventure-next-question">
+                          {advQ < adventure.questions.length - 1 ? 'السؤال التالي' : 'إنهاء المغامرة'}
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                        </Button>
+                      )}
+                    </Card>
+                  )}
+
+                  {/* مرحلة النهاية */}
+                  {advPhase === 'done' && (
+                    <Card className="p-6 text-center">
+                      <div className="text-6xl mb-3">🌟</div>
+                      <h3 className="text-2xl font-bold text-foreground mb-1">أحسنت!</h3>
+                      <p className="text-muted-foreground mb-5">أجبت على {advScore} من {adventure.questions.length} أسئلة بشكل صحيح</p>
+
+                      <div className="p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-xl mb-4 text-right">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BookOpen className="w-5 h-5 text-amber-600" />
+                          <span className="font-semibold text-foreground">آية للحفظ</span>
+                        </div>
+                        <p className="font-display text-lg leading-relaxed text-foreground">«{adventure.memoryVerse.text}»</p>
+                        <p className="text-sm text-primary mt-2">{adventure.memoryVerse.ref}</p>
+                      </div>
+
+                      <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl mb-6 text-right">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl">🙏</span>
+                          <span className="font-semibold text-foreground">صلاة</span>
+                        </div>
+                        <p className="font-display text-base leading-relaxed text-foreground">{adventure.prayer}</p>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <Button variant="outline" className="flex-1" onClick={() => startAdventure(adventure)} data-testid="button-adventure-replay">
+                          <RotateCcw className="w-4 h-4 ml-1" />
+                          أعد المغامرة
+                        </Button>
+                        <Button className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white" onClick={exitAdventure} data-testid="button-adventure-more">
+                          مغامرة أخرى
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                        </Button>
+                      </div>
+                    </Card>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </TabsContent>
+
+          {/* ===== تاب للآباء وخدّام مدارس الأحد ===== */}
+          <TabsContent value="parents">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="flex items-center justify-between mb-4 print:hidden">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-purple-500" />
+                  <span className="font-semibold text-foreground">للآباء وخدّام مدارس الأحد</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => window.print()} data-testid="button-print-guide">
+                  <Printer className="w-4 h-4 ml-1" />
+                  طباعة الدليل
+                </Button>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-6 print:hidden">دليل أسبوعي يساعدكم على بناء عادة روحية يومية مع أطفالكم — نشاط بسيط لكل يوم.</p>
+
+              <div id="parents-printable">
+                <h3 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                  <span className="text-2xl">📅</span> الدليل الأسبوعي للأسرة
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4 mb-8">
+                  {weeklyFamilyGuide.map((d, i) => (
+                    <motion.div key={d.day} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <Card className="p-4 h-full">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-2xl">{d.emoji}</span>
+                          <div>
+                            <span className="text-xs text-muted-foreground">{d.day}</span>
+                            <h4 className="font-bold text-foreground leading-tight">{d.title}</h4>
+                          </div>
+                        </div>
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg mb-3">
+                          <p className="font-display text-sm leading-relaxed text-foreground">«{d.verse.text}»</p>
+                          <p className="text-xs text-primary mt-1">{d.verse.ref}</p>
+                        </div>
+                        <p className="text-sm text-foreground mb-2"><span className="font-semibold">النشاط: </span>{d.activity}</p>
+                        <p className="text-sm text-muted-foreground"><span className="font-semibold">للحوار: </span>{d.question}</p>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <h3 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                  <span className="text-2xl">💡</span> نصائح للتربية الروحية
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {parentTips.map((t, i) => (
+                    <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <Card className="p-4 flex items-start gap-3 h-full">
+                        <span className="text-3xl">{t.emoji}</span>
+                        <div>
+                          <h4 className="font-bold text-foreground mb-1">{t.title}</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{t.text}</p>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           </TabsContent>
