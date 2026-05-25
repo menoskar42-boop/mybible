@@ -1396,14 +1396,15 @@ export async function registerRoutes(
   type LiturgySessionState = {
     slot: string; liturgyType: string; sectionKey: string;
     slideIndex: number; deaconOverride: unknown; copticMode: string;
-    readingsOverride: unknown; occasion: string; updatedAt: number;
+    readingsOverride: unknown; occasion: string; seasonalLitany: string; updatedAt: number;
   };
 
   const liturgySessions = new Map<string, LiturgySessionState>();
 
   function makeDefaultSession(slot: string): LiturgySessionState {
     return { slot, liturgyType: 'basil', sectionKey: 'basil-opening',
-             slideIndex: 0, deaconOverride: null, copticMode: 'script', readingsOverride: null, occasion: 'ordinary', updatedAt: Date.now() };
+             slideIndex: 0, deaconOverride: null, copticMode: 'script', readingsOverride: null,
+             occasion: 'ordinary', seasonalLitany: 'weather', updatedAt: Date.now() };
   }
 
   // GET جلسة المستخدم الحالي (يُعيد slot الخاص به أيضاً)

@@ -19,9 +19,13 @@ import {
 } from '@/lib/liturgy-map';
 import {
   detectOccasion,
+  detectSeasonalLitany,
+  getQismaLabel,
   OCCASION_LABELS,
   OCCASION_ORDER,
+  SEASONAL_LITANY_LABELS,
   type OccasionTag,
+  type SeasonalLitanyType,
 } from '@/lib/liturgy-occasion';
 import {
   getTodaySynaxarium,
@@ -80,7 +84,7 @@ export default function LiturgyControl() {
     });
   }
 
-  const currentSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion);
+  const currentSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);
   const currentSlide = currentSlides[session.slideIndex];
   // section key هو المعرّف الأصلي قبل التقسيم (basil-opening لا basil-opening-p4)
   const currentSectionKey = session.sectionKey;
@@ -119,7 +123,8 @@ export default function LiturgyControl() {
       setSlot(data.slot ?? null);
       // مناسبة اليوم: تُكتشف تلقائياً من التاريخ ما لم تكن مُخزّنة في الجلسة
       const occasion: OccasionTag = (data.occasion as OccasionTag) ?? detectOccasion(new Date());
-      const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, occasion);
+      const seasonalLitany: SeasonalLitanyType = (data.seasonalLitany as SeasonalLitanyType) ?? detectSeasonalLitany(new Date());
+      const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, occasion, seasonalLitany);
       const safeIdx = Math.min(Math.max(0, data.slideIndex), Math.max(0, slides.length - 1));
       const initialMode: 'script' | 'arabic' = data.copticMode === 'arabic' ? 'arabic' : 'script';
       copticModeRef.current = initialMode;
@@ -150,7 +155,7 @@ export default function LiturgyControl() {
           synaxar: { title: synaxTitle, slides: synaxSlides },
         } as DailyReadingSlides;
       }
-      const merged = { ...data, slideIndex: safeIdx, copticMode: initialMode, readingsOverride, occasion };
+      const merged = { ...data, slideIndex: safeIdx, copticMode: initialMode, readingsOverride, occasion, seasonalLitany };
       setSession(merged);
       // مزامنة الجلسة مع القراءات الجديدة
       fetch('/api/liturgy-session', {
@@ -235,7 +240,7 @@ export default function LiturgyControl() {
     const sections = getSectionsForLiturgy(session.liturgyType);
     const hits: SearchHit[] = [];
     for (const sec of sections) {
-      const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion);
+      const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion, session.seasonalLitany);
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
         const haystack = (s.text + ' ' + (s.copticText ?? '') + ' ' + s.title).toLowerCase();
@@ -383,6 +388,15 @@ export default function LiturgyControl() {
                 <option key={tag} value={tag}>{OCCASION_LABELS[tag]}</option>
               ))}
             </select>
+            {/* مؤشرات القِسمة والهيتينية */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className="text-[11px] bg-amber-900/30 border border-amber-700/40 text-amber-300 px-2 py-0.5 rounded-full">
+                {getQismaLabel(session.occasion)}
+              </span>
+              <span className="text-[11px] bg-blue-900/30 border border-blue-700/40 text-blue-300 px-2 py-0.5 rounded-full">
+                {SEASONAL_LITANY_LABELS[session.seasonalLitany ?? 'weather']}
+              </span>
+            </div>
             <p className="text-[11px] text-gray-500 mt-2">
               تُكتشف تلقائياً من التاريخ — غيّرها يدوياً عند الحاجة لتظهر مردات وألحان المناسبة في مواضعها.
             </p>
@@ -526,7 +540,7 @@ export default function LiturgyControl() {
             <h2 className="text-sm font-bold text-gray-300 mb-3">الأقسام</h2>
             <div className="space-y-1">
               {getSectionsForLiturgy(session.liturgyType).map(sec => {
-                const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion);
+                const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion, session.seasonalLitany);
                 return (
                   <button
                     key={sec.sectionKey}
