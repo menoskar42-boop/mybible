@@ -3,7 +3,13 @@ import { useLocation } from 'wouter';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart } from 'lucide-react';
+import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle, Compass, RotateCcw, Users, Printer } from 'lucide-react';
+import { memorizationVerses, kidsBadges, computeEarnedBadges, type AgeGroup } from '@/lib/kids-memorization-data';
+import { interactiveStories, type InteractiveStory } from '@/lib/interactive-stories-data';
+import { weeklyFamilyGuide, parentTips } from '@/lib/kids-parents-data';
+import { sortVerses, shuffleWords } from '@/lib/kids-sort-verse-data';
+import { getRandomQuiz, QUIZ_LENGTH, type QuizQuestion } from '@/lib/kids-quiz-data';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +35,20 @@ function useFavoriteHymns() {
     });
   };
   return { favorites, toggle, isFavorite: (id: string) => favorites.includes(id) };
+}
+
+function useMemorization() {
+  const [memorized, setMemorized] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('memorized-verses') || '[]'); } catch { return []; }
+  });
+  const toggle = (id: string) => {
+    setMemorized(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem('memorized-verses', JSON.stringify(next));
+      return next;
+    });
+  };
+  return { memorized, toggle, isMemorized: (id: string) => memorized.includes(id) };
 }
 
 function ImageSlider({ images, title }: { images: string[]; title: string }) {
@@ -245,6 +265,10 @@ export default function Kids() {
   const activeTab = location.includes('/kids/hymns') ? 'hymns'
     : location.includes('/kids/videos') ? 'videos'
     : location.includes('/kids/stories') ? 'stories'
+    : location.includes('/kids/memorize') ? 'memorize'
+    : location.includes('/kids/games') ? 'games'
+    : location.includes('/kids/adventures') ? 'adventures'
+    : location.includes('/kids/parents') ? 'parents'
     : 'videos';
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
@@ -255,6 +279,128 @@ export default function Kids() {
   const [playlistActive, setPlaylistActive] = useState(false);
   const [playlistIndex, setPlaylistIndex] = useState(0);
   const { favorites, toggle, isFavorite } = useFavoriteHymns();
+  const { memorized, toggle: toggleMemorized, isMemorized } = useMemorization();
+  const [memAgeGroup, setMemAgeGroup] = useState<AgeGroup>('4-6');
+  const [currentQuiz, setCurrentQuiz] = useState<QuizQuestion[]>([]);
+  const [currentQ, setCurrentQ] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [quizSessionScore, setQuizSessionScore] = useState(0);
+  const [finalQuizScore, setFinalQuizScore] = useState(0);
+  const [quizDone, setQuizDone] = useState(false);
+  const [quizActive, setQuizActive] = useState(false);
+  const [totalQuizCorrect, setTotalQuizCorrect] = useState(() => parseInt(localStorage.getItem('quiz-total-correct') || '0'));
+  const [hadPerfectQuiz, setHadPerfectQuiz] = useState(() => localStorage.getItem('quiz-had-perfect') === 'true');
+  const earnedBadges = computeEarnedBadges(memorized, totalQuizCorrect, hadPerfectQuiz);
+
+  // ===== لعبة رتّب الآية =====
+  const [sortActive, setSortActive] = useState(false);
+  const [sortIdx, setSortIdx] = useState(0);
+  const [sortPool, setSortPool] = useState<string[]>([]);
+  const [sortPlaced, setSortPlaced] = useState<string[]>([]);
+  const [sortResult, setSortResult] = useState<'correct' | 'wrong' | null>(null);
+  const [sortSessionCorrect, setSortSessionCorrect] = useState(0);
+
+  const startSortGame = () => {
+    setSortIdx(0);
+    setSortPool(shuffleWords(sortVerses[0].words));
+    setSortPlaced([]);
+    setSortResult(null);
+    setSortSessionCorrect(0);
+    setSortActive(true);
+  };
+
+  const pickWord = (word: string, poolIndex: number) => {
+    if (sortResult !== null) return;
+    setSortPool(prev => prev.filter((_, i) => i !== poolIndex));
+    setSortPlaced(prev => [...prev, word]);
+  };
+
+  const returnWord = (word: string, placedIndex: number) => {
+    if (sortResult !== null) return;
+    setSortPlaced(prev => prev.filter((_, i) => i !== placedIndex));
+    setSortPool(prev => [...prev, word]);
+  };
+
+  const checkSortAnswer = () => {
+    const correct = sortVerses[sortIdx].words;
+    const isCorrect = sortPlaced.length === correct.length && sortPlaced.every((w, i) => w === correct[i]);
+    setSortResult(isCorrect ? 'correct' : 'wrong');
+    if (isCorrect) setSortSessionCorrect(s => s + 1);
+  };
+
+  const nextSortVerse = () => {
+    const next = sortIdx + 1;
+    if (next >= sortVerses.length) {
+      setSortActive(false);
+      return;
+    }
+    setSortIdx(next);
+    setSortPool(shuffleWords(sortVerses[next].words));
+    setSortPlaced([]);
+    setSortResult(null);
+  };
+
+  const resetSort = () => {
+    if (sortResult !== null) return;
+    setSortPool(shuffleWords(sortVerses[sortIdx].words));
+    setSortPlaced([]);
+  };
+
+  // ===== محرك القصص التفاعلية (المغامرات) =====
+  const [adventure, setAdventure] = useState<InteractiveStory | null>(null);
+  const [advNodeId, setAdvNodeId] = useState<string>('');
+  const [advPhase, setAdvPhase] = useState<'story' | 'questions' | 'done'>('story');
+  const [advQ, setAdvQ] = useState(0);
+  const [advAnswer, setAdvAnswer] = useState<number | null>(null);
+  const [advScore, setAdvScore] = useState(0);
+
+  const startAdventure = (story: InteractiveStory) => {
+    setAdventure(story);
+    setAdvNodeId(story.startNode);
+    setAdvPhase('story');
+    setAdvQ(0);
+    setAdvAnswer(null);
+    setAdvScore(0);
+  };
+
+  const exitAdventure = () => {
+    setAdventure(null);
+    setAdvNodeId('');
+    setAdvPhase('story');
+  };
+
+  const goToNode = (nodeId: string | undefined) => {
+    if (!adventure) return;
+    if (!nodeId) {
+      setAdvPhase('questions');
+      setAdvQ(0);
+      setAdvAnswer(null);
+      setAdvScore(0);
+      return;
+    }
+    setAdvNodeId(nodeId);
+  };
+
+  const handleAdvAnswer = (idx: number) => {
+    if (advAnswer !== null) return;
+    setAdvAnswer(idx);
+  };
+
+  const handleAdvNext = () => {
+    if (!adventure || advAnswer === null) return;
+    const isCorrect = advAnswer === adventure.questions[advQ].correctIndex;
+    const newScore = advScore + (isCorrect ? 1 : 0);
+    if (advQ < adventure.questions.length - 1) {
+      setAdvScore(newScore);
+      setAdvQ(q => q + 1);
+      setAdvAnswer(null);
+    } else {
+      setAdvScore(newScore);
+      setAdvPhase('done');
+    }
+  };
+
+  const advNode = adventure ? adventure.nodes[advNodeId] : null;
 
   const openVideo = (video: KidsVideo, inPlaylist = false) => {
     setSelectedVideo(video);
@@ -316,6 +462,61 @@ export default function Kids() {
     setPlaylistActive(true);
   };
 
+  const handleToggleMemorized = (id: string) => {
+    const wasMemorized = isMemorized(id);
+    toggleMemorized(id);
+    if (!wasMemorized) {
+      const newMem = [...memorized, id];
+      const oldBadges = computeEarnedBadges(memorized, totalQuizCorrect, hadPerfectQuiz);
+      const newBadges = computeEarnedBadges(newMem, totalQuizCorrect, hadPerfectQuiz);
+      newBadges.filter(b => !oldBadges.includes(b)).forEach(badgeId => {
+        const badge = kidsBadges.find(b => b.id === badgeId);
+        if (badge) toast.success(`شارة جديدة: ${badge.emoji} ${badge.title}!`);
+      });
+    }
+  };
+
+  const startQuiz = () => {
+    setCurrentQuiz(getRandomQuiz());
+    setCurrentQ(0);
+    setSelectedAnswer(null);
+    setQuizSessionScore(0);
+    setFinalQuizScore(0);
+    setQuizDone(false);
+    setQuizActive(true);
+  };
+
+  const handleQuizAnswer = (idx: number) => {
+    if (selectedAnswer !== null) return;
+    setSelectedAnswer(idx);
+  };
+
+  const handleQuizNext = () => {
+    if (selectedAnswer === null) return;
+    const isCorrect = selectedAnswer === currentQuiz[currentQ].correctIndex;
+    const newScore = quizSessionScore + (isCorrect ? 1 : 0);
+    if (currentQ < currentQuiz.length - 1) {
+      setQuizSessionScore(newScore);
+      setCurrentQ(q => q + 1);
+      setSelectedAnswer(null);
+    } else {
+      setFinalQuizScore(newScore);
+      const newTotal = totalQuizCorrect + newScore;
+      setTotalQuizCorrect(newTotal);
+      localStorage.setItem('quiz-total-correct', String(newTotal));
+      if (newScore === QUIZ_LENGTH && !hadPerfectQuiz) {
+        setHadPerfectQuiz(true);
+        localStorage.setItem('quiz-had-perfect', 'true');
+        toast.success('شارة جديدة: 🏆 بطل المسابقة!');
+      }
+      if (newTotal >= 10 && totalQuizCorrect < 10) {
+        toast.success('شارة جديدة: 🎯 متسابق ذكي!');
+      }
+      setQuizDone(true);
+      setQuizActive(false);
+    }
+  };
+
   const videoSchema = getVideoSchema(
     (activeTab === 'hymns' ? kidsHymns : kidsBibleVideos).map(v => ({
       id: v.id,
@@ -366,18 +567,34 @@ export default function Kids() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
-          <TabsList className="w-full grid grid-cols-3 mb-6 h-14">
-            <TabsTrigger value="videos" className="text-base py-3" data-testid="tab-videos">
-              <Video className="w-5 h-5 ml-2" />
+          <TabsList className="w-full flex overflow-x-auto mb-6 h-auto gap-0.5 p-1">
+            <TabsTrigger value="videos" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-videos">
+              <Video className="w-5 h-5" />
               قصص الكتاب
             </TabsTrigger>
-            <TabsTrigger value="hymns" className="text-base py-3" data-testid="tab-hymns">
-              <Music className="w-5 h-5 ml-2" />
+            <TabsTrigger value="hymns" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-hymns">
+              <Music className="w-5 h-5" />
               ترانيم
             </TabsTrigger>
-            <TabsTrigger value="stories" className="text-base py-3" data-testid="tab-stories">
-              <BookOpen className="w-5 h-5 ml-2" />
+            <TabsTrigger value="stories" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-stories">
+              <BookOpen className="w-5 h-5" />
               قصص مصورة
+            </TabsTrigger>
+            <TabsTrigger value="memorize" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-memorize">
+              <GraduationCap className="w-5 h-5" />
+              حفظ الآيات
+            </TabsTrigger>
+            <TabsTrigger value="games" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-games">
+              <Trophy className="w-5 h-5" />
+              ألعاب
+            </TabsTrigger>
+            <TabsTrigger value="adventures" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-adventures">
+              <Compass className="w-5 h-5" />
+              مغامرات
+            </TabsTrigger>
+            <TabsTrigger value="parents" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-parents">
+              <Users className="w-5 h-5" />
+              للآباء
             </TabsTrigger>
           </TabsList>
 
@@ -810,6 +1027,515 @@ export default function Kids() {
                   <p className="text-lg text-muted-foreground">لا توجد فيديوهات مطابقة</p>
                 </div>
               )}
+            </motion.div>
+          </TabsContent>
+          {/* ===== تاب حفظ الآيات ===== */}
+          <TabsContent value="memorize">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-purple-500" />
+                  <span className="font-semibold text-foreground">برنامج حفظ الآيات</span>
+                </div>
+                <span className="text-sm text-muted-foreground">{memorized.length} / {memorizationVerses.length}</span>
+              </div>
+
+              <div className="w-full h-3 bg-muted rounded-full mb-5 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
+                  style={{ width: `${(memorized.length / memorizationVerses.length) * 100}%` }}
+                />
+              </div>
+
+              <div className="flex gap-2 mb-5">
+                {(['4-6', '7-9', '10-12'] as AgeGroup[]).map(ag => (
+                  <button
+                    key={ag}
+                    onClick={() => setMemAgeGroup(ag)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${memAgeGroup === ag ? 'bg-purple-500 text-white border-purple-500' : 'border-border text-muted-foreground hover:border-purple-300'}`}
+                    data-testid={`btn-age-${ag}`}
+                  >
+                    {ag} سنوات
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {memorizationVerses.filter(v => v.ageGroup === memAgeGroup).map((verse, i) => {
+                  const done = isMemorized(verse.id);
+                  return (
+                    <motion.div key={verse.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <Card className={`p-4 transition-all ${done ? 'border-green-400 bg-green-50/50 dark:bg-green-950/20' : ''}`}>
+                        <div className="flex items-start gap-3">
+                          <span className="text-3xl">{verse.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                              <span className="text-xs font-medium text-primary">{verse.reference}</span>
+                              <Badge variant="secondary" className="text-xs shrink-0">{verse.theme}</Badge>
+                            </div>
+                            <p className="font-display text-sm sm:text-base leading-relaxed text-foreground">{verse.text}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleToggleMemorized(verse.id)}
+                          className={`mt-3 w-full py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${done ? 'bg-green-500 text-white hover:bg-green-600' : 'border border-border text-muted-foreground hover:border-purple-400 hover:text-purple-600'}`}
+                          data-testid={`button-memorize-${verse.id}`}
+                        >
+                          {done ? (<><CheckCircle2 className="w-4 h-4" />حفظت هذه الآية ✓</>) : (<>حفظتُ هذه الآية؟</>)}
+                        </button>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* ===== تاب الألعاب ===== */}
+          <TabsContent value="games">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {/* الشارات */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Trophy className="w-5 h-5 text-amber-500" />
+                  <span className="font-semibold text-foreground">شاراتي ({earnedBadges.length}/{kidsBadges.length})</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {kidsBadges.map(badge => {
+                    const earned = earnedBadges.includes(badge.id);
+                    return (
+                      <div key={badge.id} className={`p-3 rounded-xl border text-center transition-all ${earned ? badge.colorClass : 'bg-muted/30 text-muted-foreground border-border opacity-50'}`}>
+                        <div className="text-2xl mb-1">{earned ? badge.emoji : '🔒'}</div>
+                        <div className="text-xs font-semibold">{badge.title}</div>
+                        <div className="text-xs mt-0.5 opacity-80">{badge.description}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* لعبة رتّب الآية */}
+              <div className="border-t pt-5 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xl">🔤</span>
+                  <span className="font-semibold text-foreground">لعبة رتّب الآية</span>
+                </div>
+
+                {!sortActive ? (
+                  <div className="text-center py-6">
+                    <div className="text-6xl mb-3">🔤</div>
+                    <h3 className="text-xl font-bold mb-1">رتّب كلمات الآية</h3>
+                    <p className="text-muted-foreground mb-5">الكلمات مبعثرة — اضغط عليها بالترتيب الصحيح</p>
+                    <Button onClick={startSortGame} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8" data-testid="button-start-sort">
+                      ابدأ اللعبة
+                    </Button>
+                  </div>
+                ) : sortIdx >= sortVerses.length ? (
+                  <div className="text-center py-6">
+                    <div className="text-6xl mb-3">🎉</div>
+                    <h3 className="text-xl font-bold mb-1">أحسنت! أكملت كل الآيات</h3>
+                    <p className="text-muted-foreground mb-5">أجبت بشكل صحيح على {sortSessionCorrect} من {sortVerses.length} آيات</p>
+                    <Button onClick={startSortGame} variant="outline" data-testid="button-sort-restart">العب مرة أخرى</Button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-muted-foreground">آية {sortIdx + 1} من {sortVerses.length}</span>
+                      <span className="text-sm font-medium text-emerald-600">✓ {sortSessionCorrect} صحيحة</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-2xl">{sortVerses[sortIdx].emoji}</span>
+                      <span className="text-sm text-primary font-medium">{sortVerses[sortIdx].reference}</span>
+                    </div>
+
+                    {/* منطقة الإجابة */}
+                    <div className={`min-h-[64px] p-3 rounded-xl border-2 mb-4 flex flex-wrap gap-2 transition-colors ${
+                      sortResult === 'correct' ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                      : sortResult === 'wrong' ? 'border-red-400 bg-red-50 dark:bg-red-950/20'
+                      : 'border-dashed border-border bg-muted/20'
+                    }`}>
+                      {sortPlaced.length === 0 && sortResult === null && (
+                        <span className="text-muted-foreground text-sm self-center">اضغط على الكلمات أدناه لترتيبها هنا</span>
+                      )}
+                      {sortPlaced.map((word, pi) => (
+                        <button
+                          key={pi}
+                          onClick={() => returnWord(word, pi)}
+                          disabled={sortResult !== null}
+                          className="px-3 py-1.5 rounded-lg font-display text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:cursor-default transition-colors"
+                          data-testid={`placed-word-${pi}`}
+                        >
+                          {word}
+                        </button>
+                      ))}
+                      {sortResult === 'correct' && (
+                        <span className="text-green-700 dark:text-green-300 font-bold text-sm self-center">✓ ممتاز! الترتيب صحيح</span>
+                      )}
+                    </div>
+
+                    {/* عرض الإجابة الصحيحة عند الخطأ */}
+                    {sortResult === 'wrong' && (
+                      <div className="mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-300">
+                        <p className="text-xs text-muted-foreground mb-1">الترتيب الصحيح:</p>
+                        <p className="font-display text-sm font-medium text-foreground leading-relaxed">{sortVerses[sortIdx].words.join(' ')}</p>
+                      </div>
+                    )}
+
+                    {/* مجموعة الكلمات المبعثرة */}
+                    <div className="flex flex-wrap gap-2 mb-4 p-3 rounded-xl bg-muted/30 min-h-[52px]">
+                      {sortPool.map((word, pi) => (
+                        <button
+                          key={pi}
+                          onClick={() => pickWord(word, pi)}
+                          disabled={sortResult !== null}
+                          className="px-3 py-1.5 rounded-lg font-display text-sm font-medium border-2 border-emerald-300 bg-white dark:bg-emerald-950/20 text-foreground hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:cursor-default transition-colors"
+                          data-testid={`pool-word-${pi}`}
+                        >
+                          {word}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* أزرار التحكم */}
+                    <div className="flex gap-2">
+                      {sortResult === null ? (
+                        <>
+                          <Button variant="outline" size="sm" onClick={resetSort} disabled={sortPlaced.length === 0} className="flex-1" data-testid="button-sort-reset">
+                            <RotateCcw className="w-4 h-4 ml-1" />
+                            إعادة
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={checkSortAnswer}
+                            disabled={sortPlaced.length !== sortVerses[sortIdx].words.length}
+                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+                            data-testid="button-sort-check"
+                          >
+                            <CheckCircle2 className="w-4 h-4 ml-1" />
+                            تحقق
+                          </Button>
+                        </>
+                      ) : (
+                        <Button onClick={nextSortVerse} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white" data-testid="button-sort-next">
+                          {sortIdx + 1 < sortVerses.length ? 'الآية التالية' : 'إنهاء اللعبة'}
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* المسابقة */}
+              <div className="border-t pt-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Star className="w-5 h-5 text-amber-500" />
+                  <span className="font-semibold text-foreground">مسابقة أبطال الكتاب المقدس</span>
+                </div>
+
+                {/* شاشة البداية */}
+                {!quizActive && !quizDone && (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">🏆</div>
+                    <h3 className="text-xl font-bold mb-2">هل أنت جاهز للتحدي؟</h3>
+                    <p className="text-muted-foreground mb-6">{QUIZ_LENGTH} أسئلة عن الكتاب المقدس — من السهل إلى الصعب</p>
+                    <Button onClick={startQuiz} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8" data-testid="button-start-quiz">
+                      <Star className="w-4 h-4 ml-2" />
+                      ابدأ المسابقة
+                    </Button>
+                    {totalQuizCorrect > 0 && (
+                      <p className="text-sm text-muted-foreground mt-4">إجمالي إجاباتك الصحيحة: {totalQuizCorrect}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* المسابقة نشطة */}
+                {quizActive && currentQuiz.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">سؤال {currentQ + 1} من {QUIZ_LENGTH}</span>
+                      <span className="text-sm font-medium text-primary">النقاط: {quizSessionScore}</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full mb-4 overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(currentQ / QUIZ_LENGTH) * 100}%` }} />
+                    </div>
+
+                    <Card className="p-4 mb-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+                      <div className="text-3xl mb-2 text-center">{currentQuiz[currentQ].emoji}</div>
+                      <p className="text-lg font-display font-semibold text-center text-foreground">{currentQuiz[currentQ].question}</p>
+                    </Card>
+
+                    <div className="grid gap-2 mb-4">
+                      {currentQuiz[currentQ].options.map((option, idx) => {
+                        const isSelected = selectedAnswer === idx;
+                        const isCorrect = idx === currentQuiz[currentQ].correctIndex;
+                        const showFeedback = selectedAnswer !== null;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleQuizAnswer(idx)}
+                            disabled={selectedAnswer !== null}
+                            className={`w-full p-3 rounded-xl text-right border-2 transition-all font-medium ${showFeedback ? isCorrect ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-950/30 dark:text-green-300' : isSelected ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-950/30 dark:text-red-300' : 'bg-muted/50 border-border text-muted-foreground' : 'bg-background border-border hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20'}`}
+                            data-testid={`quiz-option-${idx}`}
+                          >
+                            <span className="flex items-center gap-2">
+                              {showFeedback && isCorrect && <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />}
+                              {showFeedback && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-600 shrink-0" />}
+                              {option}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selectedAnswer !== null && (
+                      <Button onClick={handleQuizNext} className="w-full" data-testid="button-quiz-next">
+                        {currentQ < currentQuiz.length - 1 ? 'السؤال التالي' : 'إنهاء المسابقة'}
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* النتيجة النهائية */}
+                {quizDone && (
+                  <div className="text-center py-6">
+                    <div className="text-6xl mb-4">{finalQuizScore >= 8 ? '🏆' : finalQuizScore >= 5 ? '⭐' : '📚'}</div>
+                    <h3 className="text-2xl font-bold mb-1">{finalQuizScore} / {QUIZ_LENGTH}</h3>
+                    <p className="text-muted-foreground mb-2">
+                      {finalQuizScore === QUIZ_LENGTH ? '🎉 ممتاز! إجابات صحيحة بالكامل!'
+                        : finalQuizScore >= 8 ? 'أحسنت! نتيجة رائعة!'
+                        : finalQuizScore >= 5 ? 'جيد! استمر في التعلم'
+                        : 'واصل القراءة في الكتاب المقدس وحاول مرة أخرى'}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-6">إجمالي إجاباتك الصحيحة: {totalQuizCorrect}</p>
+                    <Button onClick={startQuiz} variant="outline" data-testid="button-quiz-retry">العب مرة أخرى</Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* ===== تاب المغامرات (قصص تفاعلية) ===== */}
+          <TabsContent value="adventures">
+            <AnimatePresence mode="wait">
+              {!adventure ? (
+                <motion.div key="adv-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Compass className="w-5 h-5 text-purple-500" />
+                    <span className="font-semibold text-foreground">قصص تفاعلية — اختر مغامرتك ({interactiveStories.length})</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-5">اقرأ القصة، اتخذ القرارات، ثم أجب على الأسئلة واحفظ آية اليوم 🌟</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {interactiveStories.map((s, i) => (
+                      <motion.div key={s.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                        <Card
+                          className="p-5 cursor-pointer hover:shadow-lg hover:border-purple-300 transition-all"
+                          onClick={() => startAdventure(s)}
+                          data-testid={`adventure-card-${s.id}`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <span className="text-4xl">{s.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-display text-lg font-bold text-foreground mb-1">{s.title}</h3>
+                              <p className="text-sm text-muted-foreground mb-2">{s.summary}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <BookOpen className="w-3 h-3" />
+                                <span>{s.bibleReference}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key="adv-play" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                  <Button variant="ghost" size="sm" onClick={exitAdventure} className="mb-4" data-testid="button-exit-adventure">
+                    <ChevronLeft className="w-4 h-4 ml-1" />
+                    رجوع للمغامرات
+                  </Button>
+
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-3xl">{adventure.emoji}</span>
+                    <h2 className="font-display text-2xl font-bold text-foreground">{adventure.title}</h2>
+                  </div>
+
+                  {/* مرحلة القصة */}
+                  {advPhase === 'story' && advNode && (
+                    <Card className="p-5 sm:p-6">
+                      {advNode.image && (
+                        <img src={advNode.image} alt={adventure.title} className="w-full h-48 sm:h-64 object-contain rounded-xl mb-5 bg-purple-50 dark:bg-purple-950/20" loading="lazy" />
+                      )}
+                      <p className="font-display text-lg sm:text-xl leading-loose text-foreground mb-6">{advNode.text}</p>
+
+                      {advNode.choices ? (
+                        <div className="grid gap-3">
+                          {advNode.choices.map((c, ci) => (
+                            <button
+                              key={ci}
+                              onClick={() => goToNode(c.next)}
+                              className="w-full text-right p-4 rounded-xl border-2 border-purple-200 dark:border-purple-900/40 hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all font-medium text-foreground"
+                              data-testid={`adventure-choice-${ci}`}
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => goToNode(advNode.next)}
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                          data-testid="button-adventure-continue"
+                        >
+                          {advNode.next ? 'تابع القصة' : 'أجب على الأسئلة'}
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                        </Button>
+                      )}
+                    </Card>
+                  )}
+
+                  {/* مرحلة الأسئلة */}
+                  {advPhase === 'questions' && (
+                    <Card className="p-5 sm:p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-medium text-purple-600">سؤال {advQ + 1} من {adventure.questions.length}</span>
+                        <Star className="w-5 h-5 text-amber-500" />
+                      </div>
+                      <p className="font-display text-lg font-bold text-foreground mb-5">{adventure.questions[advQ].question}</p>
+                      <div className="grid gap-3 mb-5">
+                        {adventure.questions[advQ].options.map((opt, oi) => {
+                          const correct = oi === adventure.questions[advQ].correctIndex;
+                          const showResult = advAnswer !== null;
+                          return (
+                            <button
+                              key={oi}
+                              onClick={() => handleAdvAnswer(oi)}
+                              disabled={advAnswer !== null}
+                              className={`w-full text-right p-4 rounded-xl border-2 transition-all font-medium flex items-center justify-between ${
+                                showResult && correct ? 'border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300'
+                                : showResult && advAnswer === oi ? 'border-red-400 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300'
+                                : 'border-border hover:border-purple-400 text-foreground'
+                              }`}
+                              data-testid={`adventure-answer-${oi}`}
+                            >
+                              {opt}
+                              {showResult && correct && <CheckCircle2 className="w-5 h-5" />}
+                              {showResult && !correct && advAnswer === oi && <XCircle className="w-5 h-5" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {advAnswer !== null && (
+                        <Button onClick={handleAdvNext} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white" data-testid="button-adventure-next-question">
+                          {advQ < adventure.questions.length - 1 ? 'السؤال التالي' : 'إنهاء المغامرة'}
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                        </Button>
+                      )}
+                    </Card>
+                  )}
+
+                  {/* مرحلة النهاية */}
+                  {advPhase === 'done' && (
+                    <Card className="p-6 text-center">
+                      <div className="text-6xl mb-3">🌟</div>
+                      <h3 className="text-2xl font-bold text-foreground mb-1">أحسنت!</h3>
+                      <p className="text-muted-foreground mb-5">أجبت على {advScore} من {adventure.questions.length} أسئلة بشكل صحيح</p>
+
+                      <div className="p-4 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 rounded-xl mb-4 text-right">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BookOpen className="w-5 h-5 text-amber-600" />
+                          <span className="font-semibold text-foreground">آية للحفظ</span>
+                        </div>
+                        <p className="font-display text-lg leading-relaxed text-foreground">«{adventure.memoryVerse.text}»</p>
+                        <p className="text-sm text-primary mt-2">{adventure.memoryVerse.ref}</p>
+                      </div>
+
+                      <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-xl mb-6 text-right">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl">🙏</span>
+                          <span className="font-semibold text-foreground">صلاة</span>
+                        </div>
+                        <p className="font-display text-base leading-relaxed text-foreground">{adventure.prayer}</p>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <Button variant="outline" className="flex-1" onClick={() => startAdventure(adventure)} data-testid="button-adventure-replay">
+                          <RotateCcw className="w-4 h-4 ml-1" />
+                          أعد المغامرة
+                        </Button>
+                        <Button className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white" onClick={exitAdventure} data-testid="button-adventure-more">
+                          مغامرة أخرى
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                        </Button>
+                      </div>
+                    </Card>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </TabsContent>
+
+          {/* ===== تاب للآباء وخدّام مدارس الأحد ===== */}
+          <TabsContent value="parents">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="flex items-center justify-between mb-4 print:hidden">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-purple-500" />
+                  <span className="font-semibold text-foreground">للآباء وخدّام مدارس الأحد</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => window.print()} data-testid="button-print-guide">
+                  <Printer className="w-4 h-4 ml-1" />
+                  طباعة الدليل
+                </Button>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-6 print:hidden">دليل أسبوعي يساعدكم على بناء عادة روحية يومية مع أطفالكم — نشاط بسيط لكل يوم.</p>
+
+              <div id="parents-printable">
+                <h3 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                  <span className="text-2xl">📅</span> الدليل الأسبوعي للأسرة
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4 mb-8">
+                  {weeklyFamilyGuide.map((d, i) => (
+                    <motion.div key={d.day} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <Card className="p-4 h-full">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-2xl">{d.emoji}</span>
+                          <div>
+                            <span className="text-xs text-muted-foreground">{d.day}</span>
+                            <h4 className="font-bold text-foreground leading-tight">{d.title}</h4>
+                          </div>
+                        </div>
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg mb-3">
+                          <p className="font-display text-sm leading-relaxed text-foreground">«{d.verse.text}»</p>
+                          <p className="text-xs text-primary mt-1">{d.verse.ref}</p>
+                        </div>
+                        <p className="text-sm text-foreground mb-2"><span className="font-semibold">النشاط: </span>{d.activity}</p>
+                        <p className="text-sm text-muted-foreground"><span className="font-semibold">للحوار: </span>{d.question}</p>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <h3 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                  <span className="text-2xl">💡</span> نصائح للتربية الروحية
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {parentTips.map((t, i) => (
+                    <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <Card className="p-4 flex items-start gap-3 h-full">
+                        <span className="text-3xl">{t.emoji}</span>
+                        <div>
+                          <h4 className="font-bold text-foreground mb-1">{t.title}</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{t.text}</p>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           </TabsContent>
         </Tabs>

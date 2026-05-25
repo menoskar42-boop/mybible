@@ -12,6 +12,7 @@ import Bible from '@/pages/Bible';
 import Plans from '@/pages/Plans';
 import Emotions from '@/pages/Emotions';
 import Kids from '@/pages/Kids';
+import Family from '@/pages/Family';
 import Highlights from '@/pages/Highlights';
 import Premium from '@/pages/Premium';
 import Search from '@/pages/Search';
@@ -69,7 +70,12 @@ function Router() {
       <Route path="/kids/hymns" component={Kids} />
       <Route path="/kids/videos" component={Kids} />
       <Route path="/kids/stories" component={Kids} />
+      <Route path="/kids/memorize" component={Kids} />
+      <Route path="/kids/games" component={Kids} />
+      <Route path="/kids/adventures" component={Kids} />
+      <Route path="/kids/parents" component={Kids} />
       <Route path="/kids" component={Kids} />
+      <Route path="/family" component={Family} />
       <Route path="/highlights" component={Highlights} />
       <Route path="/premium" component={Premium} />
       <Route path="/search" component={Search} />

@@ -18,6 +18,7 @@ const navItems = [
   { href: '/emotions', label: 'تعزية روحية' },
   { href: '/orthodox', label: 'أرثوذوكسيات' },
   { href: '/kids', label: 'للأطفال' },
+  { href: '/family', label: 'ركن العائلة' },
   { href: '/highlights', label: 'آياتي' },
   { href: '/church', label: 'مجتمع مدارس الأحد' },
   { href: '/search', label: 'بحث' },
