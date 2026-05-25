@@ -7,6 +7,7 @@ import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Paus
 import { memorizationVerses, kidsBadges, computeEarnedBadges, type AgeGroup } from '@/lib/kids-memorization-data';
 import { interactiveStories, type InteractiveStory } from '@/lib/interactive-stories-data';
 import { weeklyFamilyGuide, parentTips } from '@/lib/kids-parents-data';
+import { sortVerses, shuffleWords } from '@/lib/kids-sort-verse-data';
 import { getRandomQuiz, QUIZ_LENGTH, type QuizQuestion } from '@/lib/kids-quiz-data';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
@@ -290,6 +291,60 @@ export default function Kids() {
   const [totalQuizCorrect, setTotalQuizCorrect] = useState(() => parseInt(localStorage.getItem('quiz-total-correct') || '0'));
   const [hadPerfectQuiz, setHadPerfectQuiz] = useState(() => localStorage.getItem('quiz-had-perfect') === 'true');
   const earnedBadges = computeEarnedBadges(memorized, totalQuizCorrect, hadPerfectQuiz);
+
+  // ===== لعبة رتّب الآية =====
+  const [sortActive, setSortActive] = useState(false);
+  const [sortIdx, setSortIdx] = useState(0);
+  const [sortPool, setSortPool] = useState<string[]>([]);
+  const [sortPlaced, setSortPlaced] = useState<string[]>([]);
+  const [sortResult, setSortResult] = useState<'correct' | 'wrong' | null>(null);
+  const [sortSessionCorrect, setSortSessionCorrect] = useState(0);
+
+  const startSortGame = () => {
+    setSortIdx(0);
+    setSortPool(shuffleWords(sortVerses[0].words));
+    setSortPlaced([]);
+    setSortResult(null);
+    setSortSessionCorrect(0);
+    setSortActive(true);
+  };
+
+  const pickWord = (word: string, poolIndex: number) => {
+    if (sortResult !== null) return;
+    setSortPool(prev => prev.filter((_, i) => i !== poolIndex));
+    setSortPlaced(prev => [...prev, word]);
+  };
+
+  const returnWord = (word: string, placedIndex: number) => {
+    if (sortResult !== null) return;
+    setSortPlaced(prev => prev.filter((_, i) => i !== placedIndex));
+    setSortPool(prev => [...prev, word]);
+  };
+
+  const checkSortAnswer = () => {
+    const correct = sortVerses[sortIdx].words;
+    const isCorrect = sortPlaced.length === correct.length && sortPlaced.every((w, i) => w === correct[i]);
+    setSortResult(isCorrect ? 'correct' : 'wrong');
+    if (isCorrect) setSortSessionCorrect(s => s + 1);
+  };
+
+  const nextSortVerse = () => {
+    const next = sortIdx + 1;
+    if (next >= sortVerses.length) {
+      setSortActive(false);
+      return;
+    }
+    setSortIdx(next);
+    setSortPool(shuffleWords(sortVerses[next].words));
+    setSortPlaced([]);
+    setSortResult(null);
+  };
+
+  const resetSort = () => {
+    if (sortResult !== null) return;
+    setSortPool(shuffleWords(sortVerses[sortIdx].words));
+    setSortPlaced([]);
+  };
 
   // ===== محرك القصص التفاعلية (المغامرات) =====
   const [adventure, setAdventure] = useState<InteractiveStory | null>(null);
@@ -1057,6 +1112,119 @@ export default function Kids() {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* لعبة رتّب الآية */}
+              <div className="border-t pt-5 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xl">🔤</span>
+                  <span className="font-semibold text-foreground">لعبة رتّب الآية</span>
+                </div>
+
+                {!sortActive ? (
+                  <div className="text-center py-6">
+                    <div className="text-6xl mb-3">🔤</div>
+                    <h3 className="text-xl font-bold mb-1">رتّب كلمات الآية</h3>
+                    <p className="text-muted-foreground mb-5">الكلمات مبعثرة — اضغط عليها بالترتيب الصحيح</p>
+                    <Button onClick={startSortGame} className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8" data-testid="button-start-sort">
+                      ابدأ اللعبة
+                    </Button>
+                  </div>
+                ) : sortIdx >= sortVerses.length ? (
+                  <div className="text-center py-6">
+                    <div className="text-6xl mb-3">🎉</div>
+                    <h3 className="text-xl font-bold mb-1">أحسنت! أكملت كل الآيات</h3>
+                    <p className="text-muted-foreground mb-5">أجبت بشكل صحيح على {sortSessionCorrect} من {sortVerses.length} آيات</p>
+                    <Button onClick={startSortGame} variant="outline" data-testid="button-sort-restart">العب مرة أخرى</Button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-muted-foreground">آية {sortIdx + 1} من {sortVerses.length}</span>
+                      <span className="text-sm font-medium text-emerald-600">✓ {sortSessionCorrect} صحيحة</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-2xl">{sortVerses[sortIdx].emoji}</span>
+                      <span className="text-sm text-primary font-medium">{sortVerses[sortIdx].reference}</span>
+                    </div>
+
+                    {/* منطقة الإجابة */}
+                    <div className={`min-h-[64px] p-3 rounded-xl border-2 mb-4 flex flex-wrap gap-2 transition-colors ${
+                      sortResult === 'correct' ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                      : sortResult === 'wrong' ? 'border-red-400 bg-red-50 dark:bg-red-950/20'
+                      : 'border-dashed border-border bg-muted/20'
+                    }`}>
+                      {sortPlaced.length === 0 && sortResult === null && (
+                        <span className="text-muted-foreground text-sm self-center">اضغط على الكلمات أدناه لترتيبها هنا</span>
+                      )}
+                      {sortPlaced.map((word, pi) => (
+                        <button
+                          key={pi}
+                          onClick={() => returnWord(word, pi)}
+                          disabled={sortResult !== null}
+                          className="px-3 py-1.5 rounded-lg font-display text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 disabled:cursor-default transition-colors"
+                          data-testid={`placed-word-${pi}`}
+                        >
+                          {word}
+                        </button>
+                      ))}
+                      {sortResult === 'correct' && (
+                        <span className="text-green-700 dark:text-green-300 font-bold text-sm self-center">✓ ممتاز! الترتيب صحيح</span>
+                      )}
+                    </div>
+
+                    {/* عرض الإجابة الصحيحة عند الخطأ */}
+                    {sortResult === 'wrong' && (
+                      <div className="mb-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-300">
+                        <p className="text-xs text-muted-foreground mb-1">الترتيب الصحيح:</p>
+                        <p className="font-display text-sm font-medium text-foreground leading-relaxed">{sortVerses[sortIdx].words.join(' ')}</p>
+                      </div>
+                    )}
+
+                    {/* مجموعة الكلمات المبعثرة */}
+                    <div className="flex flex-wrap gap-2 mb-4 p-3 rounded-xl bg-muted/30 min-h-[52px]">
+                      {sortPool.map((word, pi) => (
+                        <button
+                          key={pi}
+                          onClick={() => pickWord(word, pi)}
+                          disabled={sortResult !== null}
+                          className="px-3 py-1.5 rounded-lg font-display text-sm font-medium border-2 border-emerald-300 bg-white dark:bg-emerald-950/20 text-foreground hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:cursor-default transition-colors"
+                          data-testid={`pool-word-${pi}`}
+                        >
+                          {word}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* أزرار التحكم */}
+                    <div className="flex gap-2">
+                      {sortResult === null ? (
+                        <>
+                          <Button variant="outline" size="sm" onClick={resetSort} disabled={sortPlaced.length === 0} className="flex-1" data-testid="button-sort-reset">
+                            <RotateCcw className="w-4 h-4 ml-1" />
+                            إعادة
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={checkSortAnswer}
+                            disabled={sortPlaced.length !== sortVerses[sortIdx].words.length}
+                            className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+                            data-testid="button-sort-check"
+                          >
+                            <CheckCircle2 className="w-4 h-4 ml-1" />
+                            تحقق
+                          </Button>
+                        </>
+                      ) : (
+                        <Button onClick={nextSortVerse} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white" data-testid="button-sort-next">
+                          {sortIdx + 1 < sortVerses.length ? 'الآية التالية' : 'إنهاء اللعبة'}
+                          <ChevronLeft className="w-4 h-4 mr-1" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* المسابقة */}
