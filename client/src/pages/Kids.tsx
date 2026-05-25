@@ -249,6 +249,7 @@ export default function Kids() {
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
   const [videoSearch, setVideoSearch] = useState('');
+  const [videoCat, setVideoCat] = useState('الكل');
   const [hymnSearch, setHymnSearch] = useState('');
   const [hymnCat, setHymnCat] = useState('الكل');
   const [playlistActive, setPlaylistActive] = useState(false);
@@ -292,7 +293,13 @@ export default function Kids() {
   };
 
   const story = childrenStoriesData.find(s => s.id === selectedStory);
-  const filteredVideos = searchVideos(videoSearch);
+  const storyVideos = kidsBibleVideos.filter(v => v.category !== "ترانيم للأطفال");
+  const filteredVideos = storyVideos.filter(v => {
+    const matchesCat = videoCat === 'الكل' || v.category === videoCat;
+    const lowerSearch = videoSearch.toLowerCase();
+    const matchesSearch = !videoSearch.trim() || v.title.toLowerCase().includes(lowerSearch) || v.keywords.some(kw => kw.toLowerCase().includes(lowerSearch));
+    return matchesCat && matchesSearch;
+  });
 
   const kidsHymns = kidsBibleVideos.filter(v => v.category === "ترانيم للأطفال");
   const filteredHymns = kidsHymns.filter(h => {
@@ -688,27 +695,35 @@ export default function Kids() {
                 </div>
               </div>
 
-              {videoSearch ? (
-                <div className="mb-4">
-                  <span className="text-sm text-muted-foreground">
-                    نتائج البحث: {filteredVideos.filter(v => v.category !== "ترانيم للأطفال").length} فيديو
-                  </span>
-                </div>
-              ) : null}
+              {/* Category filters */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {['الكل', ...videoCategories.filter(c => c !== "ترانيم للأطفال")].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setVideoCat(cat)}
+                    className={`px-3 py-1 rounded-full text-sm border transition-colors ${videoCat === cat ? 'bg-purple-500 text-white border-purple-500' : 'bg-background text-muted-foreground border-border hover:border-purple-300'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
 
-              {videoCategories.filter(c => c !== "ترانيم للأطفال").map((category) => {
-                const categoryVideos = filteredVideos.filter(v => v.category === category);
-                if (categoryVideos.length === 0) return null;
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-muted-foreground">{filteredVideos.length} فيديو</span>
+              </div>
 
-                return (
-                  <div key={category} className="mb-8">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Video className="w-5 h-5 text-purple-500" />
-                      <h2 className="font-display text-xl font-bold text-foreground flex-1">{category}</h2>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      {categoryVideos.map((video, index) => (
+              {videoCat === 'الكل' ? (
+                videoCategories.filter(c => c !== "ترانيم للأطفال").map((category) => {
+                  const categoryVideos = filteredVideos.filter(v => v.category === category);
+                  if (categoryVideos.length === 0) return null;
+                  return (
+                    <div key={category} className="mb-8">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Video className="w-5 h-5 text-purple-500" />
+                        <h2 className="font-display text-xl font-bold text-foreground flex-1">{category}</h2>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        {categoryVideos.map((video, index) => (
                         <motion.div
                           key={video.id}
                           initial={{ opacity: 0, y: 20 }}
@@ -751,12 +766,48 @@ export default function Kids() {
                     </div>
                   </div>
                 );
-              })}
+              })
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {filteredVideos.map((video, index) => (
+                    <motion.div
+                      key={video.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.04 }}
+                    >
+                      <Card
+                        className="overflow-hidden cursor-pointer hover:shadow-lg transition-all group"
+                        onClick={() => openVideo(video, false)}
+                        data-testid={`video-card-${video.id}`}
+                      >
+                        <div className="relative h-40 overflow-hidden">
+                          <img
+                            src={getYouTubeThumbnail(video.youtubeId)}
+                            alt={video.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
+                              <Play className="w-8 h-8 text-purple-600 mr-[-4px]" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <h3 className="font-display text-lg font-bold text-foreground line-clamp-2">{video.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-1">{video.category}</p>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
 
-              {filteredVideos.filter(v => v.category !== "ترانيم للأطفال").length === 0 && (
+              {filteredVideos.length === 0 && (
                 <div className="text-center py-12">
                   <Video className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-lg text-muted-foreground">لا توجد فيديوهات مطابقة للبحث</p>
+                  <p className="text-lg text-muted-foreground">لا توجد فيديوهات مطابقة</p>
                 </div>
               )}
             </motion.div>
