@@ -1,17 +1,23 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronLeft, ChevronRight, BookMarked, X, Loader2, Volume2, BookText } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, BookMarked, X, Loader2, Volume2, BookText, Bell, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { registerPushSubscription, unregisterPushSubscription } from '@/lib/push-notifications';
 import { getTodayReadings, type DailyReading } from '@/lib/daily-reading-engine';
 import { fetchBookIntro, fetchChapterTafsir, fetchVerseTafsir } from '@/lib/tafsir-csv-service';
 import { getVideoId } from '@/lib/video-links-data';
 import { TafsirText } from '@/components/TafsirText';
 
+type NotifState = 'unsupported' | 'idle' | 'loading' | 'subscribed';
+
 export function TodayReading() {
+  const [notifState, setNotifState] = useState<NotifState>('idle');
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [tafsirDialogOpen, setTafsirDialogOpen] = useState(false);
@@ -23,6 +29,45 @@ export function TodayReading() {
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
   const [videoReadingIndex, setVideoReadingIndex] = useState(0);
   const [viewingChapter, setViewingChapter] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setNotifState('unsupported');
+      return;
+    }
+    if (Notification.permission === 'denied') return;
+    navigator.serviceWorker.getRegistration('/sw.js').then(reg => {
+      if (!reg) return;
+      reg.pushManager.getSubscription().then(sub => {
+        if (sub) setNotifState('subscribed');
+      });
+    });
+  }, []);
+
+  const handleNotification = async () => {
+    if (notifState === 'subscribed') {
+      setNotifState('loading');
+      await unregisterPushSubscription();
+      setNotifState('idle');
+      toast.success('تم إلغاء تذكير القراءة اليومية');
+      return;
+    }
+    setNotifState('loading');
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      setNotifState('idle');
+      toast.error('لم يتم منح إذن الإشعارات');
+      return;
+    }
+    const ok = await registerPushSubscription();
+    if (ok) {
+      setNotifState('subscribed');
+      toast.success('سيصلك تذكير بقراءة اليوم كل صباح الساعة 8 ✓');
+    } else {
+      setNotifState('idle');
+      toast.error('حدث خطأ أثناء تفعيل الإشعارات');
+    }
+  };
 
   const dailyReadings = useMemo(() => {
     try {
@@ -231,6 +276,23 @@ export function TodayReading() {
               ابدأ القراءة
               <ChevronLeft className="w-4 h-4 mr-2" />
             </Button>
+
+            {notifState !== 'unsupported' && (
+              <Button
+                variant={notifState === 'subscribed' ? 'default' : 'outline'}
+                size="sm"
+                className={cn('w-full mt-2', notifState === 'subscribed' && 'bg-green-600 hover:bg-green-700 text-white')}
+                onClick={handleNotification}
+                disabled={notifState === 'loading'}
+                data-testid="button-toggle-reading-notifications"
+              >
+                {notifState === 'subscribed' ? (
+                  <><BellOff className="w-4 h-4 ml-1" />إلغاء تذكير القراءة اليومية</>
+                ) : (
+                  <><Bell className="w-4 h-4 ml-1" />تذكير بقراءة اليوم يومياً</>
+                )}
+              </Button>
+            )}
           </div>
         </Card>
       </motion.div>
