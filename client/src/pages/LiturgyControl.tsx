@@ -23,6 +23,11 @@ import {
   OCCASION_ORDER,
   type OccasionTag,
 } from '@/lib/liturgy-occasion';
+import {
+  getTodaySynaxarium,
+  entryTypeIcon,
+  type SynaxariumEntry,
+} from '@/lib/synaxarium-content';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -120,6 +125,26 @@ export default function LiturgyControl() {
         const { copticDate: cd, ...override } = readings as { copticDate: string } & DailyReadingSlides;
         readingsOverride = override as DailyReadingSlides;
         setCopticDate(cd);
+      }
+      // السنكسار الحقيقي — يُملأ من بيانات الموقع (لا يحتاج خادماً)
+      const synaxToday = getTodaySynaxarium();
+      if (synaxToday) {
+        const { month, day } = synaxToday;
+        const synaxSlides = day.entries.map((e: SynaxariumEntry) => {
+          const icon = entryTypeIcon[e.type] ?? '✝️';
+          return `${icon} ${e.name}\n\n${e.description}`;
+        });
+        const synaxTitle = `سنكسار ${month.arabicName} — يوم ${day.day}`;
+        readingsOverride = {
+          ...(readingsOverride ?? {
+            pauline:  { title: '', slides: [] },
+            catholic: { title: '', slides: [] },
+            praxis:   { title: '', slides: [] },
+            psalm:    { title: '', slides: [] },
+            gospel:   { title: '', slides: [] },
+          }),
+          synaxar: { title: synaxTitle, slides: synaxSlides },
+        } as DailyReadingSlides;
       }
       const merged = { ...data, slideIndex: safeIdx, copticMode: initialMode, readingsOverride, occasion };
       setSession(merged);
