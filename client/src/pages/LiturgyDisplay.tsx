@@ -77,7 +77,7 @@ export default function LiturgyDisplay() {
               setCurrentSlide(null);
             }
           } else {
-            const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey);
+            const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, data.occasion);
             setCurrentSlide(slides[data.slideIndex] ?? null);
           }
         }
@@ -212,7 +212,7 @@ export default function LiturgyDisplay() {
         {(() => {
           const ov = (session as LiturgySession & { readingsOverride?: Record<string, { slides: string[] }> }).readingsOverride;
           const rt = READINGS_SECTION_KEYS.has(session.sectionKey) ? getReadingType(session.sectionKey) : null;
-          const count = (ov && rt && ov[rt]) ? ov[rt].slides.length : getSplitSlidesForSection(session.liturgyType, session.sectionKey).length;
+          const count = (ov && rt && ov[rt]) ? ov[rt].slides.length : getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion).length;
           return Array.from({ length: count }).map((_, i) => (
             <div
               key={i}
