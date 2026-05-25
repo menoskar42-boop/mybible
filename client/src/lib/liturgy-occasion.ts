@@ -102,3 +102,57 @@ export function detectOccasion(date: Date): OccasionTag {
 
   return 'ordinary';
 }
+
+// ── نوع الهيتينية الموسمية (حسب موسم السنة الزراعية القبطية) ────────────────
+export type SeasonalLitanyType = 'water' | 'crops' | 'weather';
+
+export const SEASONAL_LITANY_LABELS: Record<SeasonalLitanyType, string> = {
+  water:   'هيتينية المياه',
+  crops:   'هيتينية الزروع',
+  weather: 'هيتينية الأهوية',
+};
+
+// المواسم (من المصدر الطقسي في kholagy-data.ts):
+// مياه النهر: ١٢ بؤونة → ٩ بابة  (١٩ يونيو → ٢٠ أكتوبر)
+// الزروع والعشب: ١٠ بابة → ١٠ طوبة  (٢١ أكتوبر → ١٩ يناير)
+// أهوية السماء: ١١ طوبة → ١١ بؤونة  (٢٠ يناير → ١٨ يونيو)
+// شهور القبطية: ١=توت ٢=بابة ٣=هاتور ٤=كيهك ٥=طوبة ٦=أمشير
+//               ٧=برمهات ٨=برموده ٩=بشنس ١٠=بؤونة ١١=أبيب ١٢=مسرى ١٣=نسيء
+export function detectSeasonalLitany(date: Date): SeasonalLitanyType {
+  const { month, day } = gregorianToCoptic(date);
+  if (month === 10 && day >= 12) return 'water';
+  if (month === 11 || month === 12 || month === 13 || month === 1) return 'water';
+  if (month === 2 && day <= 9) return 'water';
+  if (month === 2 && day >= 10) return 'crops';
+  if (month >= 3 && month <= 4) return 'crops';
+  if (month === 5 && day <= 10) return 'crops';
+  return 'weather';
+}
+
+// ── تسمية القِسمة حسب المناسبة ────────────────────────────────────────────
+export function getQismaLabel(occasion: OccasionTag): string {
+  switch (occasion) {
+    case 'great-lent':
+    case 'lazarus-palm':
+    case 'holy-week':
+      return 'قسمة الصوم';
+    case 'resurrection':
+    case 'pentecostal':
+      return 'قسمة القيامة';
+    case 'ascension':
+      return 'قسمة الصعود';
+    case 'pentecost':
+      return 'قسمة العنصرة';
+    case 'nativity':
+    case 'circumcision':
+    case 'epiphany':
+    case 'presentation':
+    case 'apostles-feast':
+    case 'virgin-feast':
+    case 'cross':
+    case 'kiahk':
+      return 'قسمة الأعياد';
+    default:
+      return 'القسمة السنوية';
+  }
+}

@@ -2,8 +2,9 @@
 // يربط القسم الواحد (sectionKey) بشرائح من كل قداس بنفس الاسم المنطقي
 
 import { kholagyLiturgies } from './kholagy-data';
-import type { OccasionTag } from './liturgy-occasion';
+import type { OccasionTag, SeasonalLitanyType } from './liturgy-occasion';
 import { occasionInserts } from './liturgy-occasion-content';
+import { seasonalLitanyInserts } from './liturgy-seasonal-content';
 
 export type LiturgyType = 'basil' | 'gregory' | 'cyril';
 
@@ -227,7 +228,8 @@ const SECTION_DEACON_PRELUDE: Partial<Record<string, LiturgySlide[]>> = {
 export interface OccasionInsert {
   occasion: OccasionTag;
   anchorSectionKey: string;
-  position: 'before' | 'after' | 'prelude';
+  // 'replace': يستبدل محتوى القسم كلياً (للقِسمات الموسمية)
+  position: 'before' | 'after' | 'prelude' | 'replace';
   slides: LiturgySlide[];
 }
 
@@ -239,6 +241,20 @@ function getOccasionInserts(
   return occasionInserts
     .filter(ins => ins.occasion === occasion && ins.anchorSectionKey === sectionKey && ins.position === position)
     .flatMap(ins => ins.slides);
+}
+
+// ── الهيتينيات الموسمية (مياه / زروع / أهوية) — تُقحَم حسب الشهر القبطي ────────
+export interface SeasonalLitanyInsert {
+  anchorSectionKey: string;
+  slides: Record<SeasonalLitanyType, LiturgySlide[]>;
+}
+
+function getSeasonalLitanySlides(
+  sectionKey: string,
+  seasonalLitany: SeasonalLitanyType,
+): LiturgySlide[] {
+  const insert = seasonalLitanyInserts.find(s => s.anchorSectionKey === sectionKey);
+  return insert ? (insert.slides[seasonalLitany] ?? []) : [];
 }
 
 // ── واجهة القراءات اليومية الديناميكية
@@ -279,6 +295,7 @@ export interface LiturgySession {
   copticMode: 'script' | 'arabic';
   readingsOverride: DailyReadingSlides | null;
   occasion: OccasionTag;
+  seasonalLitany: SeasonalLitanyType;
   updatedAt: number;
 }
 
@@ -291,6 +308,7 @@ export const defaultSession: LiturgySession = {
   copticMode: 'script',
   readingsOverride: null,
   occasion: 'ordinary',
+  seasonalLitany: 'weather',
   updatedAt: Date.now(),
 };
 
@@ -385,8 +403,13 @@ export function getSplitSlidesForSection(
   liturgyType: LiturgyType,
   sectionKey: string,
   occasion: OccasionTag = 'ordinary',
+  seasonalLitany: SeasonalLitanyType = 'weather',
   maxChars = SLIDE_MAX_CHARS,
 ): LiturgySlide[] {
+  // القِسمة الموسمية — إن وُجد replace insert للمناسبة نُعيد شرائحه فقط
+  const occReplace = getOccasionInserts(sectionKey, occasion, 'replace');
+  if (occReplace.length > 0) return occReplace;
+
   const slides = getSlidesForSection(liturgyType, sectionKey);
   const result: LiturgySlide[] = [];
 
@@ -434,7 +457,8 @@ export function getSplitSlidesForSection(
   const occBefore  = getOccasionInserts(sectionKey, occasion, 'before');
   const occPrelude = getOccasionInserts(sectionKey, occasion, 'prelude');
   const occAfter   = getOccasionInserts(sectionKey, occasion, 'after');
-  return [...occBefore, ...occPrelude, ...prelude, ...result, ...occAfter];
+  const seasonal   = getSeasonalLitanySlides(sectionKey, seasonalLitany);
+  return [...occBefore, ...occPrelude, ...seasonal, ...prelude, ...result, ...occAfter];
 }
 
 // ── مجموعات الأقسام المتكافئة بين القداسات الثلاثة
