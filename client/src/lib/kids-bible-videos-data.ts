@@ -1617,11 +1617,132 @@ const kidsHymns: KidsVideo[] = [
   },
 ];
 
-// Combined list: hymns first, then stories/videos
-export const kidsBibleVideos: KidsVideo[] = [...kidsHymns, ...kidsStoriesVideos];
+// ── ترانيم الميلاد والكريسماس ────────────────────────────────────────────────
+const christmasHymns: KidsVideo[] = [
+  { id: "hymn-christmas-01", youtubeId: "sHPC5uI5iGI", title: "إنت بابا نويل", keywords: ["كريسماس", "الميلاد", "بابا نويل", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-02", youtubeId: "0tcpKvyy4Jg", title: "كان في المذود طفل صغير", keywords: ["الميلاد", "مذود", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-03", youtubeId: "n8UZhxvcxgo", title: "روح زورهن (كريسماس)", keywords: ["كريسماس", "الميلاد", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-04", youtubeId: "1EGEq5SyZg4", title: "مغامرات سانتا", keywords: ["كريسماس", "سانتا", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-05", youtubeId: "J4VOLdrkJC4", title: "لا تبقى وحيداً (كريسماس)", keywords: ["كريسماس", "الميلاد", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-06", youtubeId: "V2721Kn_9AE", title: "اعمل وقت لما تحبه (كريسماس)", keywords: ["كريسماس", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-07", youtubeId: "nezYsfXF2Ho", title: "We Wish You A Merry Christmas", keywords: ["كريسماس", "الميلاد", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-08", youtubeId: "p1fXJnV0Oe0", title: "الطبخ للكريسماس (كرتون)", keywords: ["كريسماس", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-09", youtubeId: "qBgdWyohMAE", title: "Christmas Family (كرتون)", keywords: ["كريسماس", "عائلة", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-10", youtubeId: "1PubMgcADp8", title: "ذات الحذاء الأحمر كريسماس", keywords: ["كريسماس", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-11", youtubeId: "RvAAhD8MDDk", title: "كل سنة وانت طيب يا بابا يسوع", keywords: ["الميلاد", "يسوع", "سنة جديدة", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-12", youtubeId: "K3iuPLcGLS0", title: "معجزة صغيرة للكريسماس (فيلم)", keywords: ["كريسماس", "الميلاد", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-13", youtubeId: "BISSwQ4hM9E", title: "النور جه (ترانيم الميلاد)", keywords: ["الميلاد", "النور", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-14", youtubeId: "5LbuVfqc1_Q", title: "حبك بيحير (ترانيم الميلاد)", keywords: ["الميلاد", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-15", youtubeId: "7JYMju4-89A", title: "خطوة يمين وخطوة شمال", keywords: ["الميلاد", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-16", youtubeId: "gXQA2J5ic5A", title: "يوم الميلاد (كرتون)", keywords: ["الميلاد", "كريسماس", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-17", youtubeId: "e4_eiEsUgVk", title: "طفل صغير جوة القش", keywords: ["الميلاد", "مذود", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-18", youtubeId: "grDZkXUPvyY", title: "في مذود البقر", keywords: ["الميلاد", "مذود", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-19", youtubeId: "eKYer-EEG3k", title: "جوة المذود تلقى سلام", keywords: ["الميلاد", "مذود", "سلام", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-20", youtubeId: "FQ_MHSnofhU", title: "خليني يارب نجمة", keywords: ["الميلاد", "نجمة", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-21", youtubeId: "kgN8Jp6kvBo", title: "Feliz Navidad — في كل عيد ميلاد", keywords: ["الميلاد", "كريسماس", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-22", youtubeId: "k-0J4UjJ5ng", title: "كان النور قاطع قاطع", keywords: ["الميلاد", "النور", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-23", youtubeId: "jO2SzuNPPbs", title: "طعم الكريسماس وبابا نويل", keywords: ["كريسماس", "بابا نويل", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-24", youtubeId: "pEmYxm5vVYA", title: "هُس هُس وطوا الصوت (عيد الميلاد)", keywords: ["الميلاد", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-25", youtubeId: "-V5c_3xrBUM", title: "Merry Christmas & Happy New Year 2022", keywords: ["كريسماس", "سنة جديدة", "TaranemToon", "كرتون"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-26", youtubeId: "iIOe-mreaZQ", title: "الكريسماس ورأس السنة — البابا شنودة", keywords: ["كريسماس", "البابا شنودة"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-27", youtubeId: "q3ezBqnIdCM", title: "يسوع ولد في مذود", keywords: ["الميلاد", "يسوع", "مذود", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-28", youtubeId: "wZ-dnBqNIpY", title: "ليه يارب اخترت المذود؟", keywords: ["الميلاد", "مذود", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-29", youtubeId: "GoIqujA3MrQ", title: "آخر يوم في السنة — أبونا داود لمعي", keywords: ["سنة جديدة", "عظة", "داود لمعي"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-30", youtubeId: "Wb8Cy9MOUkU", title: "المذود السعيد", keywords: ["الميلاد", "مذود", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-31", youtubeId: "VQAyWyTnc4g", title: "يا أجراس دندني (الكريسماس)", keywords: ["كريسماس", "أجراس", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-32", youtubeId: "1a5mdJu5A_0", title: "يوم عظيم — عيد الميلاد", keywords: ["الميلاد", "كريسماس", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-33", youtubeId: "riOt6WM5dxQ", title: "جالنا وشوفناه", keywords: ["الميلاد", "يسوع", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-34", youtubeId: "OiHhDJeL_pw", title: "نجمة ظهرت", keywords: ["الميلاد", "نجمة", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-35", youtubeId: "eZzl2xUDCI8", title: "نيقولاوس ده بابا نويل", keywords: ["كريسماس", "بابا نويل", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-36", youtubeId: "SxfDxZ6mlyY", title: "سنة جديدة", keywords: ["سنة جديدة", "كريسماس", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-37", youtubeId: "F9NYAMcIn5A", title: "بابا نويل هنا", keywords: ["كريسماس", "بابا نويل", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-38", youtubeId: "N_C-KiSNgq8", title: "طفل جميل (كريسماس)", keywords: ["الميلاد", "طفل", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-39", youtubeId: "hvxdDNa2sjc", title: "كان اسمه يوسف", keywords: ["الميلاد", "يوسف", "مريم", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-40", youtubeId: "Ny2Xp_mnJJA", title: "إنت بابا نويل (TaranemToon)", keywords: ["كريسماس", "بابا نويل", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-41", youtubeId: "yaogdGVDmrw", title: "حاسس بيك (الميلاد)", keywords: ["الميلاد", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-42", youtubeId: "dnqIgi_aME8", title: "جوه المزود", keywords: ["الميلاد", "مذود", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-43", youtubeId: "2cTXRdTHRyE", title: "روح زورهن (TaranemToon)", keywords: ["كريسماس", "الميلاد", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-44", youtubeId: "0KLDydgezy8", title: "قديس الكريسماس", keywords: ["كريسماس", "قديس", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-45", youtubeId: "kLTfWP-a9xw", title: "نايم نونو", keywords: ["الميلاد", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-46", youtubeId: "OX9LV4VfLIs", title: "نجمة الميلاد", keywords: ["الميلاد", "نجمة", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-47", youtubeId: "7im95YTZBpU", title: "المذود السعيد (نسخة 2)", keywords: ["الميلاد", "مذود", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-48", youtubeId: "zvwWJuh6xfg", title: "أجراس (الكريسماس)", keywords: ["كريسماس", "أجراس", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-49", youtubeId: "b_IAAWSPLaw", title: "طفل المذود الجميل", keywords: ["الميلاد", "مذود", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-50", youtubeId: "Agbw0LPYjHI", title: "باب المزود (ترانيم الميلاد)", keywords: ["الميلاد", "مذود", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-51", youtubeId: "iOMwsIxLGEY", title: "بحبك جيت", keywords: ["الميلاد", "محبة", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-52", youtubeId: "Wl-qecMRJrE", title: "أنا نفسي أكون زي النجم", keywords: ["الميلاد", "نجمة", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-53", youtubeId: "bcC4TS158BI", title: "سمع الخبر (ترانيم الميلاد)", keywords: ["الميلاد", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-54", youtubeId: "EFcorPDTAOQ", title: "نجم كبير (كريسماس)", keywords: ["كريسماس", "نجمة", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-55", youtubeId: "1zDG0VQeUIw", title: "أسالوا النجمة (كريسماس)", keywords: ["كريسماس", "نجمة", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-56", youtubeId: "Rgj77LlYyfc", title: "فرح عظيم (ترانيم الميلاد)", keywords: ["الميلاد", "فرح", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-57", youtubeId: "JSoAFUPfzGA", title: "نجم تجلى", keywords: ["الميلاد", "نجمة", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-58", youtubeId: "dNXNWT9aQgE", title: "وسط القش (الميلاد)", keywords: ["الميلاد", "مذود", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-59", youtubeId: "j_JcRCACaj4", title: "شخصيات عايشة الحدوتة", keywords: ["الميلاد", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+  { id: "hymn-christmas-60", youtubeId: "1hhOCySQPtc", title: "عندي سؤال (الميلاد)", keywords: ["الميلاد", "كرتون", "TaranemToon"], category: "ترانيم الميلاد والكريسماس" },
+];
 
-// Export hymns separately for playlist feature
-export const kidsHymnsPlaylist: KidsVideo[] = kidsHymns;
+// ── أسبوع الآلام والقيامة ─────────────────────────────────────────────────────
+const holyWeekHymns: KidsVideo[] = [
+  { id: "hymn-hweek-01", youtubeId: "zO6uZFlzgAY", title: "وفي ديوني", keywords: ["الآلام", "الصليب", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-02", youtubeId: "eyC4ttxNY6g", title: "الصلب مكنش ضعف", keywords: ["الصلب", "الآلام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-03", youtubeId: "s6yqW6jgQ_A", title: "مرد أوصنا قبطي وعربي", keywords: ["الشعانين", "أوصنا", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-04", youtubeId: "-lblD5FOdus", title: "لحن ابؤرو الحزاينى", keywords: ["الآلام", "البصخة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-05", youtubeId: "-NrUfz4IVBI", title: "ماشي مكشر ليه؟ (القيامة)", keywords: ["القيامة", "فرح", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-06", youtubeId: "g0aFjBc7J_k", title: "واحد اتنين تلاتة (القيامة)", keywords: ["القيامة", "فرح", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-07", youtubeId: "Y4-2nGQI_AQ", title: "اللي فرحان بجد", keywords: ["القيامة", "فرح", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-08", youtubeId: "Wz6wtf8IR5U", title: "أنا قلبي فرحان (القيامة)", keywords: ["القيامة", "فرح", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-09", youtubeId: "YrrbrHLJXCI", title: "لحن ثوك تي تي جوم", keywords: ["القيامة", "البصخة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-10", youtubeId: "0yYkfZhWJUk", title: "يا سيدي كم كان قاسياً", keywords: ["الآلام", "الصليب", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-11", youtubeId: "uP_yqvu9CWw", title: "لحن آبي إخرستوس بينوتي (القيامة)", keywords: ["القيامة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-12", youtubeId: "5q7qjKdI8RI", title: "ذكصولوجية عيد القيامة", keywords: ["القيامة", "ذكصولوجية", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-13", youtubeId: "FLbEcvD4HrY", title: "ليل العشاء السري — خميس العهد", keywords: ["خميس العهد", "الآلام", "البصخة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-14", youtubeId: "8oVy3IuGlfE", title: "لحن يا كل الصفوف السمائيين (القيامة)", keywords: ["القيامة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-15", youtubeId: "dC8AH-JQyx4", title: "قصة الصليب", keywords: ["الصليب", "الآلام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-16", youtubeId: "QNv9HwXR0r4", title: "لو كنت في نفس الزمان", keywords: ["الآلام", "الصليب", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-17", youtubeId: "gxLIpDhP7Q8", title: "كتكوت وقمحة وحوت (القيامة)", keywords: ["القيامة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-18", youtubeId: "unxyrQdA95I", title: "ميدلي أسبوع الآلام", keywords: ["الآلام", "البصخة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-19", youtubeId: "pgY79QxNqzU", title: "لما الفجر كان بيشقشق (القيامة)", keywords: ["القيامة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-20", youtubeId: "Y9RZXd7NN5k", title: "صباح الخير يا بابا يسوع (القيامة)", keywords: ["القيامة", "يسوع", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-21", youtubeId: "0zYO_UZhDbU", title: "سبت لعازر", keywords: ["لعازر", "الشعانين", "أسبوع الآلام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-22", youtubeId: "u1VA1BlVbxc", title: "أنا متأكد (القيامة)", keywords: ["القيامة", "إيمان", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-23", youtubeId: "3aysqjOWlJM", title: "هو قام", keywords: ["القيامة", "المسيح قام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-24", youtubeId: "PTig29w5jmo", title: "أحد الشعانين", keywords: ["الشعانين", "أسبوع الآلام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-25", youtubeId: "UIGFk9df2PM", title: "يهوذا مخالف الناموس", keywords: ["الآلام", "يهوذا", "البصخة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-26", youtubeId: "7m-wToVgmIU", title: "الثلاثاء الكبير (البصخة)", keywords: ["البصخة", "أسبوع الآلام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-27", youtubeId: "zZo5i9LwFd0", title: "الإثنين الكبير (البصخة)", keywords: ["البصخة", "أسبوع الآلام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-28", youtubeId: "gozjXz3CcoM", title: "الأربعاء الكبير (البصخة)", keywords: ["البصخة", "أسبوع الآلام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-29", youtubeId: "RaEX_ft4PXc", title: "خميس العهد (أسبوع الآلام)", keywords: ["خميس العهد", "الآلام", "البصخة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-30", youtubeId: "aAioatVKmuo", title: "البصخة عبور", keywords: ["البصخة", "الآلام", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-31", youtubeId: "yydgE126F4c", title: "الجمعة العظيمة", keywords: ["الجمعة العظيمة", "الآلام", "الصلب", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-32", youtubeId: "_SC_Z4RiD7g", title: "عيد القيامة المجيد", keywords: ["القيامة", "الخمسين", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-33", youtubeId: "Z3_oIoVqDtI", title: "آحاد الخمسين (القيامة)", keywords: ["القيامة", "الخمسين", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-34", youtubeId: "ox5zMUMd07g", title: "ظهور الرب لمريم المجدلية", keywords: ["القيامة", "الخمسين", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-35", youtubeId: "VLzrHFBuK2Y", title: "ظهور الرب للتلاميذ", keywords: ["القيامة", "الخمسين", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-36", youtubeId: "8m70MqQxMOI", title: "ظهور الرب للتلاميذ وتوما", keywords: ["القيامة", "الخمسين", "توما", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-37", youtubeId: "5sR-MwzWtQo", title: "عيد الصعود", keywords: ["الصعود", "الخمسين", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-38", youtubeId: "c5LQCv5R7Ls", title: "بانوراما أسبوع الآلام", keywords: ["الآلام", "البصخة", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-39", youtubeId: "_Wkfn-u6bbc", title: "ربي يسوع قام", keywords: ["القيامة", "يسوع", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-40", youtubeId: "JFDO_PZVIt8", title: "اطلعي يا شمس (القيامة)", keywords: ["القيامة", "فرح", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-41", youtubeId: "hHOrTIZYPh0", title: "القيامة يا مريم قولي!", keywords: ["القيامة", "مريم", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+  { id: "hymn-hweek-42", youtubeId: "y_4Ny3wJfjc", title: "I'm Sure — الرب يسوع المسيح قام", keywords: ["القيامة", "إيمان", "كرتون", "TaranemToon"], category: "أسبوع الآلام والقيامة" },
+];
+
+// ── ترانيم كيهك ───────────────────────────────────────────────────────────────
+const kiahkHymns: KidsVideo[] = [
+  { id: "hymn-kiahk-01", youtubeId: "cY5uLL19jGI", title: "كيهك 4 أسابيع", keywords: ["كيهك", "الميلاد", "كرتون", "TaranemToon"], category: "ترانيم كيهك" },
+  { id: "hymn-kiahk-02", youtubeId: "WTDAdHMHvV4", title: "الاسبسمس لأحد الأول من كيهك — زكريا الكاهن", keywords: ["كيهك", "زكريا", "كرتون", "TaranemToon"], category: "ترانيم كيهك" },
+  { id: "hymn-kiahk-03", youtubeId: "MugKJaKJpxg", title: "مرد الابركسيس لشهر كيهك", keywords: ["كيهك", "كرتون", "TaranemToon"], category: "ترانيم كيهك" },
+  { id: "hymn-kiahk-04", youtubeId: "hsx8xCkOtDE", title: "مرد إنجيل كيهك — نرفعك باستحقاق", keywords: ["كيهك", "العذراء", "كرتون"], category: "ترانيم كيهك" },
+  { id: "hymn-kiahk-05", youtubeId: "LInYvhsoE20", title: "مرد إنجيل — نحن نعطيك السلام (كيهك)", keywords: ["كيهك", "كرتون"], category: "ترانيم كيهك" },
+  { id: "hymn-kiahk-06", youtubeId: "TxYiHCqiSxw", title: "ذكصولوجية العذراء لشهر كيهك", keywords: ["كيهك", "العذراء", "ذكصولوجية", "كرتون", "TaranemToon"], category: "ترانيم كيهك" },
+  { id: "hymn-kiahk-07", youtubeId: "LRGpIlE05y0", title: "شهر كيهك", keywords: ["كيهك", "كرتون", "TaranemToon"], category: "ترانيم كيهك" },
+];
+
+// Combined list: hymns first, then stories/videos
+export const kidsBibleVideos: KidsVideo[] = [...kidsHymns, ...christmasHymns, ...holyWeekHymns, ...kiahkHymns, ...kidsStoriesVideos];
+
+// Export hymns separately for playlist feature (all hymn categories)
+export const kidsHymnsPlaylist: KidsVideo[] = [...kidsHymns, ...christmasHymns, ...holyWeekHymns, ...kiahkHymns];
 
 export const videoCategories = [
   "قصص العهد القديم",
@@ -1638,6 +1759,9 @@ export function getYouTubeThumbnail(youtubeId: string): string {
 }
 
 const HYMN_CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
+  { category: "ترانيم الميلاد والكريسماس", keywords: ["كريسماس", "الميلاد", "مذود", "بابا نويل", "نجمة الميلاد", "كيهك ولد"] },
+  { category: "أسبوع الآلام والقيامة", keywords: ["الآلام", "البصخة", "الصلب", "خميس العهد", "الجمعة العظيمة", "الشعانين", "لعازر", "الصعود", "الخمسين"] },
+  { category: "ترانيم كيهك", keywords: ["كيهك"] },
   { category: "ترانيم العذراء", keywords: ["العذراء", "عدرا", "ماما العدرا", "مريم", "طوباكى", "توتة"] },
   { category: "ترانيم النيروز", keywords: ["النيروز", "نيروز"] },
   { category: "ترانيم القيامة", keywords: ["القيامة", "قيامة", "الفصح"] },
@@ -1661,6 +1785,9 @@ export function getHymnCategory(hymn: KidsVideo): string {
 export const hymnCategories = [
   "الكل",
   "ترانيم تسبيح وعبادة",
+  "ترانيم الميلاد والكريسماس",
+  "أسبوع الآلام والقيامة",
+  "ترانيم كيهك",
   "ترانيم العذراء",
   "ترانيم النيروز",
   "ترانيم القيامة",
