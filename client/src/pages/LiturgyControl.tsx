@@ -17,6 +17,12 @@ import {
   type DeaconResponse,
   type DailyReadingSlides,
 } from '@/lib/liturgy-map';
+import {
+  detectOccasion,
+  OCCASION_LABELS,
+  OCCASION_ORDER,
+  type OccasionTag,
+} from '@/lib/liturgy-occasion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -65,7 +71,7 @@ export default function LiturgyControl() {
     });
   }
 
-  const currentSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey);
+  const currentSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion);
   const currentSlide = currentSlides[session.slideIndex];
   // section key هو المعرّف الأصلي قبل التقسيم (basil-opening لا basil-opening-p4)
   const currentSectionKey = session.sectionKey;
@@ -102,7 +108,9 @@ export default function LiturgyControl() {
         navigate(`/liturgy-control/${data.slot}`, { replace: true });
       }
       setSlot(data.slot ?? null);
-      const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey);
+      // مناسبة اليوم: تُكتشف تلقائياً من التاريخ ما لم تكن مُخزّنة في الجلسة
+      const occasion: OccasionTag = (data.occasion as OccasionTag) ?? detectOccasion(new Date());
+      const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, occasion);
       const safeIdx = Math.min(Math.max(0, data.slideIndex), Math.max(0, slides.length - 1));
       const initialMode: 'script' | 'arabic' = data.copticMode === 'arabic' ? 'arabic' : 'script';
       copticModeRef.current = initialMode;
@@ -113,7 +121,7 @@ export default function LiturgyControl() {
         readingsOverride = override as DailyReadingSlides;
         setCopticDate(cd);
       }
-      const merged = { ...data, slideIndex: safeIdx, copticMode: initialMode, readingsOverride };
+      const merged = { ...data, slideIndex: safeIdx, copticMode: initialMode, readingsOverride, occasion };
       setSession(merged);
       // مزامنة الجلسة مع القراءات الجديدة
       fetch('/api/liturgy-session', {
@@ -133,6 +141,16 @@ export default function LiturgyControl() {
   function switchSection(key: string) {
     pushSession({ sectionKey: key, slideIndex: 0, deaconOverride: null });
   }
+
+  function switchOccasion(occasion: OccasionTag) {
+    // تغيير المناسبة قد يغيّر عدد شرائح القسم (إقحامات العيد) ← نعيد المؤشر للبداية
+    pushSession({ occasion, slideIndex: 0, deaconOverride: null });
+  }
+
+  // مردات الشماس الظاهرة: العامة دائماً + ما يطابق مناسبة اليوم
+  const visibleDeaconResponses = deaconResponses.filter(
+    r => !r.occasions || r.occasions.includes(session.occasion),
+  );
 
   function goNext() {
     if (session.deaconOverride) {
@@ -183,7 +201,7 @@ export default function LiturgyControl() {
     const sections = getSectionsForLiturgy(session.liturgyType);
     const hits: SearchHit[] = [];
     for (const sec of sections) {
-      const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey);
+      const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion);
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
         const haystack = (s.text + ' ' + (s.copticText ?? '') + ' ' + s.title).toLowerCase();
@@ -311,6 +329,29 @@ export default function LiturgyControl() {
                 </button>
               ))}
             </div>
+          </Card>
+
+          {/* مناسبة اليوم */}
+          <Card className="bg-gray-900 border-gray-700 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-gray-300">مناسبة اليوم</h2>
+              <span className="text-xs text-emerald-400">
+                {OCCASION_LABELS[session.occasion]}
+              </span>
+            </div>
+            <select
+              value={session.occasion}
+              onChange={e => switchOccasion(e.target.value as OccasionTag)}
+              className="w-full bg-gray-800 border border-gray-700 text-gray-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              data-testid="occasion-select"
+            >
+              {OCCASION_ORDER.map(tag => (
+                <option key={tag} value={tag}>{OCCASION_LABELS[tag]}</option>
+              ))}
+            </select>
+            <p className="text-[11px] text-gray-500 mt-2">
+              تُكتشف تلقائياً من التاريخ — غيّرها يدوياً عند الحاجة لتظهر مردات وألحان المناسبة في مواضعها.
+            </p>
           </Card>
 
           {/* معاينة الشريحة الحالية */}
@@ -451,7 +492,7 @@ export default function LiturgyControl() {
             <h2 className="text-sm font-bold text-gray-300 mb-3">الأقسام</h2>
             <div className="space-y-1">
               {getSectionsForLiturgy(session.liturgyType).map(sec => {
-                const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey);
+                const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion);
                 return (
                   <button
                     key={sec.sectionKey}
@@ -508,7 +549,7 @@ export default function LiturgyControl() {
                   className="overflow-hidden"
                 >
                   <div className="space-y-1 mt-2">
-                    {deaconResponses.map(resp => (
+                    {visibleDeaconResponses.map(resp => (
                       <button
                         key={resp.id}
                         onClick={() => injectDeacon(resp)}

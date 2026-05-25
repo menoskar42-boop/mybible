@@ -2,6 +2,8 @@
 // يربط القسم الواحد (sectionKey) بشرائح من كل قداس بنفس الاسم المنطقي
 
 import { kholagyLiturgies } from './kholagy-data';
+import type { OccasionTag } from './liturgy-occasion';
+import { occasionInserts } from './liturgy-occasion-content';
 
 export type LiturgyType = 'basil' | 'gregory' | 'cyril';
 
@@ -23,6 +25,8 @@ export interface DeaconResponse {
   id: string;
   text: string;
   category: string;
+  // وسوم المناسبة — غيابها يعني مردّ عام يظهر في كل المناسبات
+  occasions?: OccasionTag[];
 }
 
 // ── تحويل الدور إلى نوع موحّد
@@ -219,6 +223,24 @@ const SECTION_DEACON_PRELUDE: Partial<Record<string, LiturgySlide[]>> = {
   ],
 };
 
+// ── إقحام محتوى المناسبة في موضعه الطقسي ضمن مسار القداس ────────────────────
+export interface OccasionInsert {
+  occasion: OccasionTag;
+  anchorSectionKey: string;
+  position: 'before' | 'after' | 'prelude';
+  slides: LiturgySlide[];
+}
+
+function getOccasionInserts(
+  sectionKey: string,
+  occasion: OccasionTag,
+  position: OccasionInsert['position'],
+): LiturgySlide[] {
+  return occasionInserts
+    .filter(ins => ins.occasion === occasion && ins.anchorSectionKey === sectionKey && ins.position === position)
+    .flatMap(ins => ins.slides);
+}
+
 // ── واجهة القراءات اليومية الديناميكية
 export interface DailyReadingSlides {
   pauline:  { title: string; slides: string[] };
@@ -255,6 +277,7 @@ export interface LiturgySession {
   deaconOverride: DeaconResponse | null;
   copticMode: 'script' | 'arabic';
   readingsOverride: DailyReadingSlides | null;
+  occasion: OccasionTag;
   updatedAt: number;
 }
 
@@ -266,6 +289,7 @@ export const defaultSession: LiturgySession = {
   deaconOverride: null,
   copticMode: 'script',
   readingsOverride: null,
+  occasion: 'ordinary',
   updatedAt: Date.now(),
 };
 
@@ -359,6 +383,7 @@ function splitParallelTexts(
 export function getSplitSlidesForSection(
   liturgyType: LiturgyType,
   sectionKey: string,
+  occasion: OccasionTag = 'ordinary',
   maxChars = SLIDE_MAX_CHARS,
 ): LiturgySlide[] {
   const slides = getSlidesForSection(liturgyType, sectionKey);
@@ -404,7 +429,11 @@ export function getSplitSlidesForSection(
 
   // أقحم مردات الشماس في مقدمة الشرائح ← تظهر تلقائياً بالضغط على "التالي"
   const prelude = SECTION_DEACON_PRELUDE[sectionKey] ?? [];
-  return [...prelude, ...result];
+  // إقحامات المناسبة في موضعها الطقسي الصحيح (قبل/مطلع/بعد)
+  const occBefore  = getOccasionInserts(sectionKey, occasion, 'before');
+  const occPrelude = getOccasionInserts(sectionKey, occasion, 'prelude');
+  const occAfter   = getOccasionInserts(sectionKey, occasion, 'after');
+  return [...occBefore, ...occPrelude, ...prelude, ...result, ...occAfter];
 }
 
 // ── مجموعات الأقسام المتكافئة بين القداسات الثلاثة
