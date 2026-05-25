@@ -1759,9 +1759,9 @@ export function getYouTubeThumbnail(youtubeId: string): string {
 }
 
 const HYMN_CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
-  { category: "ترانيم للأطفال", keywords: ["كريسماس", "الميلاد", "مذود", "بابا نويل", "نجمة الميلاد", "كيهك ولد"] },
-  { category: "ترانيم للأطفال", keywords: ["الآلام", "البصخة", "الصلب", "خميس العهد", "الجمعة العظيمة", "الشعانين", "لعازر", "الصعود", "الخمسين"] },
-  { category: "ترانيم للأطفال", keywords: ["كيهك"] },
+  { category: "ترانيم الميلاد والكريسماس", keywords: ["كريسماس", "الميلاد", "مذود", "بابا نويل", "نجمة الميلاد", "كيهك ولد"] },
+  { category: "أسبوع الآلام والقيامة", keywords: ["الآلام", "البصخة", "الصلب", "خميس العهد", "الجمعة العظيمة", "الشعانين", "لعازر", "الصعود", "الخمسين"] },
+  { category: "ترانيم كيهك", keywords: ["كيهك"] },
   { category: "ترانيم العذراء", keywords: ["العذراء", "عدرا", "ماما العدرا", "مريم", "طوباكى", "توتة"] },
   { category: "ترانيم النيروز", keywords: ["النيروز", "نيروز"] },
   { category: "ترانيم القيامة", keywords: ["القيامة", "قيامة", "الفصح"] },
@@ -1773,6 +1773,11 @@ const HYMN_CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
 ];
 
 export function getHymnCategory(hymn: KidsVideo): string {
+  // تصنيف صريح بالـ id بدل اعتماد keyword matching
+  if (hymn.id.startsWith("hymn-christmas-")) return "ترانيم الميلاد والكريسماس";
+  if (hymn.id.startsWith("hymn-hweek-"))     return "أسبوع الآلام والقيامة";
+  if (hymn.id.startsWith("hymn-kiahk-"))     return "ترانيم كيهك";
+  // الترانيم العادية — keyword matching
   const searchText = (hymn.title + " " + hymn.keywords.join(" ")).toLowerCase();
   for (const rule of HYMN_CATEGORY_RULES) {
     if (rule.keywords.some(kw => searchText.includes(kw.toLowerCase()))) {
