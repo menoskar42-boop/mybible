@@ -3,7 +3,10 @@ import { useLocation } from 'wouter';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart } from 'lucide-react';
+import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle } from 'lucide-react';
+import { memorizationVerses, kidsBadges, computeEarnedBadges, type AgeGroup } from '@/lib/kids-memorization-data';
+import { getRandomQuiz, QUIZ_LENGTH, type QuizQuestion } from '@/lib/kids-quiz-data';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +32,20 @@ function useFavoriteHymns() {
     });
   };
   return { favorites, toggle, isFavorite: (id: string) => favorites.includes(id) };
+}
+
+function useMemorization() {
+  const [memorized, setMemorized] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('memorized-verses') || '[]'); } catch { return []; }
+  });
+  const toggle = (id: string) => {
+    setMemorized(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem('memorized-verses', JSON.stringify(next));
+      return next;
+    });
+  };
+  return { memorized, toggle, isMemorized: (id: string) => memorized.includes(id) };
 }
 
 function ImageSlider({ images, title }: { images: string[]; title: string }) {
@@ -245,6 +262,8 @@ export default function Kids() {
   const activeTab = location.includes('/kids/hymns') ? 'hymns'
     : location.includes('/kids/videos') ? 'videos'
     : location.includes('/kids/stories') ? 'stories'
+    : location.includes('/kids/memorize') ? 'memorize'
+    : location.includes('/kids/games') ? 'games'
     : 'videos';
   const [selectedStory, setSelectedStory] = useState<number | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<KidsVideo | null>(null);
@@ -255,6 +274,18 @@ export default function Kids() {
   const [playlistActive, setPlaylistActive] = useState(false);
   const [playlistIndex, setPlaylistIndex] = useState(0);
   const { favorites, toggle, isFavorite } = useFavoriteHymns();
+  const { memorized, toggle: toggleMemorized, isMemorized } = useMemorization();
+  const [memAgeGroup, setMemAgeGroup] = useState<AgeGroup>('4-6');
+  const [currentQuiz, setCurrentQuiz] = useState<QuizQuestion[]>([]);
+  const [currentQ, setCurrentQ] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [quizSessionScore, setQuizSessionScore] = useState(0);
+  const [finalQuizScore, setFinalQuizScore] = useState(0);
+  const [quizDone, setQuizDone] = useState(false);
+  const [quizActive, setQuizActive] = useState(false);
+  const [totalQuizCorrect, setTotalQuizCorrect] = useState(() => parseInt(localStorage.getItem('quiz-total-correct') || '0'));
+  const [hadPerfectQuiz, setHadPerfectQuiz] = useState(() => localStorage.getItem('quiz-had-perfect') === 'true');
+  const earnedBadges = computeEarnedBadges(memorized, totalQuizCorrect, hadPerfectQuiz);
 
   const openVideo = (video: KidsVideo, inPlaylist = false) => {
     setSelectedVideo(video);
@@ -316,6 +347,61 @@ export default function Kids() {
     setPlaylistActive(true);
   };
 
+  const handleToggleMemorized = (id: string) => {
+    const wasMemorized = isMemorized(id);
+    toggleMemorized(id);
+    if (!wasMemorized) {
+      const newMem = [...memorized, id];
+      const oldBadges = computeEarnedBadges(memorized, totalQuizCorrect, hadPerfectQuiz);
+      const newBadges = computeEarnedBadges(newMem, totalQuizCorrect, hadPerfectQuiz);
+      newBadges.filter(b => !oldBadges.includes(b)).forEach(badgeId => {
+        const badge = kidsBadges.find(b => b.id === badgeId);
+        if (badge) toast.success(`شارة جديدة: ${badge.emoji} ${badge.title}!`);
+      });
+    }
+  };
+
+  const startQuiz = () => {
+    setCurrentQuiz(getRandomQuiz());
+    setCurrentQ(0);
+    setSelectedAnswer(null);
+    setQuizSessionScore(0);
+    setFinalQuizScore(0);
+    setQuizDone(false);
+    setQuizActive(true);
+  };
+
+  const handleQuizAnswer = (idx: number) => {
+    if (selectedAnswer !== null) return;
+    setSelectedAnswer(idx);
+  };
+
+  const handleQuizNext = () => {
+    if (selectedAnswer === null) return;
+    const isCorrect = selectedAnswer === currentQuiz[currentQ].correctIndex;
+    const newScore = quizSessionScore + (isCorrect ? 1 : 0);
+    if (currentQ < currentQuiz.length - 1) {
+      setQuizSessionScore(newScore);
+      setCurrentQ(q => q + 1);
+      setSelectedAnswer(null);
+    } else {
+      setFinalQuizScore(newScore);
+      const newTotal = totalQuizCorrect + newScore;
+      setTotalQuizCorrect(newTotal);
+      localStorage.setItem('quiz-total-correct', String(newTotal));
+      if (newScore === QUIZ_LENGTH && !hadPerfectQuiz) {
+        setHadPerfectQuiz(true);
+        localStorage.setItem('quiz-had-perfect', 'true');
+        toast.success('شارة جديدة: 🏆 بطل المسابقة!');
+      }
+      if (newTotal >= 10 && totalQuizCorrect < 10) {
+        toast.success('شارة جديدة: 🎯 متسابق ذكي!');
+      }
+      setQuizDone(true);
+      setQuizActive(false);
+    }
+  };
+
   const videoSchema = getVideoSchema(
     (activeTab === 'hymns' ? kidsHymns : kidsBibleVideos).map(v => ({
       id: v.id,
@@ -366,18 +452,26 @@ export default function Kids() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
-          <TabsList className="w-full grid grid-cols-3 mb-6 h-14">
-            <TabsTrigger value="videos" className="text-base py-3" data-testid="tab-videos">
-              <Video className="w-5 h-5 ml-2" />
+          <TabsList className="w-full flex overflow-x-auto mb-6 h-auto gap-0.5 p-1">
+            <TabsTrigger value="videos" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-videos">
+              <Video className="w-5 h-5" />
               قصص الكتاب
             </TabsTrigger>
-            <TabsTrigger value="hymns" className="text-base py-3" data-testid="tab-hymns">
-              <Music className="w-5 h-5 ml-2" />
+            <TabsTrigger value="hymns" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-hymns">
+              <Music className="w-5 h-5" />
               ترانيم
             </TabsTrigger>
-            <TabsTrigger value="stories" className="text-base py-3" data-testid="tab-stories">
-              <BookOpen className="w-5 h-5 ml-2" />
+            <TabsTrigger value="stories" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-stories">
+              <BookOpen className="w-5 h-5" />
               قصص مصورة
+            </TabsTrigger>
+            <TabsTrigger value="memorize" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-memorize">
+              <GraduationCap className="w-5 h-5" />
+              حفظ الآيات
+            </TabsTrigger>
+            <TabsTrigger value="games" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-games">
+              <Trophy className="w-5 h-5" />
+              ألعاب
             </TabsTrigger>
           </TabsList>
 
@@ -810,6 +904,179 @@ export default function Kids() {
                   <p className="text-lg text-muted-foreground">لا توجد فيديوهات مطابقة</p>
                 </div>
               )}
+            </motion.div>
+          </TabsContent>
+          {/* ===== تاب حفظ الآيات ===== */}
+          <TabsContent value="memorize">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-purple-500" />
+                  <span className="font-semibold text-foreground">برنامج حفظ الآيات</span>
+                </div>
+                <span className="text-sm text-muted-foreground">{memorized.length} / {memorizationVerses.length}</span>
+              </div>
+
+              <div className="w-full h-3 bg-muted rounded-full mb-5 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500"
+                  style={{ width: `${(memorized.length / memorizationVerses.length) * 100}%` }}
+                />
+              </div>
+
+              <div className="flex gap-2 mb-5">
+                {(['4-6', '7-9', '10-12'] as AgeGroup[]).map(ag => (
+                  <button
+                    key={ag}
+                    onClick={() => setMemAgeGroup(ag)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${memAgeGroup === ag ? 'bg-purple-500 text-white border-purple-500' : 'border-border text-muted-foreground hover:border-purple-300'}`}
+                    data-testid={`btn-age-${ag}`}
+                  >
+                    {ag} سنوات
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                {memorizationVerses.filter(v => v.ageGroup === memAgeGroup).map((verse, i) => {
+                  const done = isMemorized(verse.id);
+                  return (
+                    <motion.div key={verse.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <Card className={`p-4 transition-all ${done ? 'border-green-400 bg-green-50/50 dark:bg-green-950/20' : ''}`}>
+                        <div className="flex items-start gap-3">
+                          <span className="text-3xl">{verse.emoji}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                              <span className="text-xs font-medium text-primary">{verse.reference}</span>
+                              <Badge variant="secondary" className="text-xs shrink-0">{verse.theme}</Badge>
+                            </div>
+                            <p className="font-display text-sm sm:text-base leading-relaxed text-foreground">{verse.text}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleToggleMemorized(verse.id)}
+                          className={`mt-3 w-full py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${done ? 'bg-green-500 text-white hover:bg-green-600' : 'border border-border text-muted-foreground hover:border-purple-400 hover:text-purple-600'}`}
+                          data-testid={`button-memorize-${verse.id}`}
+                        >
+                          {done ? (<><CheckCircle2 className="w-4 h-4" />حفظت هذه الآية ✓</>) : (<>حفظتُ هذه الآية؟</>)}
+                        </button>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* ===== تاب الألعاب ===== */}
+          <TabsContent value="games">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {/* الشارات */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Trophy className="w-5 h-5 text-amber-500" />
+                  <span className="font-semibold text-foreground">شاراتي ({earnedBadges.length}/{kidsBadges.length})</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {kidsBadges.map(badge => {
+                    const earned = earnedBadges.includes(badge.id);
+                    return (
+                      <div key={badge.id} className={`p-3 rounded-xl border text-center transition-all ${earned ? badge.colorClass : 'bg-muted/30 text-muted-foreground border-border opacity-50'}`}>
+                        <div className="text-2xl mb-1">{earned ? badge.emoji : '🔒'}</div>
+                        <div className="text-xs font-semibold">{badge.title}</div>
+                        <div className="text-xs mt-0.5 opacity-80">{badge.description}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* المسابقة */}
+              <div className="border-t pt-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Star className="w-5 h-5 text-amber-500" />
+                  <span className="font-semibold text-foreground">مسابقة أبطال الكتاب المقدس</span>
+                </div>
+
+                {/* شاشة البداية */}
+                {!quizActive && !quizDone && (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">🏆</div>
+                    <h3 className="text-xl font-bold mb-2">هل أنت جاهز للتحدي؟</h3>
+                    <p className="text-muted-foreground mb-6">{QUIZ_LENGTH} أسئلة عن الكتاب المقدس — من السهل إلى الصعب</p>
+                    <Button onClick={startQuiz} className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-8" data-testid="button-start-quiz">
+                      <Star className="w-4 h-4 ml-2" />
+                      ابدأ المسابقة
+                    </Button>
+                    {totalQuizCorrect > 0 && (
+                      <p className="text-sm text-muted-foreground mt-4">إجمالي إجاباتك الصحيحة: {totalQuizCorrect}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* المسابقة نشطة */}
+                {quizActive && currentQuiz.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">سؤال {currentQ + 1} من {QUIZ_LENGTH}</span>
+                      <span className="text-sm font-medium text-primary">النقاط: {quizSessionScore}</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full mb-4 overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${(currentQ / QUIZ_LENGTH) * 100}%` }} />
+                    </div>
+
+                    <Card className="p-4 mb-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
+                      <div className="text-3xl mb-2 text-center">{currentQuiz[currentQ].emoji}</div>
+                      <p className="text-lg font-display font-semibold text-center text-foreground">{currentQuiz[currentQ].question}</p>
+                    </Card>
+
+                    <div className="grid gap-2 mb-4">
+                      {currentQuiz[currentQ].options.map((option, idx) => {
+                        const isSelected = selectedAnswer === idx;
+                        const isCorrect = idx === currentQuiz[currentQ].correctIndex;
+                        const showFeedback = selectedAnswer !== null;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => handleQuizAnswer(idx)}
+                            disabled={selectedAnswer !== null}
+                            className={`w-full p-3 rounded-xl text-right border-2 transition-all font-medium ${showFeedback ? isCorrect ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-950/30 dark:text-green-300' : isSelected ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-950/30 dark:text-red-300' : 'bg-muted/50 border-border text-muted-foreground' : 'bg-background border-border hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/20'}`}
+                            data-testid={`quiz-option-${idx}`}
+                          >
+                            <span className="flex items-center gap-2">
+                              {showFeedback && isCorrect && <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />}
+                              {showFeedback && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-600 shrink-0" />}
+                              {option}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selectedAnswer !== null && (
+                      <Button onClick={handleQuizNext} className="w-full" data-testid="button-quiz-next">
+                        {currentQ < currentQuiz.length - 1 ? 'السؤال التالي' : 'إنهاء المسابقة'}
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {/* النتيجة النهائية */}
+                {quizDone && (
+                  <div className="text-center py-6">
+                    <div className="text-6xl mb-4">{finalQuizScore >= 8 ? '🏆' : finalQuizScore >= 5 ? '⭐' : '📚'}</div>
+                    <h3 className="text-2xl font-bold mb-1">{finalQuizScore} / {QUIZ_LENGTH}</h3>
+                    <p className="text-muted-foreground mb-2">
+                      {finalQuizScore === QUIZ_LENGTH ? '🎉 ممتاز! إجابات صحيحة بالكامل!'
+                        : finalQuizScore >= 8 ? 'أحسنت! نتيجة رائعة!'
+                        : finalQuizScore >= 5 ? 'جيد! استمر في التعلم'
+                        : 'واصل القراءة في الكتاب المقدس وحاول مرة أخرى'}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-6">إجمالي إجاباتك الصحيحة: {totalQuizCorrect}</p>
+                    <Button onClick={startQuiz} variant="outline" data-testid="button-quiz-retry">العب مرة أخرى</Button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </TabsContent>
         </Tabs>

@@ -69,6 +69,8 @@ function Router() {
       <Route path="/kids/hymns" component={Kids} />
       <Route path="/kids/videos" component={Kids} />
       <Route path="/kids/stories" component={Kids} />
+      <Route path="/kids/memorize" component={Kids} />
+      <Route path="/kids/games" component={Kids} />
       <Route path="/kids" component={Kids} />
       <Route path="/highlights" component={Highlights} />
       <Route path="/premium" component={Premium} />
