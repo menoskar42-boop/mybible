@@ -28,6 +28,10 @@ import {
   entryTypeIcon,
   type SynaxariumEntry,
 } from '@/lib/synaxarium-content';
+import {
+  getHymnsForOccasion,
+  type Hymn,
+} from '@/lib/hymns-content';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -176,6 +180,11 @@ export default function LiturgyControl() {
   const visibleDeaconResponses = deaconResponses.filter(
     r => !r.occasions || r.occasions.includes(session.occasion),
   );
+
+  // ألحان اليوم المرتبطة بالمناسبة
+  const occasionHymns: Hymn[] = getHymnsForOccasion(session.occasion);
+  const [showHymnsPanel, setShowHymnsPanel] = useState(false);
+  const [expandedHymnId, setExpandedHymnId] = useState<string | null>(null);
 
   function goNext() {
     if (session.deaconOverride) {
@@ -597,6 +606,82 @@ export default function LiturgyControl() {
               >
                 + إدخال مرد شماس
               </button>
+            )}
+          </Card>
+
+          {/* ألحان اليوم */}
+          <Card className="bg-gray-900 border-gray-700 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-gray-300">
+                ألحان اليوم
+                {occasionHymns.length > 0 && (
+                  <span className="mr-2 text-[10px] bg-emerald-700/40 text-emerald-300 px-2 py-0.5 rounded-full">
+                    {occasionHymns.length}
+                  </span>
+                )}
+              </h2>
+              {occasionHymns.length > 0 && (
+                <button
+                  onClick={() => setShowHymnsPanel(!showHymnsPanel)}
+                  className="text-xs text-emerald-400 hover:text-emerald-300"
+                >
+                  {showHymnsPanel ? 'إغلاق' : 'إظهار'}
+                </button>
+              )}
+            </div>
+
+            {occasionHymns.length === 0 ? (
+              <p className="text-xs text-gray-600 text-center py-3">
+                لا توجد ألحان موسمية ليوم عادي
+              </p>
+            ) : !showHymnsPanel ? (
+              <button
+                onClick={() => setShowHymnsPanel(true)}
+                className="w-full py-3 border-2 border-dashed border-gray-700 rounded-xl text-xs text-gray-500 hover:border-emerald-700 hover:text-emerald-400 transition-all"
+              >
+                🎵 {occasionHymns.map(h => h.name.split(' — ')[0]).join(' · ')}
+              </button>
+            ) : (
+              <AnimatePresence>
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-2 mt-1">
+                    {occasionHymns.map(hymn => (
+                      <div key={hymn.id} className="border border-gray-800 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setExpandedHymnId(expandedHymnId === hymn.id ? null : hymn.id)}
+                          className="w-full text-right px-3 py-2 flex items-center gap-2 hover:bg-gray-800 transition-colors"
+                        >
+                          <span className="text-base flex-shrink-0">{hymn.icon}</span>
+                          <span className="text-xs text-gray-300 font-bold flex-1 truncate">{hymn.name}</span>
+                          <span className="text-[10px] text-gray-600 flex-shrink-0">
+                            {expandedHymnId === hymn.id ? '▲' : '▼'}
+                          </span>
+                        </button>
+                        {expandedHymnId === hymn.id && (
+                          <div className="px-3 pb-3 border-t border-gray-800 space-y-2">
+                            {hymn.sections.map(sec => (
+                              <div key={sec.id} className="mt-2">
+                                <p className="text-[10px] text-emerald-400 font-bold mb-1">{sec.title}</p>
+                                <p className="text-xs text-gray-300 font-serif whitespace-pre-line leading-relaxed line-clamp-6">
+                                  {sec.text}
+                                </p>
+                                {sec.note && (
+                                  <p className="text-[10px] text-gray-600 mt-1 italic">{sec.note}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             )}
           </Card>
 
