@@ -247,6 +247,7 @@ export interface DailyReadingSlides {
   catholic: { title: string; slides: string[] };
   praxis:   { title: string; slides: string[] };
   psalm:    { title: string; slides: string[] };
+  synaxar:  { title: string; slides: string[] };
   gospel:   { title: string; slides: string[] };
 }
 
@@ -263,7 +264,7 @@ export function getReadingType(sectionKey: string): keyof DailyReadingSlides | n
   if (sectionKey.includes('pauline'))  return 'pauline';
   if (sectionKey.includes('catholic')) return 'catholic';
   if (sectionKey.includes('praxis'))   return 'praxis';
-  if (sectionKey.includes('synaxar'))  return 'psalm';
+  if (sectionKey.includes('synaxar'))  return 'synaxar';
   if (sectionKey.includes('gospel'))   return 'gospel';
   return null;
 }
