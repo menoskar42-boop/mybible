@@ -49,5 +49,5 @@ mockupState = "FULLSTACK"
 [userenv]
 
 [userenv.shared]
-VAPID_PUBLIC_KEY = "BNAXMttPLLo4ClkOm7JOvM8LoxHDNgZXQWFpfjpFxImYcnFY9ZuXAv6trdGmPK6lak_VHQoL0UJLWoc2vYn80ug"
+VAPID_PUBLIC_KEY = "BIZpQ3xBW62dm2zCnm9uyqdyiw9LgROlroFCH7YVH8VAAvV-Ntnjx0ki8hCknp4UUVRno0xU-WB_ziBR18b2ENo"
 VAPID_EMAIL = "mailto:contact@oscardevs.com"
