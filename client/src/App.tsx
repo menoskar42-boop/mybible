@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { maybeSendWelcome } from '@/lib/push-notifications';
 import { Switch, Route, useLocation } from 'wouter';
 import { queryClient } from './lib/queryClient';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -136,6 +137,11 @@ function App() {
     } catch (e) {
       console.log("Theme detection error:", e);
     }
+  }, []);
+
+  // إشعار ترحيبي للمشتركين عند فتح الموقع (مرة واحدة كل 24 ساعة)
+  useEffect(() => {
+    maybeSendWelcome();
   }, []);
 
   const toggleTheme = () => {

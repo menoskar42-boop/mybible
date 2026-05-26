@@ -64,3 +64,28 @@ export async function getNotifState(): Promise<'subscribed' | 'idle'> {
   const sub = await reg.pushManager.getSubscription();
   return sub ? 'subscribed' : 'idle';
 }
+
+// يُستدعى عند فتح الموقع — يرسل إشعار ترحيبي للمشترك
+const WELCOME_KEY = 'push-welcome-last';
+export async function maybeSendWelcome(): Promise<void> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+    if (!reg) return;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return;
+
+    // لا ترسل أكثر من مرة كل ٢٤ ساعة
+    const last = Number(localStorage.getItem(WELCOME_KEY) ?? '0');
+    if (Date.now() - last < 24 * 60 * 60 * 1000) return;
+
+    await fetch('/api/push/welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    });
+    localStorage.setItem(WELCOME_KEY, String(Date.now()));
+  } catch {
+    // صامت — الإشعار الترحيبي اختياري
+  }
+}

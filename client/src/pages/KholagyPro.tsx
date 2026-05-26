@@ -364,7 +364,8 @@ function KholagySearch({ liturgy, basePath }: { liturgy: KholagyLiturgy; basePat
     return liturgy.sections
       .filter(sec =>
         sec.title.toLowerCase().includes(qLow) ||
-        sec.text.toLowerCase().includes(qLow)
+        sec.text.toLowerCase().includes(qLow) ||
+        (sec.copticArabicText?.toLowerCase().includes(qLow) ?? false)
       )
       .slice(0, 10)
       .map(sec => {
@@ -378,6 +379,17 @@ function KholagySearch({ liturgy, basePath }: { liturgy: KholagyLiturgy; basePat
           snippet = (start > 0 ? '...' : '') +
             sec.text.slice(start, end) +
             (end < sec.text.length ? '...' : '');
+        } else if (!inTitle && idx === -1 && sec.copticArabicText) {
+          // التطابق في النص القبطي المكتوب بالحروف العربية
+          const copticLow = sec.copticArabicText.toLowerCase();
+          const cIdx = copticLow.indexOf(qLow);
+          if (cIdx !== -1) {
+            const start = Math.max(0, cIdx - 35);
+            const end = Math.min(sec.copticArabicText.length, cIdx + qLow.length + 65);
+            snippet = (start > 0 ? '...' : '') +
+              sec.copticArabicText.slice(start, end) +
+              (end < sec.copticArabicText.length ? '...' : '');
+          }
         }
         return { sec, snippet, inTitle };
       });
