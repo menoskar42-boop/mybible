@@ -69,7 +69,8 @@ function jigsawPath(row: number, col: number, n: number, cs: number, edges: Edge
     d += ` L 0,${cs}`;
   } else {
     const tabDown = edges.h[row][col]; // true = tab extends down
-    d += hSeg(cs, 0, cs, tabDown ? -1 : 1, cs);
+    // نفس اتجاه النتوء المستخدم في الحافة العلوية للقطعة السفلية → تطابق الحد المشترك
+    d += hSeg(cs, 0, cs, tabDown ? 1 : -1, cs);
   }
 
   // left edge (bottom→top)
@@ -77,7 +78,8 @@ function jigsawPath(row: number, col: number, n: number, cs: number, edges: Edge
     d += ` L 0,0`;
   } else {
     const tabRight = edges.v[row][col - 1]; // true = piece to left has tab right = this piece has blank
-    d += vSeg(cs, 0, 0, tabRight ? -1 : 1, cs);
+    // نفس اتجاه النتوء المستخدم في الحافة اليمنى للقطعة المجاورة → تطابق الحد المشترك
+    d += vSeg(cs, 0, 0, tabRight ? 1 : -1, cs);
   }
 
   return d + ' Z';
