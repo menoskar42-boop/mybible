@@ -10,6 +10,7 @@ import { weeklyFamilyGuide, parentTips } from '@/lib/kids-parents-data';
 import { sortVerses, shuffleWords } from '@/lib/kids-sort-verse-data';
 import { getRandomQuiz, QUIZ_LENGTH, type QuizQuestion } from '@/lib/kids-quiz-data';
 import KidsPuzzle from '@/components/kids/KidsPuzzle';
+import KidsJigsawPuzzle from '@/components/kids/KidsJigsawPuzzle';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1133,6 +1134,15 @@ export default function Kids() {
                   <span className="font-semibold text-foreground">لغز الصور</span>
                 </div>
                 <KidsPuzzle />
+              </div>
+
+              {/* لغز التجميع */}
+              <div className="border-t pt-5 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-xl">🧩</span>
+                  <span className="font-semibold text-foreground">لغز التجميع</span>
+                </div>
+                <KidsJigsawPuzzle />
               </div>
 
               {/* لعبة رتّب الآية */}
