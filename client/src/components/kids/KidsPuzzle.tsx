@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { puzzleImages, randomPuzzleImage, type PuzzleImage } from '@/lib/kids-puzzle-data';
@@ -75,6 +75,53 @@ export default function KidsPuzzle() {
     const solved = JSON.stringify(newBoard) === JSON.stringify(buildSolvedBoard(n));
     setGame(g => g ? { ...g, board: newBoard, moves: g.moves + 1, solved } : g);
   }, [game]);
+
+  // ── السحب والإفلات ────────────────────────────────────────────────
+  const gridRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    idx: number; startX: number; startY: number;
+    cellSize: number; axis: 'x' | 'y'; maxDelta: number;
+  } | null>(null);
+  const [dragPos, setDragPos] = useState<{ idx: number; x: number; y: number } | null>(null);
+
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>, idx: number) => {
+    if (!game || game.solved) return;
+    const n = game.level === '3x3' ? 3 : 4;
+    const blankIdx = game.board.indexOf(0);
+    if (!getNeighbors(blankIdx, n).includes(idx)) return;
+    const gridEl = gridRef.current;
+    if (!gridEl) return;
+    const cellSize = gridEl.getBoundingClientRect().width / n;
+    const blankRow = Math.floor(blankIdx / n), blankCol = blankIdx % n;
+    const tileRow = Math.floor(idx / n), tileCol = idx % n;
+    const axis: 'x' | 'y' = blankRow === tileRow ? 'x' : 'y';
+    const maxDelta = axis === 'x'
+      ? Math.sign(blankCol - tileCol) * cellSize
+      : Math.sign(blankRow - tileRow) * cellSize;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { idx, startX: e.clientX, startY: e.clientY, cellSize, axis, maxDelta };
+    setDragPos({ idx, x: 0, y: 0 });
+  }, [game]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const raw = d.axis === 'x' ? e.clientX - d.startX : e.clientY - d.startY;
+    const clamped = d.maxDelta > 0
+      ? Math.max(0, Math.min(raw, d.maxDelta))
+      : Math.min(0, Math.max(raw, d.maxDelta));
+    setDragPos({ idx: d.idx, x: d.axis === 'x' ? clamped : 0, y: d.axis === 'y' ? clamped : 0 });
+  }, []);
+
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current;
+    const dp = dragPos;
+    dragRef.current = null;
+    setDragPos(null);
+    if (!d || !dp) return;
+    const moved = Math.abs(dp.x) + Math.abs(dp.y);
+    if (moved > d.cellSize * 0.3) handleTile(d.idx);
+  }, [dragPos, handleTile]);
 
   // ── شاشة البداية ──────────────────────────────────────────────────
   if (!game) {
@@ -156,6 +203,7 @@ export default function KidsPuzzle() {
         <div className="flex flex-col sm:flex-row gap-4 items-start justify-center">
           {/* اللغز */}
           <div
+            ref={gridRef}
             className="grid mx-auto"
             style={{
               display: 'grid',
@@ -167,23 +215,27 @@ export default function KidsPuzzle() {
           >
             {game.board.map((tile, idx) => {
               const isBlank = tile === 0;
-              // الموضع الأصلي للقطعة في الصورة
-              const origPos = tile - 1; // 0-indexed
+              const origPos = tile - 1;
               const origCol = origPos % n;
               const origRow = Math.floor(origPos / n);
+              const isDragging = dragPos?.idx === idx;
 
               return (
                 <button
                   key={idx}
-                  onClick={() => handleTile(idx)}
+                  onPointerDown={(e) => onPointerDown(e, idx)}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={onPointerUp}
+                  onPointerCancel={onPointerUp}
                   disabled={isBlank}
-                  className={`w-full h-full rounded transition-all duration-150 ${
+                  className={`w-full h-full rounded ${
                     isBlank
                       ? 'bg-muted/40 cursor-default'
-                      : 'cursor-pointer hover:brightness-110 active:scale-95'
-                  }`}
-                  style={isBlank ? { touchAction: 'manipulation' } : {
-                    touchAction: 'manipulation',
+                      : 'cursor-pointer hover:brightness-110'
+                  } ${isDragging ? 'z-10 shadow-lg' : 'transition-transform duration-150'}`}
+                  style={isBlank ? { touchAction: 'none' } : {
+                    touchAction: 'none',
+                    transform: isDragging ? `translate(${dragPos!.x}px, ${dragPos!.y}px)` : undefined,
                     backgroundImage: `url(${thumbUrl})`,
                     backgroundSize: `${n * 100}% ${n * 100}%`,
                     backgroundPosition: `${origCol * cellPct / (1 - 1 / n)}% ${origRow * cellPct / (1 - 1 / n)}%`,
