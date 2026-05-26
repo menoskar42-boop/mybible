@@ -243,35 +243,128 @@ export default function KidsSnakesLadders() {
 
   function renderBoard() {
     const { cols, rows } = board;
-    const cellSize = level === 'easy' ? 'min(52px, 14vw)' : 'min(34px, 9vw)';
+    const VB = 320;
+    const cellPx = VB / cols;
+    const boardH = cellPx * rows;
+
+    function squareToXY(sq: number) {
+      const idx = sq - 1;
+      const rowFromBottom = Math.floor(idx / cols);
+      const colInRow = idx % cols;
+      const displayCol = rowFromBottom % 2 === 0 ? colInRow : cols - 1 - colInRow;
+      const displayRow = rows - 1 - rowFromBottom;
+      return { x: (displayCol + 0.5) * cellPx, y: (displayRow + 0.5) * cellPx };
+    }
+
+    function cellBg(sq: number) {
+      const idx = sq - 1;
+      const rowFromBottom = Math.floor(idx / cols);
+      const colInRow = idx % cols;
+      const displayCol = rowFromBottom % 2 === 0 ? colInRow : cols - 1 - colInRow;
+      const displayRow = rows - 1 - rowFromBottom;
+      return (displayRow + displayCol) % 2 === 0 ? '#bfdbfe' : '#e0f2fe';
+    }
+
+    const numFs = cellPx * 0.26;
+    const tokenFs = cellPx * 0.52;
 
     return (
-      <div
-        className="grid mx-auto border border-border rounded-lg overflow-hidden"
-        style={{ gridTemplateColumns: `repeat(${cols}, ${cellSize})`, width: 'fit-content' }}
-      >
-        {Array.from({ length: rows }, (_, displayRow) =>
-          Array.from({ length: cols }, (_, col) => {
-            const sq = squareNum(displayRow, col, board);
-            const hasChild = childPos === sq;
-            const hasComp  = compPos  === sq;
-            const icon = cellIcon(sq, board);
+      <div className="mx-auto overflow-x-auto">
+        <svg
+          viewBox={`0 0 ${VB} ${boardH}`}
+          width="100%"
+          style={{ maxWidth: `${VB}px`, display: 'block', border: '2px solid #94a3b8', borderRadius: '8px' }}
+        >
+          {/* ── cells ── */}
+          {Array.from({ length: rows }, (_, dr) =>
+            Array.from({ length: cols }, (_, col) => {
+              const sq = squareNum(dr, col, board);
+              const x = col * cellPx, y = dr * cellPx;
+              return (
+                <g key={`c${sq}`}>
+                  <rect x={x} y={y} width={cellPx} height={cellPx} fill={cellBg(sq)} stroke="#94a3b8" strokeWidth="0.5" />
+                  <text x={x + 2} y={y + numFs} fontSize={numFs} fill="#475569">{sq}</text>
+                </g>
+              );
+            })
+          )}
+
+          {/* ── ladders ── */}
+          {Object.entries(board.ladders).map(([fs, to]) => {
+            const f = squareToXY(Number(fs));
+            const t = squareToXY(Number(to));
+            const dx = t.x - f.x, dy = t.y - f.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            const off = cellPx * 0.13;
+            const px = (-dy / len) * off, py = (dx / len) * off;
+            const n = Math.max(3, Math.floor(len / cellPx));
             return (
-              <div
-                key={sq}
-                className={`relative flex flex-col items-center justify-center border text-center select-none ${cellClass(sq, board)}`}
-                style={{ width: cellSize, height: cellSize, fontSize: level === 'hard' ? '8px' : '10px' }}
-              >
-                <span className="text-muted-foreground leading-none" style={{ fontSize: level === 'hard' ? '7px' : '9px' }}>{sq}</span>
-                {icon && <span style={{ fontSize: level === 'hard' ? '10px' : '14px' }}>{icon}</span>}
-                <div className="flex gap-0.5 flex-wrap justify-center">
-                  {hasChild && <span style={{ fontSize: level === 'hard' ? '11px' : '16px' }}>👦</span>}
-                  {hasComp  && <span style={{ fontSize: level === 'hard' ? '11px' : '16px' }}>🤖</span>}
-                </div>
-              </div>
+              <g key={`l${fs}`} opacity="0.92">
+                <line x1={f.x+px} y1={f.y+py} x2={t.x+px} y2={t.y+py} stroke="#b45309" strokeWidth={cellPx * 0.07} strokeLinecap="round" />
+                <line x1={f.x-px} y1={f.y-py} x2={t.x-px} y2={t.y-py} stroke="#b45309" strokeWidth={cellPx * 0.07} strokeLinecap="round" />
+                {Array.from({ length: n - 1 }, (_, i) => {
+                  const r = (i + 1) / n;
+                  return (
+                    <line key={i}
+                      x1={f.x + px + dx * r} y1={f.y + py + dy * r}
+                      x2={f.x - px + dx * r} y2={f.y - py + dy * r}
+                      stroke="#92400e" strokeWidth={cellPx * 0.055}
+                    />
+                  );
+                })}
+              </g>
             );
-          })
-        )}
+          })}
+
+          {/* ── snakes ── */}
+          {Object.entries(board.snakes).map(([fs, to]) => {
+            const f = squareToXY(Number(fs));
+            const t = squareToXY(Number(to));
+            const dx = t.x - f.x, dy = t.y - f.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            const amp = len * 0.22;
+            const px = (-dy / len) * amp, py = (dx / len) * amp;
+            const cp1x = f.x + dx / 3 + px, cp1y = f.y + dy / 3 + py;
+            const cp2x = f.x + 2 * dx / 3 - px, cp2y = f.y + 2 * dy / 3 - py;
+            const hr = cellPx * 0.18;
+            return (
+              <g key={`s${fs}`}>
+                <path
+                  d={`M ${f.x} ${f.y} C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${t.x} ${t.y}`}
+                  stroke="#16a34a" strokeWidth={cellPx * 0.16} fill="none" strokeLinecap="round" opacity="0.88"
+                />
+                <circle cx={f.x} cy={f.y} r={hr} fill="#15803d" />
+                <circle cx={f.x - hr * 0.45} cy={f.y - hr * 0.35} r={hr * 0.28} fill="white" />
+                <circle cx={f.x + hr * 0.45} cy={f.y - hr * 0.35} r={hr * 0.28} fill="white" />
+                <circle cx={f.x - hr * 0.45} cy={f.y - hr * 0.35} r={hr * 0.13} fill="#111" />
+                <circle cx={f.x + hr * 0.45} cy={f.y - hr * 0.35} r={hr * 0.13} fill="#111" />
+              </g>
+            );
+          })}
+
+          {/* ── player tokens ── */}
+          {Array.from({ length: rows }, (_, dr) =>
+            Array.from({ length: cols }, (_, col) => {
+              const sq = squareNum(dr, col, board);
+              const isChild = childPos === sq;
+              const isComp  = compPos  === sq;
+              if (!isChild && !isComp) return null;
+              const x = col * cellPx, y = dr * cellPx;
+              return (
+                <g key={`t${sq}`}>
+                  {isChild && (
+                    <text x={x + cellPx / 2 - (isComp ? cellPx * 0.22 : 0)} y={y + cellPx * 0.78}
+                      textAnchor="middle" fontSize={tokenFs}>👦</text>
+                  )}
+                  {isComp && (
+                    <text x={x + cellPx / 2 + (isChild ? cellPx * 0.22 : 0)} y={y + cellPx * 0.78}
+                      textAnchor="middle" fontSize={tokenFs}>🤖</text>
+                  )}
+                </g>
+              );
+            })
+          )}
+        </svg>
       </div>
     );
   }
@@ -293,7 +386,7 @@ export default function KidsSnakesLadders() {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: '100%', opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="fixed inset-x-0 bottom-0 z-50 bg-background border-t-2 border-primary rounded-t-2xl shadow-2xl p-4 max-h-[65vh] overflow-y-auto"
+        className="fixed inset-x-0 bottom-0 z-50 bg-background border-t-2 border-primary rounded-t-2xl shadow-2xl p-4 pb-20 max-h-[75vh] overflow-y-auto"
       >
         {/* context + progress */}
         <div className="text-center mb-3">
