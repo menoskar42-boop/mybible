@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Home, BookOpen, HandHeart } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -16,6 +17,10 @@ const familySEO = {
 export default function Family() {
   usePageTracker('/family');
   useExitTracker('/family');
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
 
   return (
     <>
