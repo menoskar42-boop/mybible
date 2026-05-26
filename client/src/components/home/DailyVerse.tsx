@@ -10,9 +10,19 @@ import { toast } from 'sonner';
 import { getSavedVerses, saveVerse, isVerseSaved } from '@/lib/saved-verses';
 import { downloadVerseImage, shareVerseImage } from '@/lib/verse-image';
 
-type NotifState = 'unsupported' | 'idle' | 'loading' | 'subscribed';
+type NotifState = 'unsupported' | 'needs-install' | 'idle' | 'loading' | 'subscribed';
 
-import { registerPushSubscription, unregisterPushSubscription } from '@/lib/push-notifications';
+// على iOS لا تعمل إشعارات الويب إلا بعد إضافة الموقع للشاشة الرئيسية وفتحه منها (standalone) على iOS 16.4+
+function isIOS(): boolean {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function isStandalone(): boolean {
+  return (window.navigator as { standalone?: boolean }).standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+}
+
+import { registerPushSubscription, unregisterPushSubscription, sendWelcomeNow } from '@/lib/push-notifications';
 
 export function DailyVerse() {
   const [saved, setSaved] = useState(false);
@@ -32,11 +42,18 @@ export function DailyVerse() {
   }, [dailyVerse]);
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    const hasSW = 'serviceWorker' in navigator;
+    const hasPush = 'PushManager' in window;
+    // على iOS: إن لم يكن standalone فالإشعارات غير متاحة حتى يُضاف الموقع للشاشة الرئيسية
+    if (isIOS() && !isStandalone()) {
+      setNotifState('needs-install');
+      return;
+    }
+    if (!hasSW || !hasPush) {
       setNotifState('unsupported');
       return;
     }
-    if (Notification.permission === 'denied') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
       setNotifState('idle');
       return;
     }
@@ -63,13 +80,18 @@ export function DailyVerse() {
       toast.error('لم يتم منح إذن الإشعارات');
       return;
     }
-    const ok = await registerPushSubscription();
-    if (ok) {
+    try {
+      await registerPushSubscription();
       setNotifState('subscribed');
       toast.success('سيصلك إشعار بآية اليوم كل صباح الساعة 8 ✓');
-    } else {
+      // إشعار تأكيد فوري — إن وصل فالخط كله يعمل
+      const confirmed = await sendWelcomeNow();
+      if (!confirmed) {
+        toast.message('تم الاشتراك، لكن إشعار التأكيد لم يُرسَل — راجع إعدادات الخادم');
+      }
+    } catch (err) {
       setNotifState('idle');
-      toast.error('حدث خطأ أثناء تفعيل الإشعارات');
+      toast.error(err instanceof Error ? err.message : 'حدث خطأ أثناء تفعيل الإشعارات');
     }
   };
 
@@ -257,7 +279,24 @@ export function DailyVerse() {
             </Button>
           </div>
 
-          {notifState !== 'unsupported' && (
+          {notifState === 'needs-install' && (
+            <div className="pt-3">
+              <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-200">
+                <Bell className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold mb-1">لتفعيل إشعار آية اليوم على الآيفون:</p>
+                  <ol className="list-decimal pr-4 space-y-0.5 leading-relaxed">
+                    <li>اضغط زر المشاركة <span className="inline-block">⬆️</span> في Safari</li>
+                    <li>اختر «إضافة إلى الشاشة الرئيسية»</li>
+                    <li>افتح الموقع من الأيقونة الجديدة على الشاشة الرئيسية</li>
+                    <li>سيظهر زر تفعيل الإشعارات هنا</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(notifState === 'idle' || notifState === 'loading' || notifState === 'subscribed') && (
             <div className="flex justify-center pt-3">
               <Button
                 variant={notifState === 'subscribed' ? 'default' : 'outline'}
