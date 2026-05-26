@@ -845,8 +845,9 @@ export async function registerRoutes(
       if (!endpoint) return res.status(400).json({ message: 'Missing endpoint' });
       const sent = await sendWelcomeNotification(endpoint);
       res.json({ sent });
-    } catch {
-      res.status(500).json({ message: 'Failed to send welcome notification' });
+    } catch (err) {
+      console.error('[push/welcome] ERROR:', err);
+      res.status(500).json({ message: 'Failed to send welcome notification', error: String(err) });
     }
   });
 

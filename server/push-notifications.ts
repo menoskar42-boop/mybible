@@ -15,8 +15,9 @@ async function sendOne(
     return 'ok';
   } catch (err: unknown) {
     const code = (err as { statusCode?: number })?.statusCode;
+    const body = (err as { body?: string })?.body;
     if (code === 410 || code === 404) return 'expired';
-    console.error('[push] send failed', code, sub.endpoint.slice(-30));
+    console.error('[push] SEND FAILED — code:', code, '— body:', body, '— endpoint:', sub.endpoint.slice(-40));
     return 'error';
   }
 }
