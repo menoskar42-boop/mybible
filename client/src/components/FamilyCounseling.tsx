@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronLeft, PlayCircle, BookOpen, ExternalLink } from 'lucide-react';
+import { ChevronRight, ChevronLeft, PlayCircle, BookOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
+import { YouTubeCard } from '@/components/YouTubeCard';
 
 const courses = [
   {
@@ -123,26 +124,8 @@ export default function FamilyCounseling() {
       >
         {/* مشغّل الفيديو */}
         <div className="lg:col-span-2 space-y-3">
-          <Card className="overflow-hidden rounded-xl shadow-lg">
-            <a
-              key={video.id}
-              href={`https://youtu.be/${video.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block relative w-full group"
-              style={{ paddingTop: '56.25%' }}
-            >
-              <img
-                src={`https://img.youtube.com/vi/${video.id}/hqdefault.jpg`}
-                alt={video.title}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-red-600 group-hover:bg-red-500 transition-colors flex items-center justify-center shadow-xl">
-                  <PlayCircle className="w-8 h-8 text-white fill-white" />
-                </div>
-              </div>
-            </a>
+          <Card className="p-3 rounded-xl shadow-lg">
+            <YouTubeCard key={video.id} videoId={video.id} title={video.title} />
           </Card>
 
           {/* معلومات الفيديو + تنقل */}
@@ -157,15 +140,6 @@ export default function FamilyCounseling() {
               </span>
             </div>
             <div className="flex items-center gap-2 mt-3 flex-wrap">
-              <a
-                href={`https://youtu.be/${video.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-red-600 hover:bg-red-500 text-white transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                مشاهدة على يوتيوب
-              </a>
               <button
                 onClick={prev}
                 disabled={activeVideoIdx === 0}
