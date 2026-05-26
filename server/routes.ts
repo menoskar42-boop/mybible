@@ -12,6 +12,7 @@ import { getVideoSeoById, getAllVideoSeoEntries } from "./video-seo-data";
 import { fetchTodaySynaxarium } from "./orthodox-service";
 import { recalculatePageScore } from "./metrics-service";
 import { detectExitReason } from "./exit-intelligence";
+import { sendWelcomeNotification, sendTestNotification } from "./push-notifications";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -833,6 +834,41 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ message: 'Failed to remove subscription' });
+    }
+  });
+
+  // إشعار ترحيبي — يُرسَل عند عودة المستخدم للموقع
+  app.post('/api/push/welcome', async (req, res) => {
+    try {
+      const { endpoint } = req.body as { endpoint: string };
+      if (!endpoint) return res.status(400).json({ message: 'Missing endpoint' });
+      const sent = await sendWelcomeNotification(endpoint);
+      res.json({ sent });
+    } catch {
+      res.status(500).json({ message: 'Failed to send welcome notification' });
+    }
+  });
+
+  // اختبار الإشعارات — يُرسَل لكل المشتركين (للتشخيص)
+  app.post('/api/push/send-test', async (req, res) => {
+    try {
+      const result = await sendTestNotification();
+      res.json(result);
+    } catch {
+      res.status(500).json({ message: 'Test notification failed' });
+    }
+  });
+
+  // حالة الإشعارات — تشخيص سريع
+  app.get('/api/push/status', async (_req, res) => {
+    try {
+      const subs = await storage.getAllPushSubscriptions();
+      res.json({
+        vapidConfigured: !!process.env.VAPID_PUBLIC_KEY,
+        activeSubscriptions: subs.length,
+      });
+    } catch {
+      res.status(500).json({ message: 'Status check failed' });
     }
   });
 

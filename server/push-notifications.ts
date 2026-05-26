@@ -2,6 +2,25 @@ import webpush from "web-push";
 import cron from "node-cron";
 import { storage } from "./storage";
 
+// ── helper: إرسال إشعار واحد مع تسجيل النتيجة
+async function sendOne(
+  sub: { endpoint: string; p256dh: string; auth: string },
+  payload: string,
+): Promise<'ok' | 'expired' | 'error'> {
+  try {
+    await webpush.sendNotification(
+      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+      payload,
+    );
+    return 'ok';
+  } catch (err: unknown) {
+    const code = (err as { statusCode?: number })?.statusCode;
+    if (code === 410 || code === 404) return 'expired';
+    console.error('[push] send failed', code, sub.endpoint.slice(-30));
+    return 'error';
+  }
+}
+
 export function setupVapid() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
@@ -25,52 +44,89 @@ export function setupVapid() {
 
 export async function sendDailyVerseNotification() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
-  if (!publicKey) return;
+  if (!publicKey) {
+    console.warn("[push] VAPID_PUBLIC_KEY not set — skipping daily notification");
+    return;
+  }
 
   try {
+    // ── الحصول على آية اليوم (مع fallback)
     const today = new Date();
     const month = today.getMonth() + 1;
-    const day = today.getDate();
+    const day   = today.getDate();
 
-    const verse = await storage.getCalendarDailyVerse(month, day);
-    if (!verse) {
-      console.warn("[push] No calendar verse found for today");
+    const calVerse = await storage.getCalendarDailyVerse(month, day);
+    if (!calVerse) {
+      console.warn(`[push] No calendar verse for ${month}/${day} — notification skipped. Run seed to populate calendar_daily_verses.`);
+      return;
+    }
+    const verseText = calVerse.verseText;
+    const verseRef  = calVerse.verseReference;
+
+    const subscriptions = await storage.getAllPushSubscriptions();
+    if (subscriptions.length === 0) {
+      console.log("[push] No active subscriptions");
       return;
     }
 
-    const subscriptions = await storage.getAllPushSubscriptions();
-    if (subscriptions.length === 0) return;
-
     const payload = JSON.stringify({
       title: "آية اليوم 📖",
-      body: `${verse.verseText}\n— ${verse.verseReference}`,
+      body: verseText.length > 120
+        ? verseText.slice(0, 117) + `…\n— ${verseRef}`
+        : `${verseText}\n— ${verseRef}`,
+      url: "/",
     });
 
-    const results = await Promise.allSettled(
-      subscriptions.map(sub =>
-        webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
-        )
-      )
-    );
+    let sent = 0, expired = 0, errors = 0;
+    await Promise.all(subscriptions.map(async sub => {
+      const result = await sendOne(sub, payload);
+      if (result === 'ok')      { sent++; }
+      else if (result === 'expired') { expired++; await storage.deletePushSubscription(sub.endpoint); }
+      else                      { errors++; }
+    }));
 
-    // Remove expired subscriptions (410 Gone)
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      if (r.status === "rejected") {
-        const err = r.reason as { statusCode?: number };
-        if (err.statusCode === 410) {
-          await storage.deletePushSubscription(subscriptions[i].endpoint);
-        }
-      }
-    }
-
-    const sent = results.filter(r => r.status === "fulfilled").length;
-    console.log(`[push] Sent to ${sent}/${subscriptions.length} subscribers`);
+    console.log(`[push] Daily verse sent=${sent} expired_removed=${expired} errors=${errors} total=${subscriptions.length}`);
   } catch (err) {
     console.error("[push] Error sending daily verse notification:", err);
   }
+}
+
+// ── إرسال إشعار ترحيبي لاشتراك واحد (endpoint محدد)
+export async function sendWelcomeNotification(endpoint: string): Promise<boolean> {
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  if (!publicKey) return false;
+  try {
+    const subscriptions = await storage.getAllPushSubscriptions();
+    const sub = subscriptions.find(s => s.endpoint === endpoint);
+    if (!sub) return false;
+    const payload = JSON.stringify({
+      title: "أهلاً وسهلاً بعودتك 🙏",
+      body: "نسعد بزيارتك. الكتاب المقدس معك دائماً.",
+      url: "/",
+    });
+    const result = await sendOne(sub, payload);
+    if (result === 'expired') await storage.deletePushSubscription(endpoint);
+    return result === 'ok';
+  } catch {
+    return false;
+  }
+}
+
+// ── إرسال إشعار اختبار لكل الاشتراكات (للتشخيص فقط)
+export async function sendTestNotification(): Promise<{ sent: number; total: number }> {
+  const subscriptions = await storage.getAllPushSubscriptions();
+  let sent = 0;
+  const payload = JSON.stringify({
+    title: "اختبار الإشعارات ✅",
+    body: "وصل الإشعار بنجاح!",
+    url: "/",
+  });
+  await Promise.all(subscriptions.map(async sub => {
+    const r = await sendOne(sub, payload);
+    if (r === 'ok') sent++;
+    if (r === 'expired') await storage.deletePushSubscription(sub.endpoint);
+  }));
+  return { sent, total: subscriptions.length };
 }
 
 export function scheduleDailyNotification() {

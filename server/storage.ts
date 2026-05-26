@@ -1231,7 +1231,10 @@ export class DatabaseStorage implements IStorage {
   async savePushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void> {
     await this.db.insert(schema.pushSubscriptions)
       .values({ endpoint, p256dh, auth })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: schema.pushSubscriptions.endpoint,
+        set: { p256dh, auth },
+      });
   }
 
   async deletePushSubscription(endpoint: string): Promise<void> {

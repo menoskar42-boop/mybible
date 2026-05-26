@@ -1,3 +1,12 @@
+// تثبيت السيرفس ووركر وتفعيله فوراً
+self.addEventListener('install', function(event) {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function(event) {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener('push', function(event) {
   if (!event.data) return;
   const data = event.data.json();
