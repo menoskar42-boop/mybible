@@ -581,32 +581,32 @@ export default function Kids() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
-          <TabsList className="w-full flex overflow-x-auto mb-6 h-auto gap-0.5 p-1">
-            <TabsTrigger value="videos" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-videos">
+          <TabsList className="w-full grid grid-cols-4 mb-6 h-auto gap-0.5 p-1">
+            <TabsTrigger value="videos" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-videos">
               <Video className="w-5 h-5" />
               قصص الكتاب
             </TabsTrigger>
-            <TabsTrigger value="hymns" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-hymns">
+            <TabsTrigger value="hymns" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-hymns">
               <Music className="w-5 h-5" />
               ترانيم
             </TabsTrigger>
-            <TabsTrigger value="stories" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-stories">
+            <TabsTrigger value="stories" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-stories">
               <BookOpen className="w-5 h-5" />
               قصص مصورة
             </TabsTrigger>
-            <TabsTrigger value="memorize" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-memorize">
+            <TabsTrigger value="memorize" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-memorize">
               <GraduationCap className="w-5 h-5" />
               حفظ الآيات
             </TabsTrigger>
-            <TabsTrigger value="games" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-games">
+            <TabsTrigger value="games" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-games">
               <Trophy className="w-5 h-5" />
               ألعاب
             </TabsTrigger>
-            <TabsTrigger value="adventures" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-adventures">
+            <TabsTrigger value="adventures" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-adventures">
               <Compass className="w-5 h-5" />
               مغامرات
             </TabsTrigger>
-            <TabsTrigger value="parents" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-parents">
+            <TabsTrigger value="parents" className="flex-col gap-0.5 text-xs py-2 px-1 h-14 col-span-2" data-testid="tab-parents">
               <Users className="w-5 h-5" />
               للآباء
             </TabsTrigger>
