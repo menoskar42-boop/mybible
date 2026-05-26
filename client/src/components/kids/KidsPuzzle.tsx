@@ -177,12 +177,13 @@ export default function KidsPuzzle() {
                   key={idx}
                   onClick={() => handleTile(idx)}
                   disabled={isBlank}
-                  className={`rounded transition-all duration-150 ${
+                  className={`w-full h-full rounded transition-all duration-150 ${
                     isBlank
                       ? 'bg-muted/40 cursor-default'
                       : 'cursor-pointer hover:brightness-110 active:scale-95'
                   }`}
-                  style={isBlank ? {} : {
+                  style={isBlank ? { touchAction: 'manipulation' } : {
+                    touchAction: 'manipulation',
                     backgroundImage: `url(${thumbUrl})`,
                     backgroundSize: `${n * 100}% ${n * 100}%`,
                     backgroundPosition: `${origCol * cellPct / (1 - 1 / n)}% ${origRow * cellPct / (1 - 1 / n)}%`,
