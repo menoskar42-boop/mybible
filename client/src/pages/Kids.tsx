@@ -1218,7 +1218,7 @@ export default function Kids() {
                               <span className="text-xs font-medium text-primary">{verse.reference}</span>
                               <Badge variant="secondary" className="text-xs shrink-0">{verse.theme}</Badge>
                             </div>
-                            <p className="font-display text-sm sm:text-base leading-relaxed text-foreground">{verse.text}</p>
+                            <p className="font-display text-xl sm:text-2xl leading-loose text-foreground text-right mt-1">{verse.text}</p>
                           </div>
                         </div>
                         <VoiceMemorizeButton
