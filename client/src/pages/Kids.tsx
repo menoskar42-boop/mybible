@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle, Compass, RotateCcw, Users, Printer } from 'lucide-react';
+import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle, Compass, RotateCcw, Users, Printer, Mic } from 'lucide-react';
 import { memorizationVerses, kidsBadges, computeEarnedBadges, type AgeGroup } from '@/lib/kids-memorization-data';
 import { interactiveStories, type InteractiveStory } from '@/lib/interactive-stories-data';
 import { weeklyFamilyGuide, parentTips } from '@/lib/kids-parents-data';
@@ -38,6 +38,137 @@ function dedupeByYtId(arr: KidsVideo[]) {
 }
 import { SEOHead } from '@/components/SEOHead';
 import { getVideoSchema } from '@/lib/seo-config';
+
+// ── تنظيف النص العربي للمقارنة الصوتية ──────────────────────────────────────
+function stripAr(s: string) {
+  return s
+    .replace(/[ً-ٰٟ]/g, '') // تشكيل
+    .replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+    .replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/\s+/g, ' ').trim();
+}
+function voiceScore(spoken: string, target: string): number {
+  const s = stripAr(spoken), t = stripAr(target);
+  const tWords = t.split(' ').filter(Boolean);
+  if (!tWords.length) return 0;
+  const sWords = s.split(' ').filter(Boolean);
+  const matched = tWords.filter(w => sWords.some(sw => sw.includes(w) || w.includes(sw))).length;
+  return Math.round((matched / tWords.length) * 100);
+}
+
+function VoiceMemorizeButton({
+  verse,
+  done,
+  onSuccess,
+}: {
+  verse: { id: string; text: string };
+  done: boolean;
+  onSuccess: () => void;
+}) {
+  const [uiState, setUiState] = useState<'idle' | 'recording' | 'result'>('idle');
+  const [transcript, setTranscript] = useState('');
+  const [score, setScore] = useState(0);
+  const recRef = useRef<any>(null);
+
+  function startRecording() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { toast.error('المتصفح لا يدعم التعرف على الصوت'); return; }
+    const rec = new SR();
+    rec.lang = 'ar';
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.maxAlternatives = 10;
+    let final = '';
+
+    rec.onresult = (e: any) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          // اختر أفضل بديل بناءً على التشابه مع الآية
+          let best = e.results[i][0].transcript;
+          for (let j = 1; j < e.results[i].length; j++) {
+            const alt = e.results[i][j].transcript;
+            if (voiceScore(alt, verse.text) > voiceScore(best, verse.text)) best = alt;
+          }
+          final += best + ' ';
+        } else {
+          interim = e.results[i][0].transcript;
+        }
+      }
+      setTranscript((final + interim).trim());
+    };
+
+    rec.onend = () => {
+      const spoken = (final.trim() || transcript).trim();
+      const sc = voiceScore(spoken, verse.text);
+      setScore(sc);
+      setUiState('result');
+      if (sc >= 60) onSuccess();
+    };
+
+    rec.onerror = (e: any) => {
+      if (e.error !== 'no-speech') toast.error('تعذّر التعرف على الصوت، حاول مرة أخرى');
+      setUiState('idle');
+    };
+
+    recRef.current = rec;
+    rec.start();
+    setUiState('recording');
+    setTranscript('');
+    setScore(0);
+  }
+
+  function stopRecording() { recRef.current?.stop(); }
+
+  if (done) return (
+    <button disabled className="mt-3 w-full py-2 rounded-lg text-sm font-medium bg-green-500 text-white flex items-center justify-center gap-2">
+      <CheckCircle2 className="w-4 h-4" /> حفظت هذه الآية ✓
+    </button>
+  );
+
+  if (uiState === 'recording') return (
+    <div className="mt-3 space-y-2">
+      {transcript && (
+        <p className="text-xs text-center text-muted-foreground bg-muted rounded-lg px-2 py-1 leading-relaxed">{transcript}</p>
+      )}
+      <button onClick={stopRecording}
+        className="w-full py-2 rounded-lg text-sm font-medium bg-red-500 text-white flex items-center justify-center gap-2">
+        <motion.span animate={{ scale: [1, 1.25, 1] }} transition={{ repeat: Infinity, duration: 0.7 }}>🎙️</motion.span>
+        اضغط للإيقاف
+      </button>
+    </div>
+  );
+
+  if (uiState === 'result') return (
+    <div className="mt-3 space-y-2">
+      {transcript && (
+        <p className="text-xs text-center text-muted-foreground bg-muted rounded-lg px-2 py-1 leading-relaxed">{transcript}</p>
+      )}
+      {score >= 60 ? (
+        <div className="w-full py-2 rounded-lg text-sm font-medium bg-green-500 text-white flex items-center justify-center gap-2">
+          <CheckCircle2 className="w-4 h-4" /> 🎉 برافو! حفظت الآية ({score}%)
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <div className="w-full py-2 rounded-lg text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 text-center">
+            أصبت {score}% — حاول مرة أخرى 💪
+          </div>
+          <button onClick={startRecording}
+            className="w-full py-2 rounded-lg text-sm font-medium border border-purple-400 text-purple-600 flex items-center justify-center gap-2 hover:bg-purple-50 dark:hover:bg-purple-900/20">
+            <Mic className="w-4 h-4" /> حاول مرة أخرى
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <button onClick={startRecording}
+      className="mt-3 w-full py-2 rounded-lg text-sm font-medium border border-purple-400 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center justify-center gap-2 transition-all">
+      <Mic className="w-4 h-4" /> اضغط وقول الآية 🎙️
+    </button>
+  );
+}
 
 function useFavoriteHymns() {
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -581,32 +712,32 @@ export default function Kids() {
         </div>
 
         <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
-          <TabsList className="w-full flex overflow-x-auto mb-6 h-auto gap-0.5 p-1">
-            <TabsTrigger value="videos" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-videos">
+          <TabsList className="w-full grid grid-cols-4 mb-6 h-auto gap-0.5 p-1">
+            <TabsTrigger value="videos" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-videos">
               <Video className="w-5 h-5" />
               قصص الكتاب
             </TabsTrigger>
-            <TabsTrigger value="hymns" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-hymns">
+            <TabsTrigger value="hymns" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-hymns">
               <Music className="w-5 h-5" />
               ترانيم
             </TabsTrigger>
-            <TabsTrigger value="stories" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-stories">
+            <TabsTrigger value="stories" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-stories">
               <BookOpen className="w-5 h-5" />
               قصص مصورة
             </TabsTrigger>
-            <TabsTrigger value="memorize" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-memorize">
+            <TabsTrigger value="memorize" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-memorize">
               <GraduationCap className="w-5 h-5" />
               حفظ الآيات
             </TabsTrigger>
-            <TabsTrigger value="games" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-games">
+            <TabsTrigger value="games" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-games">
               <Trophy className="w-5 h-5" />
               ألعاب
             </TabsTrigger>
-            <TabsTrigger value="adventures" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-adventures">
+            <TabsTrigger value="adventures" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-adventures">
               <Compass className="w-5 h-5" />
               مغامرات
             </TabsTrigger>
-            <TabsTrigger value="parents" className="flex-1 shrink-0 flex-col gap-0.5 text-xs py-2 px-1.5 h-14 min-w-[60px]" data-testid="tab-parents">
+            <TabsTrigger value="parents" className="flex-col gap-0.5 text-xs py-2 px-1 h-14 col-span-2" data-testid="tab-parents">
               <Users className="w-5 h-5" />
               للآباء
             </TabsTrigger>
@@ -1090,13 +1221,11 @@ export default function Kids() {
                             <p className="font-display text-sm sm:text-base leading-relaxed text-foreground">{verse.text}</p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleToggleMemorized(verse.id)}
-                          className={`mt-3 w-full py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${done ? 'bg-green-500 text-white hover:bg-green-600' : 'border border-border text-muted-foreground hover:border-purple-400 hover:text-purple-600'}`}
-                          data-testid={`button-memorize-${verse.id}`}
-                        >
-                          {done ? (<><CheckCircle2 className="w-4 h-4" />حفظت هذه الآية ✓</>) : (<>حفظتُ هذه الآية؟</>)}
-                        </button>
+                        <VoiceMemorizeButton
+                          verse={verse}
+                          done={done}
+                          onSuccess={() => handleToggleMemorized(verse.id)}
+                        />
                       </Card>
                     </motion.div>
                   );

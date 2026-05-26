@@ -32,8 +32,9 @@ export function setupVapid() {
     return;
   }
 
-  const safePublicKey = publicKey.replace(/=+$/, "");
-  const safePrivateKey = privateKey.replace(/=+$/, "");
+  // Strip whitespace, newlines, padding — keep only valid Base64url chars
+  const safePublicKey = publicKey.trim().replace(/\s+/g, "").replace(/=+$/, "");
+  const safePrivateKey = privateKey.trim().replace(/\s+/g, "").replace(/=+$/, "");
 
   try {
     webpush.setVapidDetails(email, safePublicKey, safePrivateKey);
