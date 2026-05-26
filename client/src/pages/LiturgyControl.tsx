@@ -243,12 +243,14 @@ export default function LiturgyControl() {
       const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion, session.seasonalLitany);
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
-        const haystack = (s.text + ' ' + (s.copticText ?? '') + ' ' + s.title).toLowerCase();
+        const haystack = (s.text + ' ' + (s.copticText ?? '') + ' ' + (s.copticArabicText ?? '') + ' ' + s.title).toLowerCase();
         if (!haystack.includes(lower)) continue;
-        // مقتطف من موضع الكلمة
-        const pos = s.text.toLowerCase().indexOf(lower);
+        // مقتطف من موضع الكلمة — من النص العربي، أو من النطق القبطي بالعربية عند التطابق فيه
+        const inArabic = s.text.toLowerCase().includes(lower);
+        const excerptSource = inArabic ? s.text : (s.copticArabicText ?? s.text);
+        const pos = Math.max(0, excerptSource.toLowerCase().indexOf(lower));
         const start = Math.max(0, pos - 30);
-        const raw = s.text.slice(start, start + 100).replace(/\n/g, ' ');
+        const raw = excerptSource.slice(start, start + 100).replace(/\n/g, ' ');
         const excerpt = (start > 0 ? '...' : '') + raw + (raw.length >= 100 ? '...' : '');
         hits.push({
           sectionKey: sec.sectionKey,

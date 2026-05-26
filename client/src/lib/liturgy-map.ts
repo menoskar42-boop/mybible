@@ -14,6 +14,7 @@ export interface LiturgySlide {
   title: string;
   text: string;
   copticText?: string;
+  copticArabicText?: string; // نطق القبطي بالحروف العربية — للبحث
 }
 
 export interface SectionMeta {
@@ -324,6 +325,7 @@ export function getSlidesForSection(liturgyType: LiturgyType, sectionKey: string
     title: section.title,
     text: section.text,
     ...(section.copticText ? { copticText: section.copticText } : COPTIC_TEXT_MAP[section.id] ? { copticText: COPTIC_TEXT_MAP[section.id] } : {}),
+    ...(section.copticArabicText ? { copticArabicText: section.copticArabicText } : {}),
   }];
 }
 
