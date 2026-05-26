@@ -822,6 +822,7 @@ export async function registerRoutes(
       await storage.savePushSubscription(endpoint, keys.p256dh, keys.auth);
       res.json({ success: true });
     } catch (err) {
+      console.error('[push/subscribe] ERROR:', err);
       res.status(500).json({ message: 'Failed to save subscription' });
     }
   });
