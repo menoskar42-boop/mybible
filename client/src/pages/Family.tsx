@@ -32,6 +32,9 @@ export default function Family() {
             </div>
           </div>
 
+          {/* مشورة أسرية — أول الصفحة */}
+          <FamilyCounseling />
+
           {/* آيات عن الأسرة */}
           <section className="mb-8">
             <h2 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
@@ -66,9 +69,6 @@ export default function Family() {
               ))}
             </div>
           </section>
-
-          {/* مشورة أسرية */}
-          <FamilyCounseling />
 
           {/* أفكار للعبادة الأسرية */}
           <section>

@@ -20,6 +20,19 @@ import { childrenStoriesData, type ChildrenStory } from '@/lib/children-stories-
 import { YouTubeCard } from '@/components/YouTubeCard';
 import { getStoryAudioFile } from '@/lib/stories-audio-mapping';
 import { kidsBibleVideos, videoCategories, getYouTubeThumbnail, searchVideos, kidsHymnsPlaylist, getHymnCategory, hymnCategories, type KidsVideo } from '@/lib/kids-bible-videos-data';
+
+function normalizeAr(s: string) {
+  return s.replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي').trim().toLowerCase();
+}
+function smartMatch(text: string, q: string) {
+  const nt = normalizeAr(text), nq = normalizeAr(q);
+  const re = new RegExp('(^|\\s)' + nq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  return re.test(nt) || nt.includes(nq);
+}
+function dedupeByYtId(arr: KidsVideo[]) {
+  const seen = new Set<string>();
+  return arr.filter(v => { if (seen.has(v.youtubeId)) return false; seen.add(v.youtubeId); return true; });
+}
 import { SEOHead } from '@/components/SEOHead';
 import { getVideoSchema } from '@/lib/seo-config';
 
@@ -439,19 +452,17 @@ export default function Kids() {
   };
 
   const story = childrenStoriesData.find(s => s.id === selectedStory);
-  const storyVideos = kidsBibleVideos.filter(v => v.category !== "ترانيم للأطفال");
+  const storyVideos = dedupeByYtId(kidsBibleVideos.filter(v => v.category !== "ترانيم للأطفال"));
   const filteredVideos = storyVideos.filter(v => {
     const matchesCat = videoCat === 'الكل' || v.category === videoCat;
-    const lowerSearch = videoSearch.toLowerCase();
-    const matchesSearch = !videoSearch.trim() || v.title.toLowerCase().includes(lowerSearch) || v.keywords.some(kw => kw.toLowerCase().includes(lowerSearch));
+    const matchesSearch = !videoSearch.trim() || smartMatch(v.title, videoSearch) || v.keywords.some(kw => smartMatch(kw, videoSearch));
     return matchesCat && matchesSearch;
   });
 
-  const kidsHymns = kidsBibleVideos.filter(v => v.category === "ترانيم للأطفال");
+  const kidsHymns = dedupeByYtId(kidsBibleVideos.filter(v => v.category === "ترانيم للأطفال"));
   const filteredHymns = kidsHymns.filter(h => {
     const matchesCat = hymnCat === 'الكل' || getHymnCategory(h) === hymnCat;
-    const lowerSearch = hymnSearch.toLowerCase();
-    const matchesSearch = !hymnSearch.trim() || h.title.toLowerCase().includes(lowerSearch) || h.keywords.some(kw => kw.toLowerCase().includes(lowerSearch));
+    const matchesSearch = !hymnSearch.trim() || smartMatch(h.title, hymnSearch) || h.keywords.some(kw => smartMatch(kw, hymnSearch));
     return matchesCat && matchesSearch;
   });
   const favoriteHymns = kidsHymns.filter(h => isFavorite(h.id));
