@@ -45,27 +45,6 @@ const courses = [
       { id: 'EhOb_TWriHo', title: 'الجلسة الخامسة — الرعاية الراعوية والدعم المجتمعي' },
     ],
   },
-  {
-    id: 3,
-    title: 'المقبلين على الزواج',
-    description: 'محاضرات متخصصة للمقبلين على الزواج — دورة ٤٩',
-    color: 'from-rose-500 to-pink-600',
-    badge: 'bg-rose-900/30 border-rose-700/40 text-rose-300',
-    videos: [
-      { id: 'nvyZBVndcTA', title: 'الجنس مقدساً — د. مايكل عبد المسيح' },
-      { id: 'xX8k4lS2PU8', title: 'الترك والالتصاق — د. ماري عطا' },
-      { id: 'WSvP3xaaHFM', title: 'إدارة المال — د. مايكل عبد المسيح' },
-      { id: 'ZYcI88Hz0Dc', title: 'الزواج علاقة عهد — القس ايلاريون جرجس' },
-      { id: 'rnpHJZr37ck', title: 'الخضوع والخنوع — مفاهيم عن الزواج — أ. ماريان ادوار' },
-      { id: 'cQSJ-dmqaU0', title: 'صدمة ما بعد الزواج — الإعاقات النفسية — أ. انجي فايز' },
-      { id: 'nbbQBGc5N5I', title: 'الحدود ولغات الحب — د. أيمن عزمي' },
-      { id: 'iDXAOAuXEGY', title: 'سيكولوجية الرجل والمرأة — المشاجرة الناجحة — أ. انجي فايز' },
-      { id: 'tNCJf3i_294', title: 'كيف تختار شريك الحياة — دور الرأس والمعين' },
-      { id: 'dVLOCB-m2M4', title: 'محاضرات اليوم الثاني — الدورة ٤٩' },
-      { id: '5rKY8xp3tyc', title: 'محاضرات اليوم الثالث — الدورة ٤٩' },
-      { id: '8JbESHS0Tnw', title: 'محاضرات اليوم الأول — الدورة ٤٩' },
-    ],
-  },
 ];
 
 export default function FamilyCounseling() {
