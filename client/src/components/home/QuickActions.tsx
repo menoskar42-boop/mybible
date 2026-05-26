@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
-import { Heart, CalendarDays, Highlighter, Baby, Search, BookOpen, Users, Cross } from 'lucide-react';
+import { Heart, CalendarDays, Highlighter, Baby, Search, BookOpen, Users, Cross, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const actions = [
@@ -53,10 +53,17 @@ const actions = [
     color: 'from-indigo-500/20 to-indigo-600/10 border-indigo-500/20',
     iconColor: 'text-indigo-500'
   },
-  { 
-    href: '/orthodox', 
-    label: 'أرثوذوكسيات', 
-    icon: Cross, 
+  {
+    href: '/family',
+    label: 'ركن العائلة',
+    icon: Home,
+    color: 'from-emerald-500/20 to-teal-600/10 border-emerald-500/20',
+    iconColor: 'text-emerald-600'
+  },
+  {
+    href: '/orthodox',
+    label: 'أرثوذوكسيات',
+    icon: Cross,
     color: 'from-amber-500/20 to-amber-600/10 border-amber-500/20',
     iconColor: 'text-amber-600'
   },
