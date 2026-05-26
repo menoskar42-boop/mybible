@@ -295,7 +295,7 @@ const kidsStoriesVideos: KidsVideo[] = [
     category: "قصص العهد القديم"
   },
   {
-    id: "jonah-whale",
+    id: "jonah-whale-2",
     title: "يونان النبي في بطن الحوت وتوبة أهل نينوى",
     youtubeId: "LVM61hA6a78",
     keywords: ["يونان", "الحوت", "نينوى", "التوبة", "الطاعة", "النبي", "العناية"],
@@ -1803,11 +1803,43 @@ export const hymnCategories = [
   "سلوكيات وقيم",
 ];
 
+function normalizeArabic(s: string): string {
+  return s
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function wordMatch(text: string, query: string): boolean {
+  const normText = normalizeArabic(text);
+  const normQuery = normalizeArabic(query);
+  // exact word start match (stronger signal)
+  const wordBoundary = new RegExp(`(^|\\s)${normQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+  return wordBoundary.test(normText) || normText.includes(normQuery);
+}
+
 export function searchVideos(query: string): KidsVideo[] {
   if (!query.trim()) return kidsBibleVideos;
-  const lowerQuery = query.toLowerCase();
-  return kidsBibleVideos.filter(video =>
-    video.title.toLowerCase().includes(lowerQuery) ||
-    video.keywords.some(kw => kw.toLowerCase().includes(lowerQuery))
-  );
+  // score: 2 = title match, 1 = keyword match
+  const scored = kidsBibleVideos.flatMap(video => {
+    const titleMatch = wordMatch(video.title, query);
+    const kwMatch = video.keywords.some(kw => wordMatch(kw, query));
+    if (!titleMatch && !kwMatch) return [];
+    return [{ video, score: titleMatch ? 2 : 1 }];
+  });
+  // sort by score desc, deduplicate by youtubeId
+  const seen = new Set<string>();
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .filter(({ video }) => {
+      if (seen.has(video.youtubeId)) return false;
+      seen.add(video.youtubeId);
+      return true;
+    })
+    .map(({ video }) => video);
 }
