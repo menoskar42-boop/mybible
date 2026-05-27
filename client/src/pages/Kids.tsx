@@ -242,6 +242,42 @@ function VoiceMemorizeButton({
   );
 }
 
+function AdviceVideoCard({ id, title }: { id: string; title: string }) {
+  const [playing, setPlaying] = useState(false);
+  return (
+    <div className="rounded-xl overflow-hidden border border-border bg-card shadow-sm">
+      {playing ? (
+        <div className="aspect-video">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={title}
+          />
+        </div>
+      ) : (
+        <button onClick={() => setPlaying(true)} className="relative w-full aspect-video group block">
+          <img
+            src={`https://img.youtube.com/vi/${id}/mqdefault.jpg`}
+            alt={title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/35 transition-colors">
+            <div className="w-14 h-14 rounded-full bg-red-600/90 flex items-center justify-center shadow-lg">
+              <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+            </div>
+          </div>
+        </button>
+      )}
+      {title && (
+        <p className="text-xs text-center text-muted-foreground px-3 py-2 leading-snug">{title}</p>
+      )}
+    </div>
+  );
+}
+
 function useFavoriteHymns() {
   const [favorites, setFavorites] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('favorite-hymns') || '[]'); } catch { return []; }
@@ -1776,6 +1812,21 @@ export default function Kids() {
                       </Card>
                     </motion.div>
                   ))}
+                </div>
+
+
+                {/* قسم المشورة — فيديوهات */}
+                <div className="mt-8 print:hidden">
+                  <h3 className="font-display text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                    <span className="text-2xl">🎬</span> ركن المشورة
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">فيديوهات مختارة في التربية الروحية ومشورة الأسرة المسيحية.</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <AdviceVideoCard id="as3Xa4AYKw8" title="" />
+                    <AdviceVideoCard id="jo_Ek9bSHHo" title="" />
+                    <AdviceVideoCard id="7V4OGsIZtbY" title="" />
+                    <AdviceVideoCard id="h3b5usPVAWs" title="" />
+                  </div>
                 </div>
               </div>
             </motion.div>
