@@ -4,7 +4,7 @@ import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle, Compass, RotateCcw, Users, Printer, Mic } from 'lucide-react';
-import { memorizationVerses, kidsBadges, computeEarnedBadges, LEVEL_LABELS, type AgeGroup } from '@/lib/kids-memorization-data';
+import { memorizationVerses, kidsBadges, computeEarnedBadges, LEVEL_LABELS, type AgeGroup, type MemorizationVerse } from '@/lib/kids-memorization-data';
 import { interactiveStories, type InteractiveStory } from '@/lib/interactive-stories-data';
 import { weeklyFamilyGuide, parentTips } from '@/lib/kids-parents-data';
 import { sortVerses, shuffleWords } from '@/lib/kids-sort-verse-data';
@@ -60,62 +60,67 @@ function VoiceMemorizeButton({
   done,
   onSuccess,
 }: {
-  verse: { id: string; text: string };
+  verse: MemorizationVerse;
   done: boolean;
   onSuccess: () => void;
 }) {
   const [uiState, setUiState] = useState<'idle' | 'recording' | 'result'>('idle');
   const [transcript, setTranscript] = useState('');
   const [score, setScore] = useState(0);
-  const recRef = useRef<any>(null);
+  const recRef  = useRef<any>(null);
+  // ref avoids stale-closure in rec.onend
+  const finalRef = useRef('');
 
   function startRecording() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { toast.error('المتصفح لا يدعم التعرف على الصوت'); return; }
+
     const rec = new SR();
-    rec.lang = 'ar';
-    rec.continuous = false;
-    rec.interimResults = true;
-    rec.maxAlternatives = 10;
-    let final = '';
+    rec.lang            = 'ar-EG';   // مصري — أفضل تغطية عربية
+    rec.continuous      = true;      // لا يتوقف بعد صمت قصير
+    rec.interimResults  = true;
+    rec.maxAlternatives = 5;
+    finalRef.current    = '';
 
     rec.onresult = (e: any) => {
-      let interim = '';
+      let interimPart = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
         if (e.results[i].isFinal) {
-          // اختر أفضل بديل بناءً على التشابه مع الآية
           let best = e.results[i][0].transcript;
           for (let j = 1; j < e.results[i].length; j++) {
             const alt = e.results[i][j].transcript;
             if (voiceScore(alt, verse.text) > voiceScore(best, verse.text)) best = alt;
           }
-          final += best + ' ';
+          finalRef.current += best + ' ';
         } else {
-          interim = e.results[i][0].transcript;
+          interimPart = e.results[i][0].transcript;
         }
       }
-      setTranscript((final + interim).trim());
+      setTranscript((finalRef.current + interimPart).trim());
     };
 
     rec.onend = () => {
-      const spoken = (final.trim() || transcript).trim();
-      const sc = voiceScore(spoken, verse.text);
+      // finalRef.current is always current — no stale-closure issue
+      const spoken = finalRef.current.trim();
+      const sc = voiceScore(spoken || transcript, verse.text);
       setScore(sc);
       setUiState('result');
       if (sc >= 60) onSuccess();
     };
 
     rec.onerror = (e: any) => {
-      if (e.error !== 'no-speech') toast.error('تعذّر التعرف على الصوت، حاول مرة أخرى');
+      if (e.error === 'not-allowed') toast.error('يرجى السماح بالوصول للميكروفون من إعدادات المتصفح');
+      else if (e.error !== 'no-speech') toast.error('تعذّر التعرف على الصوت، حاول مرة أخرى');
       setUiState('idle');
     };
 
     recRef.current = rec;
-    rec.start();
-    setUiState('recording');
     setTranscript('');
     setScore(0);
+    finalRef.current = '';
+    rec.start();
+    setUiState('recording');
   }
 
   function stopRecording() { recRef.current?.stop(); }
@@ -126,45 +131,112 @@ function VoiceMemorizeButton({
     </button>
   );
 
-  if (uiState === 'recording') return (
-    <div className="mt-3 space-y-2">
-      {transcript && (
-        <p className="text-xs text-center text-muted-foreground bg-muted rounded-lg px-2 py-1 leading-relaxed">{transcript}</p>
-      )}
-      <button onClick={stopRecording}
-        className="w-full py-2 rounded-lg text-sm font-medium bg-red-500 text-white flex items-center justify-center gap-2">
-        <motion.span animate={{ scale: [1, 1.25, 1] }} transition={{ repeat: Infinity, duration: 0.7 }}>🎙️</motion.span>
-        اضغط للإيقاف
-      </button>
-    </div>
-  );
+  /* ── شاشة التسجيل الكاملة — تخفي نص الآية تماماً ─────────────────────────── */
+  if (uiState === 'recording' || uiState === 'result') {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/97 backdrop-blur-md p-6 text-center">
+        {/* هوية الآية بدون النص */}
+        <div className="mb-8">
+          <div className="text-6xl mb-3">{verse.emoji}</div>
+          <p className="text-base font-bold text-primary">{verse.reference}</p>
+          <p className="text-xs text-muted-foreground mt-1 bg-muted px-3 py-1 rounded-full inline-block">{verse.theme}</p>
+        </div>
 
-  if (uiState === 'result') return (
-    <div className="mt-3 space-y-2">
-      {transcript && (
-        <p className="text-xs text-center text-muted-foreground bg-muted rounded-lg px-2 py-1 leading-relaxed">{transcript}</p>
-      )}
-      {score >= 60 ? (
-        <div className="w-full py-2 rounded-lg text-sm font-medium bg-green-500 text-white flex items-center justify-center gap-2">
-          <CheckCircle2 className="w-4 h-4" /> 🎉 برافو! حفظت الآية ({score}%)
-        </div>
-      ) : (
-        <div className="space-y-1">
-          <div className="w-full py-2 rounded-lg text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 text-center">
-            أصبت {score}% — حاول مرة أخرى 💪
-          </div>
-          <button onClick={startRecording}
-            className="w-full py-2 rounded-lg text-sm font-medium border border-purple-400 text-purple-600 flex items-center justify-center gap-2 hover:bg-purple-50 dark:hover:bg-purple-900/20">
-            <Mic className="w-4 h-4" /> حاول مرة أخرى
-          </button>
-        </div>
-      )}
-    </div>
-  );
+        {uiState === 'recording' ? (
+          <>
+            {/* نبضة الميكروفون */}
+            <div className="relative mb-6">
+              <motion.div
+                animate={{ scale: [1, 1.35, 1], opacity: [0.35, 0.0, 0.35] }}
+                transition={{ repeat: Infinity, duration: 1.4 }}
+                className="absolute inset-0 rounded-full bg-red-400"
+              />
+              <div className="relative w-28 h-28 rounded-full bg-red-100 dark:bg-red-900/40 border-4 border-red-400 flex items-center justify-center">
+                <Mic className="w-14 h-14 text-red-500" />
+              </div>
+            </div>
+
+            <p className="text-sm font-semibold text-foreground mb-1">🎙️ قل الآية من حفظك...</p>
+            <p className="text-xs text-muted-foreground mb-4">لا تنظر إلى النص — تذكّرها من قلبك</p>
+
+            {/* ما يُسمع حتى الآن */}
+            {transcript ? (
+              <div className="max-w-xs w-full bg-muted/70 rounded-xl px-4 py-3 mb-5 text-sm leading-relaxed text-right min-h-[48px] border">
+                {transcript}
+              </div>
+            ) : (
+              <div className="max-w-xs w-full bg-muted/40 rounded-xl px-4 py-3 mb-5 min-h-[48px] border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+                سيظهر هنا ما تقوله...
+              </div>
+            )}
+
+            <button
+              onClick={stopRecording}
+              className="px-10 py-3 rounded-full text-sm font-bold bg-red-500 hover:bg-red-600 text-white transition-colors"
+            >
+              ⏹ انتهيت — قيّم الآن
+            </button>
+          </>
+        ) : (
+          /* ── نتيجة التسجيل ── */
+          <>
+            {score >= 60 ? (
+              <>
+                <motion.div
+                  initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  className="text-7xl mb-4"
+                >🎉</motion.div>
+                <p className="text-2xl font-black text-green-600 dark:text-green-400 mb-1">برافو! حفظت الآية</p>
+                <p className="text-sm text-muted-foreground mb-5">نسبة الصحة: <span className="font-bold text-green-600">{score}%</span></p>
+              </>
+            ) : (
+              <>
+                <motion.div
+                  initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  className="text-7xl mb-4"
+                >💪</motion.div>
+                <p className="text-xl font-black text-amber-600 dark:text-amber-400 mb-1">أصبت {score}%</p>
+                <p className="text-sm text-muted-foreground mb-5">تقدر تحاول مرة أخرى — الممارسة تصنع الحفظ!</p>
+              </>
+            )}
+
+            {/* ما قاله المستخدم */}
+            {transcript && (
+              <div className="max-w-xs w-full bg-muted/70 rounded-xl px-4 py-3 mb-5 text-xs leading-relaxed text-right border">
+                <span className="text-muted-foreground block mb-1">ما قلته:</span>
+                {transcript}
+              </div>
+            )}
+
+            <div className="flex gap-3 flex-wrap justify-center">
+              {score < 60 && (
+                <button
+                  onClick={startRecording}
+                  className="px-6 py-2.5 rounded-full text-sm font-bold border-2 border-purple-400 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-2 transition-colors"
+                >
+                  <Mic className="w-4 h-4" /> حاول مرة أخرى
+                </button>
+              )}
+              <button
+                onClick={() => setUiState('idle')}
+                className="px-6 py-2.5 rounded-full text-sm font-bold bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-foreground transition-colors"
+              >
+                ← رجوع للآية
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <button onClick={startRecording}
-      className="mt-3 w-full py-2 rounded-lg text-sm font-medium border border-purple-400 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center justify-center gap-2 transition-all">
+    <button
+      onClick={startRecording}
+      className="mt-3 w-full py-2 rounded-lg text-sm font-medium border border-purple-400 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center justify-center gap-2 transition-all"
+    >
       <Mic className="w-4 h-4" /> اضغط وقول الآية 🎙️
     </button>
   );
