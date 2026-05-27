@@ -1,5 +1,6 @@
 // فيديوهات المزامير والإصحاحات المرتلة — يُضاف إليها تدريجياً
-export const chanteVideos: Record<string, Record<number, string>> = {
+export type ChanteEntry = string | { id: string; start?: number; end?: number };
+export const chanteVideos: Record<string, Record<number, ChanteEntry>> = {
   "المزامير": {
     1:   "iUssc_nQQ5s",
     2:   "mJVnJ_f91fQ",
@@ -196,8 +197,22 @@ export const chanteVideos: Record<string, Record<number, string>> = {
     41: "BXcvuZL8PFg",
     42: "FzHRG2ZXWlE",
   },
+  "استير": {
+    1:  { id: "SlJCGqR9A_c", start: 0,    end: 198  },
+    2:  { id: "SlJCGqR9A_c", start: 199,  end: 417  },
+    3:  { id: "SlJCGqR9A_c", start: 418,  end: 657  },
+    4:  { id: "SlJCGqR9A_c", start: 658,  end: 899  },
+    5:  { id: "SlJCGqR9A_c", start: 900,  end: 1056 },
+    6:  { id: "SlJCGqR9A_c", start: 1057, end: 1227 },
+    7:  { id: "SlJCGqR9A_c", start: 1228, end: 1405 },
+    8:  { id: "SlJCGqR9A_c", start: 1406, end: 1615 },
+    9:  { id: "SlJCGqR9A_c", start: 1616, end: 1795 },
+    10: { id: "SlJCGqR9A_c", start: 1796, end: 1978 },
+  },
 };
 
-export function getChanteVideoId(bookName: string, chapter: number): string | null {
-  return chanteVideos[bookName]?.[chapter] ?? null;
+export function getChanteVideoId(bookName: string, chapter: number): { id: string; start?: number; end?: number } | null {
+  const val = chanteVideos[bookName]?.[chapter] ?? null;
+  if (!val) return null;
+  return typeof val === 'string' ? { id: val } : val;
 }

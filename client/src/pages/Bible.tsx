@@ -58,13 +58,15 @@ export default function Bible() {
   const [tafsirText, setTafsirText] = useState<string | null>(null);
   const [tafsirLoading, setTafsirLoading] = useState(false);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const [currentVideoStart, setCurrentVideoStart] = useState<number | undefined>(undefined);
+  const [currentVideoEnd, setCurrentVideoEnd] = useState<number | undefined>(undefined);
   const [lessonParts, setLessonParts] = useState<{ videoId: string; partNum: number; title: string }[]>([]);
   const [lessonLoading, setLessonLoading] = useState(false);
   const [lessonVideoId, setLessonVideoId] = useState<string | null>(null);
   const [lessonVideoTitle, setLessonVideoTitle] = useState<string>('');
   const [lessonRefreshing, setLessonRefreshing] = useState(false);
   const [listenChoiceOpen, setListenChoiceOpen] = useState(false);
-  const [listenChoiceChante, setListenChoiceChante] = useState<string | null>(null);
+  const [listenChoiceChante, setListenChoiceChante] = useState<{ id: string; start?: number; end?: number } | null>(null);
   const [listenChoiceRegular, setListenChoiceRegular] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -227,6 +229,8 @@ export default function Bible() {
       return;
     }
     setCurrentVideoId(getVideoId(selectedBook.name, selectedChapter));
+    setCurrentVideoStart(undefined);
+    setCurrentVideoEnd(undefined);
     changeSubView('video');
   };
 
@@ -326,6 +330,8 @@ export default function Bible() {
     setSelectedBook(nextBook);
     setSelectedChapter(nextChapter);
     setCurrentVideoId(getVideoId(nextBook.name, nextChapter));
+    setCurrentVideoStart(undefined);
+    setCurrentVideoEnd(undefined);
   }, [selectedBook, selectedChapter, allBooks]);
 
   const goToVideoPrevChapter = useCallback(() => {
@@ -347,6 +353,8 @@ export default function Bible() {
     setSelectedBook(prevBook);
     setSelectedChapter(prevChapter);
     setCurrentVideoId(getVideoId(prevBook.name, prevChapter));
+    setCurrentVideoStart(undefined);
+    setCurrentVideoEnd(undefined);
   }, [selectedBook, selectedChapter, allBooks]);
 
   useEffect(() => {
@@ -772,7 +780,7 @@ export default function Bible() {
                   استمع للإصحاح — {selectedBook?.name} {selectedChapter}
                 </h3>
                 {currentVideoId ? (
-                  <YouTubeCard videoId={currentVideoId} />
+                  <YouTubeCard videoId={currentVideoId} start={currentVideoStart} end={currentVideoEnd} />
                 ) : (
                   <div className="aspect-video flex items-center justify-center bg-muted rounded-lg">
                     <p className="text-muted-foreground text-center p-8 font-display">لا توجد ملفات صوتية أو مرئية لهذا الإصحاح</p>
@@ -836,7 +844,11 @@ export default function Bible() {
             className="gap-2 justify-start"
             style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
             onClick={() => {
-              setCurrentVideoId(listenChoiceChante);
+              if (listenChoiceChante) {
+                setCurrentVideoId(listenChoiceChante.id);
+                setCurrentVideoStart(listenChoiceChante.start);
+                setCurrentVideoEnd(listenChoiceChante.end);
+              }
               changeSubView('video');
               setListenChoiceOpen(false);
             }}
@@ -849,6 +861,8 @@ export default function Bible() {
             className="gap-2 justify-start"
             onClick={() => {
               setCurrentVideoId(listenChoiceRegular);
+              setCurrentVideoStart(undefined);
+              setCurrentVideoEnd(undefined);
               changeSubView('video');
               setListenChoiceOpen(false);
             }}

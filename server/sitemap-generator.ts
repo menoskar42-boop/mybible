@@ -191,7 +191,8 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
 
   // Chanted Bible videos (ترتيل المزامير والإصحاحات)
   for (const chapters of Object.values(chanteVideos)) {
-    for (const youtubeId of Object.values(chapters)) {
+    for (const entry of Object.values(chapters)) {
+      const youtubeId = typeof entry === 'string' ? entry : entry.id;
       if (youtubeId && !seenVideoIds.has(youtubeId)) {
         seenVideoIds.add(youtubeId);
         urls.push(buildUrl(`${SITE}/video/${youtubeId}`, "monthly", "0.8", today));
@@ -360,7 +361,7 @@ export function sitemapVideosHandler(_req: Request, res: Response) {
 
   // Chanted Bible (ترتيل)
   for (const chapters of Object.values(chanteVideos))
-    for (const id of Object.values(chapters)) add(id);
+    for (const entry of Object.values(chapters)) add(typeof entry === 'string' ? entry : entry.id);
 
   // Kids videos & hymns
   for (const v of kidsBibleVideos) add(v.youtubeId, v.category === "ترانيم للأطفال" ? "0.7" : "0.8");
