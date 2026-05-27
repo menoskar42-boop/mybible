@@ -46,6 +46,17 @@ function advance(pos: number, roll: number, total: number): number {
   return next;
 }
 
+// returns list of positions for each step (for animated movement)
+function pathFrom(pos: number, roll: number, total: number): number[] {
+  const steps: number[] = [];
+  let cur = pos;
+  for (let i = 0; i < roll; i++) {
+    cur = cur < total ? cur + 1 : cur - 1;
+    steps.push(cur);
+  }
+  return steps;
+}
+
 function cellClass(sq: number, board: BoardDef): string {
   if (board.ladders[sq]) return 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-400 dark:border-emerald-600';
   if (board.snakes[sq])  return 'bg-red-100 dark:bg-red-900/40 border-red-400 dark:border-red-600';
@@ -72,7 +83,9 @@ export default function KidsSnakesLadders() {
   const [quiz,      setQuiz]      = useState<QuizState | null>(null);
   const [winner,    setWinner]    = useState<'child' | 'comp' | null>(null);
   const [statusMsg, setStatusMsg] = useState('');
-  const compTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const compTimer   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const childPosRef = useRef(0);
+  const compPosRef  = useRef(0);
 
   const board = level ? (level === 'easy' ? EASY_BOARD : HARD_BOARD) : EASY_BOARD;
   const total = board.cols * board.rows;
@@ -81,9 +94,12 @@ export default function KidsSnakesLadders() {
 
   function startGame(lv: Level) {
     setLevel(lv);
+    childPosRef.current = 0;
+    compPosRef.current  = 0;
     setChildPos(0);
     setCompPos(0);
     setDiceVal(1);
+    setDiceAnim(false);
     setQuiz(null);
     setWinner(null);
     setPhase('child-roll');
@@ -109,42 +125,55 @@ export default function KidsSnakesLadders() {
 
   function handleRoll() {
     if (phase !== 'child-roll') return;
+    const finalRoll = rollDie();
     setDiceAnim(true);
-    let ticks = 0;
-    const iv = setInterval(() => {
-      setDiceVal(rollDie());
-      ticks++;
-      if (ticks >= 10) {
-        clearInterval(iv);
-        const roll = rollDie();
-        setDiceVal(roll);
+    setPhase('child-moving');
+
+    // dice spin: fast → slow → settle
+    const tickDelays = [55, 55, 60, 70, 85, 110, 145, 185, 230, 280];
+    let ti = 0;
+    function tickDice() {
+      if (ti < tickDelays.length) {
+        setDiceVal(rollDie());
+        setTimeout(tickDice, tickDelays[ti++]);
+      } else {
+        // settle on final value
+        setDiceVal(finalRoll);
         setDiceAnim(false);
-        setPhase('child-moving');
-        const newPos = advance(childPos, roll, total);
-        setStatusMsg(`رميت ${roll} — تتحرك لخانة ${newPos}`);
-        setTimeout(() => {
-          setChildPos(newPos);
-          if (newPos === total) {
-            setWinner('child');
-            setPhase('won');
+        setStatusMsg(`رميت ${finalRoll}`);
+
+        const path = pathFrom(childPosRef.current, finalRoll, total);
+
+        function stepMove(idx: number) {
+          if (idx >= path.length) {
+            const finalPos = path[path.length - 1]!;
+            if (finalPos === total) { setWinner('child'); setPhase('won'); return; }
+            if (board.ladders[finalPos]) {
+              const dest = board.ladders[finalPos];
+              childPosRef.current = dest;
+              setChildPos(dest);
+              setStatusMsg(`🪜 سلّم! صعدت إلى خانة ${dest} 🎉`);
+              setTimeout(() => startCompTurn(), 1600);
+            } else if (board.snakes[finalPos]) {
+              setStatusMsg('🐍 ثعبان! أجب على ٥ أسئلة لتهرب!');
+              setTimeout(() => openQuiz('child-snake', finalPos, board.snakes[finalPos], board, total), 800);
+            } else {
+              setStatusMsg('');
+              startCompTurn();
+            }
             return;
           }
-          if (board.ladders[newPos]) {
-            const dest = board.ladders[newPos];
-            setChildPos(dest);
-            setStatusMsg(`🪜 سلّم! صعدت إلى خانة ${dest} مجاناً! 🎉`);
-            setTimeout(() => startCompTurn(), 1500);
-          } else if (board.snakes[newPos]) {
-            const dest = board.snakes[newPos];
-            setStatusMsg(`🐍 ثعبان! أجب على ٥ أسئلة لتهرب!`);
-            setTimeout(() => openQuiz('child-snake', newPos, dest, board, total), 800);
-          } else {
-            setStatusMsg('');
-            startCompTurn();
-          }
-        }, 600);
+          const p = path[idx];
+          childPosRef.current = p;
+          setChildPos(p);
+          setStatusMsg(`رميت ${finalRoll} ← خانة ${p}`);
+          setTimeout(() => stepMove(idx + 1), 400);
+        }
+        // small pause after dice settles so player can read the number
+        setTimeout(() => stepMove(0), 500);
       }
-    }, 80);
+    }
+    tickDice();
   }
 
   // ── computer turn ──────────────────────────────────────────────────────────
@@ -154,35 +183,54 @@ export default function KidsSnakesLadders() {
     setStatusMsg('🤖 الكمبيوتر يفكر...');
     compTimer.current = setTimeout(() => {
       const roll = rollDie();
-      setDiceVal(roll);
+      setDiceAnim(true);
       setPhase('comp-moving');
-      setCompPos(prev => {
-        const newPos = advance(prev, roll, total);
-        setStatusMsg(`🤖 رمى ${roll} — يتحرك لخانة ${newPos}`);
-        setTimeout(() => {
-          setCompPos(newPos);
-          if (newPos === total) {
-            setWinner('comp');
-            setPhase('won');
-            return;
+      setStatusMsg('🤖 يرمي الزهر...');
+
+      const tickDelays = [55, 55, 60, 70, 85, 110, 145, 185, 230, 280];
+      let ti = 0;
+      function tickDice() {
+        if (ti < tickDelays.length) {
+          setDiceVal(rollDie());
+          setTimeout(tickDice, tickDelays[ti++]);
+        } else {
+          setDiceVal(roll);
+          setDiceAnim(false);
+          setStatusMsg(`🤖 رمى ${roll}`);
+
+          const curPos = compPosRef.current;
+          const path   = pathFrom(curPos, roll, total);
+
+          function stepMove(idx: number) {
+            if (idx >= path.length) {
+              const finalPos = path[path.length - 1]!;
+              if (finalPos === total) { setWinner('comp'); setPhase('won'); return; }
+              if (board.ladders[finalPos]) {
+                const dest = board.ladders[finalPos];
+                setStatusMsg('🤖 الكمبيوتر على سلّم! أجب على ٥ أسئلة لتوقفه!');
+                setTimeout(() => openQuiz('comp-ladder', finalPos, dest, board, total), 800);
+              } else if (board.snakes[finalPos]) {
+                const dest = board.snakes[finalPos];
+                setStatusMsg('🤖 الكمبيوتر على ثعبان! أجب على ٥ أسئلة لتعاقبه!');
+                setTimeout(() => openQuiz('comp-snake', finalPos, dest, board, total), 800);
+              } else {
+                setStatusMsg('');
+                setPhase('child-roll');
+                setTimeout(() => setStatusMsg('دورك! اضغط الزهر'), 200);
+              }
+              return;
+            }
+            const p = path[idx];
+            compPosRef.current = p;
+            setCompPos(p);
+            setStatusMsg(`🤖 رمى ${roll} ← خانة ${p}`);
+            setTimeout(() => stepMove(idx + 1), 400);
           }
-          if (board.ladders[newPos]) {
-            const dest = board.ladders[newPos];
-            setStatusMsg(`🤖 الكمبيوتر على سلّم! أجب على ٥ أسئلة لتوقفه!`);
-            setTimeout(() => openQuiz('comp-ladder', newPos, dest, board, total), 800);
-          } else if (board.snakes[newPos]) {
-            const dest = board.snakes[newPos];
-            setStatusMsg(`🤖 الكمبيوتر على ثعبان! أجب على ٥ أسئلة لتعاقبه!`);
-            setTimeout(() => openQuiz('comp-snake', newPos, dest, board, total), 800);
-          } else {
-            setStatusMsg('');
-            setPhase('child-roll');
-            setTimeout(() => setStatusMsg('دورك! اضغط الزهر'), 200);
-          }
-        }, 600);
-        return newPos;
-      });
-    }, 1500);
+          setTimeout(() => stepMove(0), 500);
+        }
+      }
+      tickDice();
+    }, 1200);
   }, [board, total, openQuiz]);
 
   // ── quiz answer ────────────────────────────────────────────────────────────
@@ -209,29 +257,35 @@ export default function KidsSnakesLadders() {
 
     if (ctx === 'child-snake') {
       if (success) {
-        setStatusMsg(`🎉 أحسنت! ٥/٥ — هربت من الثعبان! تبقى في خانة ${sourcePos}`);
+        childPosRef.current = sourcePos;
         setChildPos(sourcePos);
+        setStatusMsg(`🎉 أحسنت! ٥/٥ — هربت من الثعبان! تبقى في خانة ${sourcePos}`);
       } else {
-        setStatusMsg(`😢 ${finalQuiz.correct}/٥ — نزلت بالثعبان إلى خانة ${targetPos}`);
+        childPosRef.current = targetPos;
         setChildPos(targetPos);
+        setStatusMsg(`😢 ${finalQuiz.correct}/٥ — نزلت بالثعبان إلى خانة ${targetPos}`);
       }
       setTimeout(() => { setStatusMsg(''); startCompTurn(); }, 1500);
     } else if (ctx === 'comp-ladder') {
       if (success) {
-        setStatusMsg(`🎉 أحسنت! ٥/٥ — أوقفت الكمبيوتر! يبقى في خانة ${sourcePos}`);
+        compPosRef.current = sourcePos;
         setCompPos(sourcePos);
+        setStatusMsg(`🎉 أحسنت! ٥/٥ — أوقفت الكمبيوتر! يبقى في خانة ${sourcePos}`);
       } else {
-        setStatusMsg(`😅 ${finalQuiz.correct}/٥ — الكمبيوتر صعد إلى خانة ${targetPos}`);
+        compPosRef.current = targetPos;
         setCompPos(targetPos);
+        setStatusMsg(`😅 ${finalQuiz.correct}/٥ — الكمبيوتر صعد إلى خانة ${targetPos}`);
       }
       setTimeout(() => { setPhase('child-roll'); setStatusMsg('دورك! اضغط الزهر'); }, 1600);
     } else {
       if (success) {
-        setStatusMsg(`🎉 أحسنت! ٥/٥ — الكمبيوتر نزل بالثعبان إلى خانة ${targetPos}`);
+        compPosRef.current = targetPos;
         setCompPos(targetPos);
+        setStatusMsg(`🎉 أحسنت! ٥/٥ — الكمبيوتر نزل بالثعبان إلى خانة ${targetPos}`);
       } else {
-        setStatusMsg(`😅 ${finalQuiz.correct}/٥ — الكمبيوتر هرب من الثعبان! يبقى في ${sourcePos}`);
+        compPosRef.current = sourcePos;
         setCompPos(sourcePos);
+        setStatusMsg(`😅 ${finalQuiz.correct}/٥ — الكمبيوتر هرب من الثعبان! يبقى في ${sourcePos}`);
       }
       setTimeout(() => { setPhase('child-roll'); setStatusMsg('دورك! اضغط الزهر'); }, 1600);
     }
@@ -506,7 +560,6 @@ export default function KidsSnakesLadders() {
           <span className="text-xl">👦</span>
           <span className="font-bold">خانة {childPos}</span>
         </div>
-        <span className="text-lg font-bold">{DICE_FACES[diceVal - 1]}</span>
         <div className="flex items-center gap-2 text-sm">
           <span className="font-bold">خانة {compPos}</span>
           <span className="text-xl">🤖</span>
@@ -531,26 +584,53 @@ export default function KidsSnakesLadders() {
         <span>🤖 الكمبيوتر</span>
       </div>
 
+      {/* dice display — large, animated */}
+      <div className="flex justify-center items-center gap-4 my-3 min-h-[90px]">
+        <motion.div
+          animate={diceAnim
+            ? { rotate: [0, 24, -24, 16, -16, 8, -8, 0], scale: [1, 1.12, 0.9, 1.08, 0.94, 1.04, 0.98, 1] }
+            : { scale: 1, rotate: 0 }
+          }
+          transition={diceAnim
+            ? { repeat: Infinity, duration: 0.22, ease: 'easeInOut' }
+            : { type: 'spring', stiffness: 380, damping: 12 }
+          }
+          className="text-8xl leading-none select-none"
+          style={{ filter: 'drop-shadow(0 4px 12px rgba(99,60,200,0.4))' }}
+        >
+          {DICE_FACES[diceVal - 1]}
+        </motion.div>
+
+        {!diceAnim && phase !== 'child-roll' && (
+          <motion.div
+            key={`dv-${diceVal}`}
+            initial={{ opacity: 0, x: -14, scale: 0.5 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 14, delay: 0.06 }}
+            className="flex flex-col items-center"
+          >
+            <span className="text-5xl font-black text-primary tabular-nums leading-none">{diceVal}</span>
+            <span className="text-xs text-muted-foreground mt-1">
+              {phase === 'comp-thinking' || phase === 'comp-moving' ? 'ورمي الكمبيوتر' : 'ورمي الزهر'}
+            </span>
+          </motion.div>
+        )}
+      </div>
+
       {/* action */}
       <div className="text-center">
         {isChildTurn ? (
-          <motion.div whileTap={{ scale: 0.95 }}>
+          <motion.div whileTap={{ scale: 0.93 }}>
             <Button
               onClick={handleRoll}
               className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-8 py-3 text-lg"
             >
-              <motion.span
-                animate={diceAnim ? { rotate: [0, 20, -20, 0] } : {}}
-                transition={{ repeat: Infinity, duration: 0.3 }}
-              >
-                🎲
-              </motion.span>
-              {' '}ارمِ الزهر
+              🎲 ارمِ الزهر
             </Button>
           </motion.div>
         ) : !quizVisible ? (
-          <p className="text-muted-foreground text-sm">
-            {phase === 'comp-thinking' ? '🤖 الكمبيوتر يلعب...' : ''}
+          <p className="text-muted-foreground text-sm min-h-[24px]">
+            {phase === 'comp-thinking' || phase === 'comp-moving' ? '🤖 الكمبيوتر يلعب...' : ''}
           </p>
         ) : null}
       </div>
