@@ -34,7 +34,7 @@ export const chanteVideos: Record<string, Record<number, string>> = {
     31:  "lxZnXRindiM",
     32:  "7_nMLp-GNJ8",
     33:  "1iDJuDhPCMI",
-    35:  "3leOmUCEziU",
+    35:  "xUYCEX1rAbw",
     36:  "FdXxnvCs95o",
     37:  "V2hVKi8V0J4",
     39:  "Fq6Ldpm03zk",
