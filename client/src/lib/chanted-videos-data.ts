@@ -19,6 +19,7 @@ export const chanteVideos: Record<string, Record<number, string>> = {
     16:  "tCOkEkU3ols",
     17:  "2f8sUylBrn0",
     18:  "OzR16rSQv3o",
+    19:  "Glxfy6Bo8qI",
     20:  "qfb9Lu8yOTg",
     21:  "GUL3O4qlj_Q",
     22:  "t1FzF_WBoxA",
