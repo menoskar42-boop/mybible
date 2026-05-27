@@ -109,6 +109,8 @@ export default function Plans() {
   });
 
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const [currentVideoStart, setCurrentVideoStart] = useState<number | undefined>(undefined);
+  const [currentVideoEnd, setCurrentVideoEnd] = useState<number | undefined>(undefined);
   const [currentVideoBookName, setCurrentVideoBookName] = useState<string>('');
   const [currentVideoChapter, setCurrentVideoChapter] = useState<number>(1);
   const [videoReadingIndex, setVideoReadingIndex] = useState<number>(0);
@@ -118,7 +120,7 @@ export default function Plans() {
   const [listenChoiceOpen, setListenChoiceOpen] = useState(false);
   const [listenChoiceBook, setListenChoiceBook] = useState('');
   const [listenChoiceChapter, setListenChoiceChapter] = useState(1);
-  const [listenChoiceChante, setListenChoiceChante] = useState<string | null>(null);
+  const [listenChoiceChante, setListenChoiceChante] = useState<{ id: string; start?: number; end?: number } | null>(null);
   const [listenChoiceRegular, setListenChoiceRegular] = useState<string | null>(null);
   const [listenChoiceSource, setListenChoiceSource] = useState<'plan' | 'custom'>('plan');
 
@@ -945,7 +947,7 @@ export default function Plans() {
                 استمع للإصحاح — {currentVideoBookName} {currentVideoChapter}
               </h3>
               {currentVideoId ? (
-                <YouTubeCard videoId={currentVideoId} />
+                <YouTubeCard videoId={currentVideoId} start={currentVideoStart} end={currentVideoEnd} />
               ) : (
                 <div className="aspect-video flex items-center justify-center bg-muted rounded-lg">
                   <p className="text-muted-foreground text-center p-8 font-display">لا توجد ملفات صوتية أو مرئية لهذا الإصحاح</p>
@@ -1234,7 +1236,7 @@ export default function Plans() {
                   استمع للإصحاح — {currentVideoBookName} {currentVideoChapter}
                 </h3>
                 {currentVideoId ? (
-                  <YouTubeCard videoId={currentVideoId} />
+                  <YouTubeCard videoId={currentVideoId} start={currentVideoStart} end={currentVideoEnd} />
                 ) : (
                   <div className="aspect-video flex items-center justify-center bg-muted rounded-lg">
                     <p className="text-muted-foreground text-center p-8 font-display">لا توجد ملفات صوتية أو مرئية لهذا الإصحاح</p>
@@ -1455,7 +1457,11 @@ export default function Plans() {
               setCurrentVideoBookName(listenChoiceBook);
               setCurrentVideoChapter(listenChoiceChapter);
               setVideoSource(listenChoiceSource);
-              setCurrentVideoId(listenChoiceChante);
+              if (listenChoiceChante) {
+                setCurrentVideoId(listenChoiceChante.id);
+                setCurrentVideoStart(listenChoiceChante.start);
+                setCurrentVideoEnd(listenChoiceChante.end);
+              }
               if (listenChoiceSource === 'plan') setVideoReadingIndex(currentReadingIndex);
               else setVideoReadingIndex(customReadingIndex);
               setChapterSubView('video');
@@ -1473,6 +1479,8 @@ export default function Plans() {
               setCurrentVideoChapter(listenChoiceChapter);
               setVideoSource(listenChoiceSource);
               setCurrentVideoId(listenChoiceRegular);
+              setCurrentVideoStart(undefined);
+              setCurrentVideoEnd(undefined);
               if (listenChoiceSource === 'plan') setVideoReadingIndex(currentReadingIndex);
               else setVideoReadingIndex(customReadingIndex);
               setChapterSubView('video');

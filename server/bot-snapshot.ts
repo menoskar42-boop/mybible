@@ -945,7 +945,8 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
       } else if (view === 'video') {
         // Render VideoObject schema with real YouTube ID
         const videoId = videoLinks[bookName]?.[chapter];
-        const chanteId = chanteVideos[bookName]?.[chapter] ?? null;
+        const chanteRaw = chanteVideos[bookName]?.[chapter] ?? null;
+        const chanteId = chanteRaw ? (typeof chanteRaw === 'string' ? chanteRaw : chanteRaw.id) : null;
         if (!videoId && !chanteId) return next(); // no video — skip, don't waste crawl budget
         html = buildVideoSnapshot(book.name, chapter, videoId || chanteId!, chanteId, books);
 

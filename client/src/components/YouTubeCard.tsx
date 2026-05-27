@@ -5,14 +5,19 @@ interface YouTubeCardProps {
   videoId: string;
   title?: string;
   autoplayEmbed?: boolean;
+  start?: number;
+  end?: number;
 }
 
-export function YouTubeCard({ videoId, title }: YouTubeCardProps) {
+export function YouTubeCard({ videoId, title, start, end }: YouTubeCardProps) {
   const [playing, setPlaying] = useState(false);
 
-  const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`
+    + (start != null ? `&t=${start}` : '');
   const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-  const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+  const embedUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`
+    + (start != null ? `&start=${start}` : '')
+    + (end   != null ? `&end=${end}`     : '');
 
   return (
     <div className="space-y-2">

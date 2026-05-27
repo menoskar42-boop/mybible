@@ -1,5 +1,6 @@
 // فيديوهات المزامير والإصحاحات المرتلة — يُضاف إليها تدريجياً
-export const chanteVideos: Record<string, Record<number, string>> = {
+export type ChanteEntry = string | { id: string; start?: number; end?: number };
+export const chanteVideos: Record<string, Record<number, ChanteEntry>> = {
   "المزامير": {
     1:   "iUssc_nQQ5s",
     2:   "mJVnJ_f91fQ",
@@ -152,8 +153,66 @@ export const chanteVideos: Record<string, Record<number, string>> = {
     150: "gnHbUXHYU6I",
     151: "jgs5WScKwCQ",
   },
+  "أيوب": {
+    1:  "Beob6YM9fkg",
+    2:  "cALtM7hpKUc",
+    3:  "4kl727FgcN0",
+    4:  "Y_SDqDJr1jQ",
+    5:  "ZYduqPWFtPo",
+    6:  "XxxYI5fHLnY",
+    7:  "fi7aX-Aaa5M",
+    8:  "Ou_Vje6U_cc",
+    9:  "vweFIvj5ZrM",
+    10: "hTEPk5phE9I",
+    11: "OKurPjVScvk",
+    12: "cApv1NHLhMY",
+    13: "GKozd8f8h3E",
+    14: "ACoGflAvl_g",
+    15: "105PH-EEArs",
+    16: "Mj5q7GlQVoI",
+    17: "yXBbRWHlCiI",
+    18: "ieSL7LLY1Wg",
+    19: "RaOgzOwYvW0",
+    20: "smHaNYe6vOg",
+    21: "hrs2I9Eg8X4",
+    22: "xMAPouVHJ5A",
+    23: "mGla3ldBn9s",
+    24: "Qnkm0k7EXrY",
+    25: "EY69UqP6HLY",
+    26: "3mzehpzmjxw",
+    27: "7Y-YbXrdD2A",
+    28: "pQ2HgsCP4SA",
+    29: "5d434hEwYRo",
+    30: "fAu1Fz8l-Og",
+    31: "xWy1sZ9ah_k",
+    32: "GPBWwiCXeJY",
+    33: "YzvLeEzC-zo",
+    34: "Ks6_iE8wMaE",
+    35: "NexyLEf0_Kk",
+    36: "I7uVCuNlwfU",
+    37: "Qvr-vL9ShSs",
+    38: "_qSu8T6A2Ok",
+    39: "0iUXTprR3bE",
+    40: "kBuwvqyZE6M",
+    41: "BXcvuZL8PFg",
+    42: "FzHRG2ZXWlE",
+  },
+  "استير": {
+    1:  { id: "SlJCGqR9A_c", start: 0,    end: 198  },
+    2:  { id: "SlJCGqR9A_c", start: 199,  end: 417  },
+    3:  { id: "SlJCGqR9A_c", start: 418,  end: 657  },
+    4:  { id: "SlJCGqR9A_c", start: 658,  end: 899  },
+    5:  { id: "SlJCGqR9A_c", start: 900,  end: 1056 },
+    6:  { id: "SlJCGqR9A_c", start: 1057, end: 1227 },
+    7:  { id: "SlJCGqR9A_c", start: 1228, end: 1405 },
+    8:  { id: "SlJCGqR9A_c", start: 1406, end: 1615 },
+    9:  { id: "SlJCGqR9A_c", start: 1616, end: 1795 },
+    10: { id: "SlJCGqR9A_c", start: 1796, end: 1978 },
+  },
 };
 
-export function getChanteVideoId(bookName: string, chapter: number): string | null {
-  return chanteVideos[bookName]?.[chapter] ?? null;
+export function getChanteVideoId(bookName: string, chapter: number): { id: string; start?: number; end?: number } | null {
+  const val = chanteVideos[bookName]?.[chapter] ?? null;
+  if (!val) return null;
+  return typeof val === 'string' ? { id: val } : val;
 }
