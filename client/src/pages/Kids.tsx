@@ -4,7 +4,7 @@ import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle, Compass, RotateCcw, Users, Printer, Mic } from 'lucide-react';
-import { memorizationVerses, kidsBadges, computeEarnedBadges, type AgeGroup } from '@/lib/kids-memorization-data';
+import { memorizationVerses, kidsBadges, computeEarnedBadges, LEVEL_LABELS, type AgeGroup } from '@/lib/kids-memorization-data';
 import { interactiveStories, type InteractiveStory } from '@/lib/interactive-stories-data';
 import { weeklyFamilyGuide, parentTips } from '@/lib/kids-parents-data';
 import { sortVerses, shuffleWords } from '@/lib/kids-sort-verse-data';
@@ -427,7 +427,7 @@ export default function Kids() {
   const [playlistIndex, setPlaylistIndex] = useState(0);
   const { favorites, toggle, isFavorite } = useFavoriteHymns();
   const { memorized, toggle: toggleMemorized, isMemorized } = useMemorization();
-  const [memAgeGroup, setMemAgeGroup] = useState<AgeGroup>('4-6');
+  const [memAgeGroup, setMemAgeGroup] = useState<AgeGroup>('level-1');
   const [currentQuiz, setCurrentQuiz] = useState<QuizQuestion[]>([]);
   const [currentQ, setCurrentQ] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -1192,15 +1192,15 @@ export default function Kids() {
                 />
               </div>
 
-              <div className="flex gap-2 mb-5">
-                {(['4-6', '7-9', '10-12'] as AgeGroup[]).map(ag => (
+              <div className="flex flex-wrap gap-2 mb-5">
+                {(['level-1', 'level-2', 'level-3', 'level-4', 'level-5', 'level-6', 'level-7', 'level-8', 'level-9', 'level-10'] as AgeGroup[]).map(ag => (
                   <button
                     key={ag}
                     onClick={() => setMemAgeGroup(ag)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${memAgeGroup === ag ? 'bg-purple-500 text-white border-purple-500' : 'border-border text-muted-foreground hover:border-purple-300'}`}
-                    data-testid={`btn-age-${ag}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${memAgeGroup === ag ? 'bg-purple-500 text-white border-purple-500' : 'border-border text-muted-foreground hover:border-purple-300'}`}
+                    data-testid={`btn-level-${ag}`}
                   >
-                    {ag} سنوات
+                    {LEVEL_LABELS[ag]}
                   </button>
                 ))}
               </div>
