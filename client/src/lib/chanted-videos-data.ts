@@ -197,7 +197,7 @@ export const chanteVideos: Record<string, Record<number, ChanteEntry>> = {
     41: "BXcvuZL8PFg",
     42: "FzHRG2ZXWlE",
   },
-  "استير": {
+  "أستير": {
     1:  { id: "SlJCGqR9A_c", start: 0,    end: 198  },
     2:  { id: "SlJCGqR9A_c", start: 199,  end: 417  },
     3:  { id: "SlJCGqR9A_c", start: 418,  end: 657  },
