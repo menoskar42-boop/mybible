@@ -56,7 +56,7 @@ function buildFaqSchema(faqs: { q: string; a: string }[]): object {
   };
 }
 
-function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[], ogImage?: string): string {
+function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[], ogImage?: string, noindex?: boolean): string {
   const today = new Date().toISOString().split('T')[0];
   const rawSchemas = Array.isArray(schemaJson) ? schemaJson : [schemaJson];
   const schemas = rawSchemas.map((s: Record<string, unknown>) =>
@@ -89,12 +89,12 @@ function wrapHtml(title: string, description: string, canonical: string, bodyCon
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(description)}">
 <meta name="twitter:image" content="${img}">
-<meta name="robots" content="index, follow">
+<meta name="robots" content="${noindex ? 'noindex, follow' : 'index, follow'}">
 ${schemaScripts}
 </head>
 <body style="font-family:'Noto Naskh Arabic',serif;max-width:800px;margin:0 auto;padding:20px;direction:rtl;text-align:right;background:#faf8f5;color:#2c1810">
 <header>
-<nav><a href="/">الرئيسية</a> | <a href="/bible">الكتاب المقدس</a> | <a href="/plans">خطط القراءة</a> | <a href="/emotions">المشاعر</a> | <a href="/kids">الأطفال</a> | <a href="/search">البحث</a></nav>
+<nav><a href="/">الرئيسية</a> | <a href="/bible">الكتاب المقدس</a> | <a href="/plans">خطط القراءة</a> | <a href="/emotions">المشاعر</a> | <a href="/kids">الأطفال</a> | <a href="/family">العائلة</a> | <a href="/orthodox">أرثوذوكسيات</a> | <a href="/service">الخدمة</a> | <a href="/search">البحث</a></nav>
 </header>
 <main>
 ${bodyContent}
@@ -436,7 +436,7 @@ ${adjacentLinks.length > 0 ? `<nav><h2>أسفار ذات صلة</h2><ul>${adjace
   return wrapHtml(title, description, canonical, body, schema, buildBookOgUrl(bookName, chaptersCount));
 }
 
-function buildStaticPageSnapshot(path: string): string | null {
+function buildStaticPageSnapshot(path: string, noindex?: boolean): string | null {
   const pages: Record<string, { title: string; desc: string; schema: object | object[] }> = {
     "/": {
       title: "الكتاب المقدس رفيقي | قراءة يومية، تفسير، خطط روحية",
@@ -540,6 +540,35 @@ function buildStaticPageSnapshot(path: string): string | null {
       title: "قصص مصورة للأطفال من الكتاب المقدس | رفيقي",
       desc: "قصص مصورة تفاعلية من الكتاب المقدس للأطفال مع صور ملونة وصوت — قصة موسى، يوسف، داود، يونان، ميلاد يسوع وغيرها.",
       schema: { "@context": "https://schema.org", "@type": "CollectionPage", "name": "قصص مصورة للأطفال من الكتاب المقدس", "description": "قصص مصورة تفاعلية من الكتاب المقدس للأطفال", "inLanguage": "ar", "url": `${SITE}/kids/stories` }
+    },
+    "/family": {
+      title: "ركن العائلة المسيحية | تربية روحية، مشورة، صلوات عائلية | رفيقي",
+      desc: "ركن العائلة المسيحية في رفيقي: تربية الأطفال على القيم المسيحية، صلوات عائلية يومية، مشورة كنسية للوالدين، فيديوهات تعليمية للآباء والأمهات، ونصائح لبناء بيت مسيحي مقدّس.",
+      schema: [
+        { "@context": "https://schema.org", "@type": "CollectionPage", "name": "ركن العائلة المسيحية", "inLanguage": "ar", "url": `${SITE}/family`,
+          "about": { "@type": "Thing", "name": "التربية المسيحية للعائلة" } },
+        buildFaqSchema([
+          { q: "كيف أربي أطفالي روحياً في البيت المسيحي؟", a: "ابدأ بالصلاة العائلية اليومية، اقرأ معهم قصص الكتاب المقدس بأسلوب مبسط، اصطحبهم للقداس وألحان الكنيسة، وكن قدوة في حياتك الروحية. ركن العائلة في رفيقي يوفر مواد منظمة لكل عمر." },
+          { q: "ما هي الصلوات العائلية المناسبة؟", a: "صلاة الصباح والمساء من الأجبية مبسطة، صلاة الطعام، صلاة قبل النوم، وقراءة فصل من إنجيل يوحنا أو المزامير معاً." }
+        ])
+      ]
+    },
+    "/service": {
+      title: "قسم الخدمة | إعداد العظات ودروس مدارس الأحد بالذكاء الاصطناعي | رفيقي",
+      desc: "أداة متكاملة للآباء الكهنة وخدام مدارس الأحد: بحث موضوعي ذكي في آيات الكتاب المقدس، تفاسير آبائية، ومولِّد هيكل عظة أو درس مدرسة أحد بالذكاء الاصطناعي مع مساحة عمل لتجميع المسودة.",
+      schema: [
+        { "@context": "https://schema.org", "@type": "WebApplication", "name": "قسم الخدمة — رفيقي", "applicationCategory": "ReligiousApplication", "operatingSystem": "Web", "inLanguage": "ar", "url": `${SITE}/service` },
+        buildFaqSchema([
+          { q: "كيف يساعدني قسم الخدمة في إعداد عظة الأحد؟", a: "اختر تبويب 'للكهنة'، أدخل موضوع العظة والجمهور المستهدف، يقترح لك الذكاء الاصطناعي هيكلاً متكاملاً (مقدمة، نقاط، تطبيق، خاتمة). ثم ابحث عن آيات الموضوع، أضفها للمسودة، واطلع على تفاسير الآباء قبل الطباعة." },
+          { q: "هل يصلح لخدام مدارس الأحد؟", a: "نعم، تبويب 'للخدام' مُعد خصيصاً لإعداد درس مدرسة الأحد: مقدمة، نقاط مبسطة للأطفال، نشاط تطبيقي، وصلاة ختامية." },
+          { q: "هل المحتوى المُولَّد بديل عن الإرشاد الكنسي؟", a: "لا، المحتوى مساعد للتحضير فقط وليس بديلاً عن الإرشاد الكنسي والدراسة اللاهوتية المعمّقة." }
+        ])
+      ]
+    },
+    "/highlights": {
+      title: "آياتي المظللة | حفظ وتنظيم آيات الكتاب المقدس المفضلة | رفيقي",
+      desc: "احفظ آياتك المفضلة من الكتاب المقدس بألوان تظليل مختلفة، نظّمها حسب الموضوع، وراجعها متى أردت. مكتبتك الشخصية من كلمة الله.",
+      schema: { "@context": "https://schema.org", "@type": "WebPage", "name": "آياتي المظللة", "inLanguage": "ar" }
     },
     "/search": {
       title: "البحث في الكتاب المقدس | بحث ذكي في أكثر من 31,000 آية",
@@ -706,6 +735,9 @@ function buildStaticPageSnapshot(path: string): string | null {
 <li><a href="${SITE}/kids">قصص الكتاب المقدس للأطفال</a></li>
 <li><a href="${SITE}/orthodox">الأرثوذوكسيات: أجبية، سنكسار، خولاجي، ألحان</a></li>
 <li><a href="${SITE}/daily-verse">آية اليوم من الكتاب المقدس</a></li>
+<li><a href="${SITE}/family">ركن العائلة المسيحية — تربية وصلوات ومشورة</a></li>
+<li><a href="${SITE}/service">قسم الخدمة — للكهنة وخدام مدارس الأحد</a></li>
+<li><a href="${SITE}/highlights">آياتي المظللة — مكتبتي الشخصية</a></li>
 <li><a href="${SITE}/search">البحث في الكتاب المقدس</a></li>
 </ul></nav>`,
 
@@ -852,6 +884,51 @@ ${kidsBibleVideos.filter(v => v.category === "قصص وأناشيد متنوعة
 <h2>لماذا تبحث عن آيات حسب مشاعرك؟</h2>
 <p>الكتاب المقدس يخاطب كل حالة إنسانية. سواء كنت تمر بضيقة، فرح، أو قلق، ستجد في صفحات الكتاب المقدس كلمات تُعزيك وتُقويك. اختر ما يناسب حالتك الآن.</p>`,
 
+    "/family": `<h1>ركن العائلة المسيحية</h1>
+<p>${page.desc}</p>
+<h2>أقسام ركن العائلة</h2>
+<ul>
+<li><strong>صلوات عائلية</strong>: مجموعة صلوات يومية للعائلة المسيحية — صلاة الصباح، صلاة الطعام، صلاة المساء، صلاة قبل النوم.</li>
+<li><strong>تربية روحية للأطفال</strong>: مواد ودروس لتعليم الأطفال أسس الإيمان المسيحي القبطي الأرثوذكسي.</li>
+<li><strong>ركن المشورة</strong>: فيديوهات وإرشادات من آباء الكنيسة للوالدين عن التربية والحياة الزوجية.</li>
+<li><strong>قراءات عائلية مشتركة</strong>: مقترحات لقراءة الكتاب المقدس مع الأطفال بأسلوب مناسب لأعمارهم.</li>
+</ul>
+<h2>لماذا الحياة الروحية العائلية مهمة؟</h2>
+<p>البيت المسيحي هو الكنيسة الصغرى. حين يصلي الوالدان مع أطفالهم، يقرؤون الكتاب المقدس معاً، ويعيشون قيم الإيمان في تعاملاتهم اليومية، يبنون أساساً روحياً قوياً يلازم الأطفال طوال حياتهم.</p>
+<p><a href="${SITE}/kids">قصص الكتاب المقدس للأطفال</a> | <a href="${SITE}/kids/hymns">ترانيم الأطفال</a> | <a href="${SITE}/orthodox/agpeya">كتاب الأجبية</a></p>`,
+
+    "/service": `<h1>قسم الخدمة — للكهنة وخدام مدارس الأحد</h1>
+<p>${page.desc}</p>
+<h2>ماذا يقدم قسم الخدمة؟</h2>
+<ul>
+<li><strong>بحث موضوعي ذكي</strong>: ابحث عن آيات الكتاب المقدس حسب الموضوع (الغفران، التوبة، المحبة، الصلاة...) باستخدام البحث الدلالي الذكي.</li>
+<li><strong>تفاسير الآباء</strong>: لكل آية، اطلع على تفسير الآباء القبط الأرثوذكس مباشرة.</li>
+<li><strong>مولِّد هيكل العظة</strong>: للكهنة — يقترح الذكاء الاصطناعي هيكل عظة كنسية: مقدمة، نقاط رئيسية، تطبيق روحي، خاتمة.</li>
+<li><strong>مولِّد درس مدرسة الأحد</strong>: للخدام — يقترح هيكل درس مناسب للأطفال: مقدمة، نقاط مبسطة، نشاط تطبيقي، صلاة ختامية.</li>
+<li><strong>مساحة عمل / مسودة</strong>: اجمع الآيات والهيكل معاً، انسخ المسودة، أو اطبعها لاستخدامها في الخدمة.</li>
+</ul>
+<h2>كيف تستخدم القسم؟</h2>
+<ol>
+<li>اختر التبويب المناسب: للكهنة أو للخدام.</li>
+<li>أدخل موضوع العظة أو الدرس والجمهور المستهدف.</li>
+<li>اطلب اقتراح هيكل من الذكاء الاصطناعي.</li>
+<li>ابحث عن آيات تدعم النقاط، واطلع على تفسيرها.</li>
+<li>أضف الآيات للمسودة، ثم انسخها أو اطبعها.</li>
+</ol>
+<p><strong>تنبيه لاهوتي</strong>: المحتوى المُولَّد بالذكاء الاصطناعي مساعد للتحضير فقط، وليس بديلاً عن الإرشاد الكنسي والدراسة اللاهوتية المعمّقة.</p>
+<p><a href="${SITE}/bible">الكتاب المقدس</a> | <a href="${SITE}/orthodox/tafseer">تفاسير الآباء</a> | <a href="${SITE}/orthodox/kholagy">الخولاجي المقدس</a></p>`,
+
+    "/highlights": `<h1>آياتي المظللة — مكتبتي الشخصية من كلمة الله</h1>
+<p>${page.desc}</p>
+<h2>ميزات التظليل في رفيقي</h2>
+<ul>
+<li>ظلّل الآيات بألوان مختلفة (أصفر، أخضر، أزرق، وردي) لتصنيف موضوعات مختلفة.</li>
+<li>راجع كل آياتك المظللة في صفحة واحدة منظمة.</li>
+<li>أضف ملاحظاتك الشخصية على كل آية.</li>
+<li>شارك الآيات المظللة مع أصدقائك.</li>
+</ul>
+<p><a href="${SITE}/bible">ابدأ القراءة والتظليل</a> | <a href="${SITE}/search">ابحث عن آية لتظليلها</a></p>`,
+
     "/search": `<h1>البحث في الكتاب المقدس</h1>
 <p>${page.desc}</p>
 <h2>بحث ذكي في أكثر من 31,000 آية</h2>
@@ -874,7 +951,7 @@ ${kidsBibleVideos.filter(v => v.category === "قصص وأناشيد متنوعة
 
   const body = richBodies[path] || `<h1>${page.title.split('|')[0].trim()}</h1>\n<p>${page.desc}</p>`;
 
-  return wrapHtml(page.title, page.desc, canonical, body, page.schema);
+  return wrapHtml(page.title, page.desc, canonical, body, page.schema, undefined, noindex);
 }
 
 let cachedBooks: Array<{ id: number; name: string; chaptersCount: number }> | null = null;
@@ -1566,9 +1643,11 @@ ${entriesHtml}
     return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
   }
 
-  const staticSnapshot = buildStaticPageSnapshot(path);
+  // noindex for search-results URLs (with ?q=...) and other query-bearing pages
+  const hasSearchQuery = path === "/search" && typeof req.query.q === "string" && (req.query.q as string).trim() !== "";
+  const staticSnapshot = buildStaticPageSnapshot(path, hasSearchQuery);
   if (staticSnapshot) {
-    const cacheKey = `st:${path}`;
+    const cacheKey = hasSearchQuery ? `st:${path}?q` : `st:${path}`;
     if (serveCached(res, cacheKey)) return;
     return cacheAndServe(res, cacheKey, staticSnapshot);
   }

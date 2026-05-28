@@ -81,6 +81,21 @@ export function SEOHead({ customSchema, dynamicSEO }: SEOHeadProps) {
     const twitterImage = document.querySelector('meta[name="twitter:image"]');
     if (twitterImage) twitterImage.setAttribute('content', 'https://mybible.oscardevs.com/opengraph.jpg');
 
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    const shouldNoIndex = location === '/search' && /[?&]q=[^&]+/.test(search);
+    let robotsMeta = document.querySelector('meta[name="robots"]');
+    if (!robotsMeta) {
+      robotsMeta = document.createElement('meta');
+      robotsMeta.setAttribute('name', 'robots');
+      document.head.appendChild(robotsMeta);
+    }
+    robotsMeta.setAttribute(
+      'content',
+      shouldNoIndex
+        ? 'noindex, follow'
+        : 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1'
+    );
+
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement('link');
