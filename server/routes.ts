@@ -699,7 +699,7 @@ export async function registerRoutes(
   "verseRefs": ["..."]
 }
 
-في حقل verseRefs ضع كل آية من الكتاب المقدس فان دايك متعلقة فعلياً بهذا الموضوع، من العهدين القديم والجديد بلا استثناء — قد تكون 20 أو 40 أو 60 آية، لا تحدد العدد. لا تترك أي آية معروفة عن الموضوع. الصيغة لكل عنصر: "اسم السفر فصل:آية".`
+في حقل verseRefs ضع حوالي 20 آية من أقوى الآيات المتعلقة بالموضوع من العهدين القديم والجديد. الصيغة لكل عنصر: "اسم السفر فصل:آية".`
         : `أنت خادم مدارس أحد قبطي أرثوذكسي خبير. اقترح هيكلاً مختصراً لدرس مدارس أحد جذاب.
 الموضوع: "${topic}"
 الفئة العمرية: ${aud}
@@ -713,7 +713,7 @@ export async function registerRoutes(
   "verseRefs": ["..."]
 }
 
-في حقل verseRefs ضع كل آية من الكتاب المقدس فان دايك متعلقة فعلياً بهذا الموضوع، من العهدين القديم والجديد بلا استثناء — قد تكون 20 أو 40 أو 60 آية، لا تحدد العدد. لا تترك أي آية معروفة عن الموضوع. الصيغة لكل عنصر: "اسم السفر فصل:آية".`;
+في حقل verseRefs ضع حوالي 20 آية من أقوى الآيات المتعلقة بالموضوع بصياغة مناسبة للأطفال. الصيغة لكل عنصر: "اسم السفر فصل:آية".`;
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -773,6 +773,88 @@ export async function registerRoutes(
     }
   });
 
+  // More verses on a topic — used by both Service outline and Search "load more" buttons
+  app.post('/api/verses/more-on-topic', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+      const { topic, excludeRefs } = req.body as { topic?: string; excludeRefs?: string[] };
+      if (!topic || !topic.trim()) return res.status(400).json({ message: 'topic required' });
+
+      const groqApiKey = process.env.GROQ_API_KEY;
+      if (!groqApiKey) return res.status(503).json({ message: 'AI provider not configured' });
+
+      const excluded = Array.isArray(excludeRefs) ? excludeRefs.slice(0, 300) : [];
+      const excludedStr = excluded.length ? excluded.join('، ') : '(لا شيء بعد)';
+
+      const prompt = `أنت خبير لاهوتي في الكتاب المقدس العربي نسخة فان دايك.
+
+الموضوع: "${topic.trim()}"
+
+ذكرت سابقاً هذه الآيات (لا تكررها):
+${excludedStr}
+
+اذكر الآن آيات إضافية متعلقة بنفس الموضوع — حوالي 30 آية جديدة من الكتاب المقدس، من العهدين القديم والجديد.
+إذا لم تتبقَ آيات قوية الصلة (نفدت الآيات المعروفة عن الموضوع)، أرجع refs فارغة.
+
+أجب بـ JSON فقط:
+{"refs": ["اسم السفر فصل:آية", ...]}
+لا تكتب أي شرح خارج JSON.`;
+
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 3000,
+          temperature: 0.3,
+          response_format: { type: 'json_object' },
+        }),
+      });
+
+      if (!groqRes.ok) return res.status(502).json({ message: 'AI provider error' });
+      const data = await groqRes.json() as any;
+      const content = data.choices?.[0]?.message?.content?.trim();
+      if (!content) return res.json({ verses: [], done: true });
+
+      let parsed: { refs?: unknown };
+      try { parsed = JSON.parse(content); } catch { return res.json({ verses: [], done: true }); }
+
+      const toWestern = (s: string) => s.replace(/[٠-٩]/g, (d: string) => String(d.charCodeAt(0) - 0x0660));
+      const verses: Array<{ ref: string; book: string; chapter: number; verse: number; text: string }> = [];
+      const seen = new Set(excluded);
+
+      if (Array.isArray(parsed.refs)) {
+        for (const raw of parsed.refs as unknown[]) {
+          if (typeof raw !== 'string') continue;
+          const clean = raw.trim();
+          if (seen.has(clean)) continue;
+          const m = clean.match(/^([؀-ۿٰ\s]+?)\s+([\d٠-٩]+):([\d٠-٩]+)/);
+          if (!m) continue;
+          const book = m[1].trim();
+          const chapter = parseInt(toWestern(m[2]), 10);
+          const verse = parseInt(toWestern(m[3]), 10);
+          try {
+            const found = await storage.getVerseByReference(book, chapter, verse);
+            if (found) {
+              verses.push({ ref: clean, book, chapter, verse, text: found.text });
+              seen.add(clean);
+            }
+          } catch { /* skip */ }
+        }
+      }
+
+      // "done" if AI returned no new refs or very few — signals we've likely exhausted the topic
+      const done = verses.length < 5;
+      return res.json({ verses, done });
+    } catch (e) {
+      console.error('[verses/more-on-topic] error:', e);
+      res.status(500).json({ message: 'Failed' });
+    }
+  });
+
   // AI-Enhanced Search: pure Groq semantic search (text search disabled temporarily)
   app.post('/api/search/ai-enhanced', async (req, res) => {
     try {
@@ -786,19 +868,15 @@ export async function registerRoutes(
         return res.json({ exactResults: [], semanticResults: [], results: [], enhanced: false });
       }
 
-      // Pure AI: ask Groq directly for ALL verse references on this topic
+      // First batch: ~25 strongest verses (user can request more via /api/verses/more-on-topic)
       const aiPrompt = `أنت خبير لاهوتي في الكتاب المقدس العربي نسخة فان دايك.
 
 الموضوع: "${query.trim()}"
 
-اذكر كل آية من الكتاب المقدس متعلقة فعلياً بهذا الموضوع، من العهدين القديم والجديد، بلا استثناء.
-- لا تحدد العدد سلفاً — قد تكون 30 أو 60 أو 100 أو أكثر، حسب ثراء الموضوع في الكتاب.
-- لا تترك أي آية معروفة عن الموضوع.
-- شامل: تكوين، خروج، مزامير، أمثال، أنبياء، أناجيل، رسائل، رؤيا، إلخ.
-
+اذكر حوالي 25 آية من أقوى الآيات صلةً بهذا الموضوع من الكتاب المقدس، من العهدين القديم والجديد.
 أجب بـ JSON فقط:
-{"refs": ["اسم السفر فصل:آية", "اسم السفر فصل:آية", ...]}
-مثال: {"refs": ["يوحنا 3:16", "مزمور 51:1", "إشعياء 55:7", "أعمال 3:19"]}
+{"refs": ["اسم السفر فصل:آية", ...]}
+مثال: {"refs": ["يوحنا 3:16", "مزمور 51:1", "إشعياء 55:7"]}
 لا تكتب أي شرح خارج JSON.`;
 
       const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
