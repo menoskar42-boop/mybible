@@ -388,8 +388,8 @@ export default function Service() {
                         <p className="text-xs text-muted-foreground text-center">✓ تمام، هذه تقريباً كل الآيات المتعلقة بهذا الموضوع</p>
                       ) : (
                         <Button
-                          variant="outline"
                           size="sm"
+                          style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
                           disabled={outlineVersesLoading || outlineVerses.length >= 150}
                           onClick={() => loadMoreVerses('outline')}
                         >
@@ -500,8 +500,8 @@ export default function Service() {
                       <p className="text-xs text-muted-foreground text-center">✓ تمام، هذه تقريباً كل الآيات المتعلقة بهذا الموضوع</p>
                     ) : (
                       <Button
-                        variant="outline"
                         size="sm"
+                        style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
                         disabled={searchMoreLoading || (allResults.length + searchMore.length) >= 150}
                         onClick={() => loadMoreVerses('search')}
                       >
