@@ -240,12 +240,13 @@ export default function Service() {
     }
     const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${esc(title)}</title>
       <style>
-        body { font-family: 'Tajawal', 'Amiri', serif; padding: 24px; line-height: 1.9; color: #222; max-width: 800px; margin: 0 auto; }
-        h1 { font-size: 22px; border-bottom: 2px solid #8B5E3C; padding-bottom: 8px; }
-        h2 { font-size: 18px; color: #8B5E3C; margin-top: 24px; }
-        h3 { font-size: 16px; margin-top: 16px; }
-        ol, ul { padding-right: 24px; }
-        li { margin-bottom: 8px; }
+        body { font-family: 'Tajawal', 'Amiri', serif; padding: 24px; line-height: 2.1; color: #222; max-width: 850px; margin: 0 auto; font-size: 20px; }
+        h1 { font-size: 32px; border-bottom: 2px solid #8B5E3C; padding-bottom: 10px; }
+        h2 { font-size: 26px; color: #8B5E3C; margin-top: 28px; }
+        h3 { font-size: 22px; margin-top: 18px; }
+        p { font-size: 20px; }
+        ol, ul { padding-right: 28px; font-size: 20px; }
+        li { margin-bottom: 12px; font-size: 20px; }
         .ref { color: #8B5E3C; font-weight: 600; margin-left: 6px; }
         @media print { body { padding: 0; } }
       </style></head><body>${parts.join('')}<script>window.onload=()=>setTimeout(()=>window.print(),200);</script></body></html>`;
@@ -388,8 +389,8 @@ export default function Service() {
                         <p className="text-xs text-muted-foreground text-center">✓ تمام، هذه تقريباً كل الآيات المتعلقة بهذا الموضوع</p>
                       ) : (
                         <Button
-                          variant="outline"
                           size="sm"
+                          style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
                           disabled={outlineVersesLoading || outlineVerses.length >= 150}
                           onClick={() => loadMoreVerses('outline')}
                         >
@@ -480,6 +481,12 @@ export default function Service() {
                         <p className="font-display text-xl leading-loose text-foreground mb-2">{v.text}</p>
                         <div className="flex gap-2">
                           <button
+                            onClick={() => openTafsir({ id: 800000 + i, bookId: 0, chapter: v.chapter, verse: v.verse, text: v.text, bookName: v.book })}
+                            className="px-3 py-1.5 rounded text-xs font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            📖 تفسير الآية
+                          </button>
+                          <button
                             onClick={() => {
                               const dv: DraftVerse = { id: 800000 + i, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
                               if (!draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)) {
@@ -500,8 +507,8 @@ export default function Service() {
                       <p className="text-xs text-muted-foreground text-center">✓ تمام، هذه تقريباً كل الآيات المتعلقة بهذا الموضوع</p>
                     ) : (
                       <Button
-                        variant="outline"
                         size="sm"
+                        style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
                         disabled={searchMoreLoading || (allResults.length + searchMore.length) >= 150}
                         onClick={() => loadMoreVerses('search')}
                       >

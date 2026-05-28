@@ -45,6 +45,19 @@ const courses = [
       { id: 'EhOb_TWriHo', title: 'الجلسة الخامسة — الرعاية الراعوية والدعم المجتمعي' },
     ],
   },
+  {
+    id: 3,
+    title: 'نصائح أسرية إضافية',
+    description: 'مجموعة فيديوهات مختارة في المشورة والحياة الزوجية',
+    color: 'from-amber-500 to-orange-600',
+    badge: 'bg-amber-900/30 border-amber-700/40 text-amber-300',
+    videos: [
+      { id: '7V4OGsIZtbY', title: 'ماذا تنتظر منك زوجتك؟ — للرجال فقط' },
+      { id: 'h3b5usPVAWs', title: 'ماذا تنتظر منك زوجتك؟ — ساعة ونصف مشورة (Alkarma TV)' },
+      { id: 'as3Xa4AYKw8', title: 'ماذا ينتظر منك زوجك؟ — للسيدات فقط' },
+      { id: 'jo_Ek9bSHHo', title: 'ماذا ينتظر منك زوجك؟ — ساعة ونصف مشورة (Alkarma TV)' },
+    ],
+  },
 ];
 
 export default function FamilyCounseling() {
