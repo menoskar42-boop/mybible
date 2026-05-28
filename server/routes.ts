@@ -695,7 +695,8 @@ export async function registerRoutes(
   "intro": "مقدمة من 2-3 جمل تمهّد للموضوع",
   "points": ["النقطة الأولى مع شرحها الموجز", "النقطة الثانية", "النقطة الثالثة"],
   "application": "تطبيق عملي يربط الموضوع بحياة المؤمن",
-  "conclusion": "خاتمة موجزة تدعو للالتزام"
+  "conclusion": "خاتمة موجزة تدعو للالتزام",
+  "verseRefs": ["اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية"]
 }`
         : `أنت خادم مدارس أحد قبطي أرثوذكسي خبير. اقترح هيكلاً مختصراً لدرس مدارس أحد جذاب.
 الموضوع: "${topic}"
@@ -706,7 +707,8 @@ export async function registerRoutes(
   "intro": "تمهيد قصير يجذب الانتباه (سؤال أو قصة قصيرة)",
   "points": ["الفكرة الأولى مبسطة", "الفكرة الثانية مبسطة", "الفكرة الثالثة مبسطة"],
   "activity": "نشاط تفاعلي مناسب للعمر",
-  "prayer": "صلاة ختامية قصيرة بلغة الأطفال"
+  "prayer": "صلاة ختامية قصيرة بلغة الأطفال",
+  "verseRefs": ["اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية"]
 }`;
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -742,14 +744,32 @@ export async function registerRoutes(
         outline = JSON.parse(m[0]);
       }
 
-      return res.json({ outline, type });
+      // Fetch verse texts from DB for verseRefs
+      const fetchedVerses: Array<{ ref: string; book: string; chapter: number; verse: number; text: string }> = [];
+      if (Array.isArray(outline.verseRefs)) {
+        const toWestern = (s: string) => s.replace(/[٠-٩]/g, (d: string) => String(d.charCodeAt(0) - 0x0660));
+        for (const raw of outline.verseRefs as string[]) {
+          const clean = raw.trim();
+          const m2 = clean.match(/^([؀-ۿٰ\s]+?)\s+([\d٠-٩]+):([\d٠-٩]+)/);
+          if (!m2) continue;
+          const book = m2[1].trim();
+          const chapter = parseInt(toWestern(m2[2]), 10);
+          const verse = parseInt(toWestern(m2[3]), 10);
+          try {
+            const found = await storage.getVerseByReference(book, chapter, verse);
+            if (found) fetchedVerses.push({ ref: clean, book, chapter, verse, text: found.text });
+          } catch { /* skip */ }
+        }
+      }
+
+      return res.json({ outline, type, outlineVerses: fetchedVerses });
     } catch (e) {
       console.error('[service/outline] error:', e);
       res.status(500).json({ message: 'فشل توليد الهيكل' });
     }
   });
 
-  // AI-Enhanced Search: algorithm first → Groq re-ranks + suggests additional verses from DB
+  // AI-Enhanced Search: pure Groq semantic search (text search disabled temporarily)
   app.post('/api/search/ai-enhanced', async (req, res) => {
     try {
       const { query } = req.body;
@@ -757,78 +777,71 @@ export async function registerRoutes(
         return res.status(400).json({ message: 'Query required' });
       }
 
-      const userId = (req.session as any)?.userId?.toString() || 'anonymous';
-
-      // Step 1: Smart algorithm search
-      let initialResults = await storage.smartSearchVerses(query.trim(), 20);
-
-      // If no results, try stripping Arabic suffixes to find root word
-      // e.g. "سلامي" → "سلام", "صلواتنا" → "صلوات"
-      let effectiveQuery = query.trim();
-      if (initialResults.length === 0) {
-        const { expandQuery } = await import('./utils/smart-search');
-        const { rootTokens } = expandQuery(query.trim());
-        if (rootTokens.length > 0) {
-          const rootQuery = rootTokens.join(' ');
-          initialResults = await storage.smartSearchVerses(rootQuery, 20);
-          if (initialResults.length > 0) effectiveQuery = rootQuery;
-        }
-      }
-
-      if (initialResults.length === 0) {
+      const groqApiKey = process.env.GROQ_API_KEY;
+      if (!groqApiKey) {
         return res.json({ exactResults: [], semanticResults: [], results: [], enhanced: false });
       }
 
-      // Step 2: Send to Groq for re-ranking + additional verse suggestions
-      // Pass effectiveQuery so Groq sees the root word (e.g. "سلام" instead of "سلامي")
-      const enhancement = await enhanceSearchWithGroq(
-        effectiveQuery,
-        initialResults.map(v => ({
-          id: v.id,
-          bookName: v.bookName || '',
-          chapter: v.chapter,
-          verse: v.verse,
-          text: v.text,
-        })),
-        userId
-      );
+      // Pure AI: ask Groq directly for the best verse references on this topic
+      const aiPrompt = `أنت خبير لاهوتي في الكتاب المقدس العربي نسخة فان دايك.
 
-      if (!enhancement) {
-        // Groq unavailable — return original algorithm results in both formats
-        return res.json({ exactResults: initialResults, semanticResults: [], results: initialResults, enhanced: false });
+الموضوع: "${query.trim()}"
+
+أعطني 15 آية من أكثر الآيات صلةً وعمقاً بهذا الموضوع روحياً من الكتاب المقدس.
+أجب بـ JSON فقط بهذا الشكل:
+{"refs": ["اسم السفر فصل:آية", "اسم السفر فصل:آية", ...]}
+مثال: {"refs": ["يوحنا 3:16", "مزمور 51:1", "إشعياء 55:7"]}
+لا تكتب أي شرح خارج JSON.`;
+
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: aiPrompt }],
+          max_tokens: 600,
+          temperature: 0.2,
+          response_format: { type: 'json_object' },
+        }),
+      });
+
+      if (!groqRes.ok) {
+        console.error('[ai-enhanced-search] Groq error:', groqRes.status);
+        return res.json({ exactResults: [], semanticResults: [], results: [], enhanced: false });
       }
 
-      // Step 3: Keep ONLY verses the AI marked as strongly relevant — drop weak text matches
-      const byId = new Map(initialResults.map(v => [v.id, v]));
-      const reranked: typeof initialResults = [];
-      for (const id of enhancement.rankedIds) {
-        const v = byId.get(id);
-        if (v) reranked.push(v);
+      const groqData = await groqRes.json() as any;
+      const content = groqData.choices?.[0]?.message?.content?.trim();
+      if (!content) return res.json({ exactResults: [], semanticResults: [], results: [], enhanced: false });
+
+      let parsed: { refs?: unknown };
+      try { parsed = JSON.parse(content); } catch {
+        return res.json({ exactResults: [], semanticResults: [], results: [], enhanced: false });
       }
 
-      // Step 4: Fetch AI-suggested additional verses from DB (never trust AI text, only reference)
-      const existingIds = new Set(reranked.map(v => v.id));
-      const semanticResults: typeof initialResults = [];
+      const toWestern = (s: string) => s.replace(/[٠-٩]/g, (d: string) => String(d.charCodeAt(0) - 0x0660));
+      const semanticResults: Array<{ id: number; bookId?: number; chapter: number; verse: number; text: string; bookName: string; relevanceScore: number; matchType: 'semantic' }> = [];
+      const seenIds = new Set<number>();
 
-      for (const ref of enhancement.additionalRefs.slice(0, 10)) {
-        if (!ref.book || !ref.chapter || !ref.verse) continue;
-        try {
-          const found = await storage.getVerseByReference(ref.book, Number(ref.chapter), Number(ref.verse));
-          if (found && !existingIds.has(found.id)) {
-            semanticResults.push({
-              ...found,
-              bookName: ref.book,
-              relevanceScore: 0.6,
-              matchType: 'semantic' as const,
-            });
-            existingIds.add(found.id);
-          }
-        } catch {
-          // Skip invalid references silently
+      if (Array.isArray(parsed.refs)) {
+        for (const raw of parsed.refs as unknown[]) {
+          if (typeof raw !== 'string') continue;
+          const m = raw.trim().match(/^([؀-ۿٰ\s]+?)\s+([\d٠-٩]+):([\d٠-٩]+)/);
+          if (!m) continue;
+          const book = m[1].trim();
+          const chapter = parseInt(toWestern(m[2]), 10);
+          const verse = parseInt(toWestern(m[3]), 10);
+          try {
+            const found = await storage.getVerseByReference(book, chapter, verse);
+            if (found && !seenIds.has(found.id)) {
+              semanticResults.push({ ...found, bookName: book, relevanceScore: 0.9, matchType: 'semantic' });
+              seenIds.add(found.id);
+            }
+          } catch { /* skip */ }
         }
       }
 
-      // ── Phase 5: Passive topic growth — auto-create topic page for this search ──
+      // Passive topic growth
       if (isTopicWorthy(query)) {
         const slug = toSlug(query.trim());
         const title = buildTopicTitle(query.trim());
@@ -837,9 +850,9 @@ export async function registerRoutes(
       }
 
       return res.json({
-        exactResults: reranked,
+        exactResults: [],
         semanticResults,
-        results: [...reranked, ...semanticResults],
+        results: semanticResults,
         enhanced: true,
         topicSlug: isTopicWorthy(query) ? toSlug(query.trim()) : undefined,
       });
