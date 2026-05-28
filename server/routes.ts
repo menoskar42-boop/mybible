@@ -664,6 +664,91 @@ export async function registerRoutes(
     }
   });
 
+  // ── Service section: AI-generated sermon/lesson outline ──────────────────
+  app.post('/api/service/outline', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+      const usageCheck = await checkAiUsageLimit(user);
+      if (!usageCheck.allowed) {
+        return res.status(429).json({ message: 'بلغت الحد اليومي لاستخدام الذكاء الاصطناعي' });
+      }
+
+      const { topic, audience, type } = req.body as { topic?: string; audience?: string; type?: 'sermon' | 'lesson' };
+      if (!topic || !type || (type !== 'sermon' && type !== 'lesson')) {
+        return res.status(400).json({ message: 'topic and type (sermon|lesson) required' });
+      }
+
+      const groqApiKey = process.env.GROQ_API_KEY;
+      if (!groqApiKey) return res.status(503).json({ message: 'AI provider not configured' });
+
+      const aud = (audience || (type === 'lesson' ? 'أطفال' : 'عام')).trim();
+
+      const prompt = type === 'sermon'
+        ? `أنت مساعد لاهوتي قبطي أرثوذكسي خبير. اقترح هيكلاً مختصراً لعظة كنسية أرثوذكسية.
+الموضوع: "${topic}"
+الجمهور المستهدف: ${aud}
+
+أجب فقط بكائن JSON خالص بهذا الشكل بالعربية الفصحى، بدون أي شرح إضافي:
+{
+  "intro": "مقدمة من 2-3 جمل تمهّد للموضوع",
+  "points": ["النقطة الأولى مع شرحها الموجز", "النقطة الثانية", "النقطة الثالثة"],
+  "application": "تطبيق عملي يربط الموضوع بحياة المؤمن",
+  "conclusion": "خاتمة موجزة تدعو للالتزام"
+}`
+        : `أنت خادم مدارس أحد قبطي أرثوذكسي خبير. اقترح هيكلاً مختصراً لدرس مدارس أحد جذاب.
+الموضوع: "${topic}"
+الفئة العمرية: ${aud}
+
+أجب فقط بكائن JSON خالص بهذا الشكل بالعربية البسيطة المناسبة للأطفال، بدون أي شرح إضافي:
+{
+  "intro": "تمهيد قصير يجذب الانتباه (سؤال أو قصة قصيرة)",
+  "points": ["الفكرة الأولى مبسطة", "الفكرة الثانية مبسطة", "الفكرة الثالثة مبسطة"],
+  "activity": "نشاط تفاعلي مناسب للعمر",
+  "prayer": "صلاة ختامية قصيرة بلغة الأطفال"
+}`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${groqApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 900,
+          temperature: 0.5,
+          response_format: { type: 'json_object' },
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('[service/outline] Groq error:', response.status);
+        return res.status(502).json({ message: 'تعذّر توليد الهيكل، حاول مرة أخرى' });
+      }
+
+      const data = await response.json() as any;
+      const content = data.choices?.[0]?.message?.content?.trim();
+      if (!content) return res.status(502).json({ message: 'استجابة فارغة من المساعد' });
+
+      let outline: any;
+      try {
+        outline = JSON.parse(content);
+      } catch {
+        const m = content.match(/\{[\s\S]*\}/);
+        if (!m) return res.status(502).json({ message: 'تعذّر تحليل الاستجابة' });
+        outline = JSON.parse(m[0]);
+      }
+
+      return res.json({ outline, type });
+    } catch (e) {
+      console.error('[service/outline] error:', e);
+      res.status(500).json({ message: 'فشل توليد الهيكل' });
+    }
+  });
+
   // AI-Enhanced Search: algorithm first → Groq re-ranks + suggests additional verses from DB
   app.post('/api/search/ai-enhanced', async (req, res) => {
     try {

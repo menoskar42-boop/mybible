@@ -19,6 +19,7 @@ const navItems = [
   { href: '/orthodox', label: 'أرثوذوكسيات' },
   { href: '/kids', label: 'للأطفال' },
   { href: '/family', label: 'ركن العائلة' },
+  { href: '/service', label: 'قسم الخدمة' },
   { href: '/highlights', label: 'آياتي' },
   { href: '/church', label: 'مجتمع مدارس الأحد' },
   { href: '/search', label: 'بحث' },

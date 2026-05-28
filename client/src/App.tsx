@@ -13,6 +13,7 @@ import Bible from '@/pages/Bible';
 import Plans from '@/pages/Plans';
 import Emotions from '@/pages/Emotions';
 import Kids from '@/pages/Kids';
+import Service from '@/pages/Service';
 import Family from '@/pages/Family';
 import Highlights from '@/pages/Highlights';
 import Premium from '@/pages/Premium';
@@ -77,6 +78,7 @@ function Router() {
       <Route path="/kids/parents" component={Kids} />
       <Route path="/kids" component={Kids} />
       <Route path="/family" component={Family} />
+      <Route path="/service" component={Service} />
       <Route path="/highlights" component={Highlights} />
       <Route path="/premium" component={Premium} />
       <Route path="/search" component={Search} />
