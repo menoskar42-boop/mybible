@@ -28,6 +28,7 @@ type VerseResult = {
 };
 
 type DraftVerse = { id: number; bookName: string; chapter: number; verse: number; text: string };
+type OutlineVerse = { ref: string; book: string; chapter: number; verse: number; text: string };
 
 type SermonOutline = { intro: string; points: string[]; application: string; conclusion: string };
 type LessonOutline = { intro: string; points: string[]; activity: string; prayer: string };
@@ -49,6 +50,7 @@ export default function Service() {
   const [query,         setQuery]         = useState('');
   const [topic,         setTopic]         = useState('');
   const [audience,      setAudience]      = useState('');
+  const [outlineVerses, setOutlineVerses] = useState<OutlineVerse[]>([]);
   const [outline,       setOutline]       = useState<Outline | null>(() => {
     try { const raw = localStorage.getItem(OUTLINE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
   });
@@ -86,7 +88,7 @@ export default function Service() {
   }
 
   // ── توليد هيكل العظة/الدرس ──────────────────────────────────────────────
-  const outlineMutation = useMutation<{ outline: SermonOutline | LessonOutline; type: 'sermon' | 'lesson' }, Error, void>({
+  const outlineMutation = useMutation<{ outline: SermonOutline | LessonOutline; type: 'sermon' | 'lesson'; outlineVerses?: OutlineVerse[] }, Error, void>({
     mutationFn: async () => {
       const t = topic.trim();
       if (!t) throw new Error('اكتب موضوع العظة/الدرس أولاً');
@@ -104,6 +106,7 @@ export default function Service() {
     },
     onSuccess: (data) => {
       setOutline({ ...data.outline, _type: data.type } as Outline);
+      setOutlineVerses(data.outlineVerses ?? []);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -278,6 +281,29 @@ export default function Service() {
                     </div>
                   </>
                 )}
+                {outlineVerses.length > 0 && (
+                  <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                    <p className="font-semibold text-primary mb-2">📖 آيات تتعلق بالموضوع</p>
+                    <div className="space-y-2">
+                      {outlineVerses.map((v, i) => (
+                        <div key={i} className="border-r-2 border-primary/30 pr-3">
+                          <span className="text-xs font-medium text-primary/70 block mb-0.5">{v.ref}</span>
+                          <p className="font-display text-base leading-relaxed text-foreground">{v.text}</p>
+                          <button
+                            className="mt-1 text-xs text-emerald-600 hover:text-emerald-700 hover:underline"
+                            onClick={() => {
+                              const dv: DraftVerse = { id: i + 90000, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
+                              if (!draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)) {
+                                setDraft(prev => [...prev, dv]);
+                                toast.success('أُضيفت للمسودة');
+                              }
+                            }}
+                          >+ أضف للمسودة</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
           </Card>
@@ -327,7 +353,7 @@ export default function Service() {
                           <Badge variant="secondary" className="text-xs">{v.bookName} {v.chapter}:{v.verse}</Badge>
                           {v.matchType === 'semantic' && <Badge variant="outline" className="text-xs gap-1"><Sparkles className="w-3 h-3" />مقترح بالذكاء</Badge>}
                         </div>
-                        <p className="text-sm leading-relaxed text-foreground mb-2">{v.text}</p>
+                        <p className="font-display text-xl leading-loose text-foreground mb-2">{v.text}</p>
                         <div className="flex gap-2">
                           <button
                             onClick={() => openTafsir(v)}
