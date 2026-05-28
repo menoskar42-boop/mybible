@@ -696,8 +696,10 @@ export async function registerRoutes(
   "points": ["النقطة الأولى مع شرحها الموجز", "النقطة الثانية", "النقطة الثالثة"],
   "application": "تطبيق عملي يربط الموضوع بحياة المؤمن",
   "conclusion": "خاتمة موجزة تدعو للالتزام",
-  "verseRefs": ["اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية"]
-}`
+  "verseRefs": ["..."]
+}
+
+في حقل verseRefs ضع كل آية من الكتاب المقدس فان دايك متعلقة فعلياً بهذا الموضوع، من العهدين القديم والجديد بلا استثناء — قد تكون 20 أو 40 أو 60 آية، لا تحدد العدد. لا تترك أي آية معروفة عن الموضوع. الصيغة لكل عنصر: "اسم السفر فصل:آية".`
         : `أنت خادم مدارس أحد قبطي أرثوذكسي خبير. اقترح هيكلاً مختصراً لدرس مدارس أحد جذاب.
 الموضوع: "${topic}"
 الفئة العمرية: ${aud}
@@ -708,8 +710,10 @@ export async function registerRoutes(
   "points": ["الفكرة الأولى مبسطة", "الفكرة الثانية مبسطة", "الفكرة الثالثة مبسطة"],
   "activity": "نشاط تفاعلي مناسب للعمر",
   "prayer": "صلاة ختامية قصيرة بلغة الأطفال",
-  "verseRefs": ["اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية", "اسم السفر فصل:آية"]
-}`;
+  "verseRefs": ["..."]
+}
+
+في حقل verseRefs ضع كل آية من الكتاب المقدس فان دايك متعلقة فعلياً بهذا الموضوع، من العهدين القديم والجديد بلا استثناء — قد تكون 20 أو 40 أو 60 آية، لا تحدد العدد. لا تترك أي آية معروفة عن الموضوع. الصيغة لكل عنصر: "اسم السفر فصل:آية".`;
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -720,7 +724,7 @@ export async function registerRoutes(
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: [{ role: 'user', content: prompt }],
-          max_tokens: 900,
+          max_tokens: 4000,
           temperature: 0.5,
           response_format: { type: 'json_object' },
         }),
@@ -782,15 +786,19 @@ export async function registerRoutes(
         return res.json({ exactResults: [], semanticResults: [], results: [], enhanced: false });
       }
 
-      // Pure AI: ask Groq directly for the best verse references on this topic
+      // Pure AI: ask Groq directly for ALL verse references on this topic
       const aiPrompt = `أنت خبير لاهوتي في الكتاب المقدس العربي نسخة فان دايك.
 
 الموضوع: "${query.trim()}"
 
-أعطني 15 آية من أكثر الآيات صلةً وعمقاً بهذا الموضوع روحياً من الكتاب المقدس.
-أجب بـ JSON فقط بهذا الشكل:
+اذكر كل آية من الكتاب المقدس متعلقة فعلياً بهذا الموضوع، من العهدين القديم والجديد، بلا استثناء.
+- لا تحدد العدد سلفاً — قد تكون 30 أو 60 أو 100 أو أكثر، حسب ثراء الموضوع في الكتاب.
+- لا تترك أي آية معروفة عن الموضوع.
+- شامل: تكوين، خروج، مزامير، أمثال، أنبياء، أناجيل، رسائل، رؤيا، إلخ.
+
+أجب بـ JSON فقط:
 {"refs": ["اسم السفر فصل:آية", "اسم السفر فصل:آية", ...]}
-مثال: {"refs": ["يوحنا 3:16", "مزمور 51:1", "إشعياء 55:7"]}
+مثال: {"refs": ["يوحنا 3:16", "مزمور 51:1", "إشعياء 55:7", "أعمال 3:19"]}
 لا تكتب أي شرح خارج JSON.`;
 
       const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -799,7 +807,7 @@ export async function registerRoutes(
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
           messages: [{ role: 'user', content: aiPrompt }],
-          max_tokens: 600,
+          max_tokens: 6000,
           temperature: 0.2,
           response_format: { type: 'json_object' },
         }),
