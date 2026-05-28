@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
-import { Heart, CalendarDays, Highlighter, Baby, Search, BookOpen, Users, Cross, Home } from 'lucide-react';
+import { Heart, CalendarDays, Highlighter, Baby, Search, BookOpen, Users, Cross, Home, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const actions = [
@@ -66,6 +66,13 @@ const actions = [
     icon: Cross,
     color: 'from-amber-500/20 to-amber-600/10 border-amber-500/20',
     iconColor: 'text-amber-600'
+  },
+  {
+    href: '/service',
+    label: 'قسم الخدمة',
+    icon: ScrollText,
+    color: 'from-orange-500/20 to-red-600/10 border-orange-500/20',
+    iconColor: 'text-orange-600'
   },
 ];
 
