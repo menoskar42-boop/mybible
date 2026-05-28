@@ -52,10 +52,10 @@ const courses = [
     color: 'from-amber-500 to-orange-600',
     badge: 'bg-amber-900/30 border-amber-700/40 text-amber-300',
     videos: [
-      { id: '7V4OGsIZtbY', title: 'فيديو 1 — نصيحة أسرية' },
-      { id: 'h3b5usPVAWs', title: 'فيديو 2 — نصيحة أسرية' },
-      { id: 'as3Xa4AYKw8', title: 'فيديو 3 — نصيحة أسرية' },
-      { id: 'jo_Ek9bSHHo', title: 'فيديو 4 — نصيحة أسرية' },
+      { id: '7V4OGsIZtbY', title: 'ماذا تنتظر منك زوجتك؟ — للرجال فقط' },
+      { id: 'h3b5usPVAWs', title: 'ماذا تنتظر منك زوجتك؟ — ساعة ونصف مشورة (Alkarma TV)' },
+      { id: 'as3Xa4AYKw8', title: 'ماذا ينتظر منك زوجك؟ — للسيدات فقط' },
+      { id: 'jo_Ek9bSHHo', title: 'ماذا ينتظر منك زوجك؟ — ساعة ونصف مشورة (Alkarma TV)' },
     ],
   },
 ];
