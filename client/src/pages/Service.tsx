@@ -481,6 +481,12 @@ export default function Service() {
                         <p className="font-display text-xl leading-loose text-foreground mb-2">{v.text}</p>
                         <div className="flex gap-2">
                           <button
+                            onClick={() => openTafsir({ id: 800000 + i, bookId: 0, chapter: v.chapter, verse: v.verse, text: v.text, bookName: v.book })}
+                            className="px-3 py-1.5 rounded text-xs font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            📖 تفسير الآية
+                          </button>
+                          <button
                             onClick={() => {
                               const dv: DraftVerse = { id: 800000 + i, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
                               if (!draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)) {
