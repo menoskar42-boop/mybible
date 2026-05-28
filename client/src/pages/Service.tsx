@@ -216,7 +216,44 @@ export default function Service() {
     }
   }
 
-  function printDraft() { window.print(); }
+  function printDraft() {
+    const title = `مسودة ${tab === 'clergy' ? 'العظة' : 'الدرس'}`;
+    const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+    const parts: string[] = [];
+    parts.push(`<h1>${esc(title)}</h1>`);
+    if (topic) parts.push(`<p><strong>الموضوع:</strong> ${esc(topic)}</p>`);
+    if (audience) parts.push(`<p><strong>الجمهور:</strong> ${esc(audience)}</p>`);
+    if (outline) {
+      parts.push(`<h2>الهيكل المقترح</h2>`);
+      parts.push(`<p><strong>المقدمة:</strong> ${esc(outline.intro)}</p>`);
+      parts.push(`<h3>النقاط الرئيسية</h3><ol>${outline.points.map(p => `<li>${esc(p)}</li>`).join('')}</ol>`);
+      if (outline._type === 'sermon') {
+        parts.push(`<p><strong>التطبيق العملي:</strong> ${esc((outline as SermonOutline).application)}</p>`);
+        parts.push(`<p><strong>الخاتمة:</strong> ${esc((outline as SermonOutline).conclusion)}</p>`);
+      } else {
+        parts.push(`<p><strong>النشاط:</strong> ${esc((outline as LessonOutline).activity)}</p>`);
+        parts.push(`<p><strong>الصلاة الختامية:</strong> ${esc((outline as LessonOutline).prayer)}</p>`);
+      }
+    }
+    if (draft.length > 0) {
+      parts.push(`<h2>الآيات المختارة</h2><ol>${draft.map(v => `<li><span class="ref">(${esc(v.bookName)} ${v.chapter}:${v.verse})</span> ${esc(v.text)}</li>`).join('')}</ol>`);
+    }
+    const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${esc(title)}</title>
+      <style>
+        body { font-family: 'Tajawal', 'Amiri', serif; padding: 24px; line-height: 1.9; color: #222; max-width: 800px; margin: 0 auto; }
+        h1 { font-size: 22px; border-bottom: 2px solid #8B5E3C; padding-bottom: 8px; }
+        h2 { font-size: 18px; color: #8B5E3C; margin-top: 24px; }
+        h3 { font-size: 16px; margin-top: 16px; }
+        ol, ul { padding-right: 24px; }
+        li { margin-bottom: 8px; }
+        .ref { color: #8B5E3C; font-weight: 600; margin-left: 6px; }
+        @media print { body { padding: 0; } }
+      </style></head><body>${parts.join('')}<script>window.onload=()=>setTimeout(()=>window.print(),200);</script></body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { toast.error('تعذّر فتح نافذة الطباعة'); return; }
+    w.document.write(html);
+    w.document.close();
+  }
 
   // ── UI ──────────────────────────────────────────────────────────────────
   return (
