@@ -1197,28 +1197,34 @@ export async function enhanceSearchWithGroq(
   if (!checkSearchGroqLimit(userId)) return null;
   if (verses.length === 0) return null;
 
-  // Only send top 5 verses as context — keeps the prompt+response small
-  const contextVerses = verses.slice(0, 5);
-  const versesContext = contextVerses
-    .map(v => `${v.bookName} ${v.chapter}:${v.verse}`)
-    .join('، ');
+  // Send all candidates (up to 20) with text snippets so Groq can judge relevance
+  const candidates = verses.slice(0, 20);
+  const candidatesContext = candidates
+    .map(v => `${v.id} | ${v.bookName} ${v.chapter}:${v.verse} | ${v.text.slice(0, 140)}`)
+    .join('\n');
 
-  // Ask for plain-text references (e.g. "يوحنا 14:27") to avoid Groq JSON formatting bugs.
-  const prompt = `أنت خبير في الكتاب المقدس العربي نسخة فان دايك.
+  const prompt = `أنت خبير لاهوتي في الكتاب المقدس العربي نسخة فان دايك.
 
-الموضوع: "${query}"
-(ملاحظة: قد تكون مضافة مثل سلامي=سلام، محبتك=محبة — استخرج المفهوم الجذري)
+الموضوع المطلوب: "${query}"
+(انتبه للجذر اللغوي: سلامي=سلام، توبتي=توبة، محبتك=محبة)
 
-الآيات المُجتازة مسبقاً: ${versesContext}
+عندي قائمة آيات مرشحة من بحث نصي. كثير منها ضعيف الصلة (مجرد تطابق كلمة بلا معنى موضوعي). مهمتك:
+1. اختر فقط الآيات القوية الصلة بالموضوع روحياً (تجاهل التطابقات السطحية تماماً).
+2. اقترح 10 آيات إضافية قوية الصلة من الكتاب المقدس فان دايك ليست في القائمة.
 
-اقترح 6 آيات مختلفة تماماً تتحدث عن نفس المفهوم الروحي من الكتاب المقدس فان دايك.
-اكتب فقط المرجع بصيغة: اسم السفر فصل:آية
+القائمة (id | المرجع | بداية النص):
+${candidatesContext}
+
+أجب بـ JSON صارم بهذا الشكل فقط:
+{
+  "keep": [قائمة الـ id الأرقام للآيات القوية الصلة فقط، يمكن أن تكون فارغة],
+  "add": ["اسم السفر فصل:آية", "اسم السفر فصل:آية", ...]
+}
+
 مثال:
-يوحنا 14:27
-فيلبي 4:7
-مزمور 119:165
+{"keep":[12,45],"add":["يوحنا 14:27","فيلبي 4:7","مزمور 119:165"]}
 
-أجب بقائمة مراجع فقط، بدون أي كلام آخر:`;
+لا تكتب أي شرح خارج JSON.`;
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -1228,10 +1234,11 @@ export async function enhanceSearchWithGroq(
         'Authorization': `Bearer ${groqApiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 400,
+        max_tokens: 800,
         temperature: 0.2,
+        response_format: { type: 'json_object' },
       }),
     });
 
@@ -1245,12 +1252,25 @@ export async function enhanceSearchWithGroq(
     if (!content) return null;
 
     incrementSearchGroqUsage(userId);
-    console.log('[AI-Search] Groq raw:', content.substring(0, 300));
 
-    // Parse plain-text references like "1. إشعياء 41:10" or "يوحنا 14:27"
+    let parsed: { keep?: unknown; add?: unknown };
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      console.error('[AI-Search] JSON parse failed:', content.substring(0, 200));
+      return null;
+    }
+
+    const candidateIds = new Set(candidates.map(v => v.id));
+    const rankedIds: number[] = Array.isArray(parsed.keep)
+      ? (parsed.keep as unknown[]).filter((n): n is number => typeof n === 'number' && candidateIds.has(n))
+      : [];
+
     const additionalRefs: Array<{ book: string; chapter: number; verse: number }> = [];
-    const lines = content.split(/\n/).map((l: string) => l.trim()).filter(Boolean);
-    for (const line of lines) {
+    const addArr: unknown[] = Array.isArray(parsed.add) ? (parsed.add as unknown[]) : [];
+    for (const raw of addArr) {
+      if (typeof raw !== 'string') continue;
+      const line = raw;
       // Strip leading numbering like "1. " or "- " or "* "
       const clean = line.replace(/^[\d\-\*\.]+\s*/, '').trim();
       // Match: Arabic book name (one or more words) + space + chapter:verse
@@ -1268,10 +1288,7 @@ export async function enhanceSearchWithGroq(
       }
     }
 
-    return {
-      rankedIds: verses.map(v => v.id), // keep original order
-      additionalRefs,
-    };
+    return { rankedIds, additionalRefs };
   } catch (error) {
     console.error('[AI-Search] Error:', error);
     return null;

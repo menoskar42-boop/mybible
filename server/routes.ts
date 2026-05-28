@@ -798,17 +798,12 @@ export async function registerRoutes(
         return res.json({ exactResults: initialResults, semanticResults: [], results: initialResults, enhanced: false });
       }
 
-      // Step 3: Re-order based on AI ranking
+      // Step 3: Keep ONLY verses the AI marked as strongly relevant — drop weak text matches
       const byId = new Map(initialResults.map(v => [v.id, v]));
       const reranked: typeof initialResults = [];
-
       for (const id of enhancement.rankedIds) {
         const v = byId.get(id);
         if (v) reranked.push(v);
-      }
-      // Safety: add any not included by AI
-      for (const v of initialResults) {
-        if (!enhancement.rankedIds.includes(v.id)) reranked.push(v);
       }
 
       // Step 4: Fetch AI-suggested additional verses from DB (never trust AI text, only reference)
