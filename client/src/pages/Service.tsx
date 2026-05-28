@@ -326,17 +326,23 @@ export default function Service() {
                       {outlineVerses.map((v, i) => (
                         <div key={i} className="border-r-2 border-primary/30 pr-3">
                           <span className="text-xs font-medium text-primary/70 block mb-0.5">{v.ref}</span>
-                          <p className="font-display text-base leading-relaxed text-foreground">{v.text}</p>
-                          <button
-                            className="mt-1 text-xs text-emerald-600 hover:text-emerald-700 hover:underline"
-                            onClick={() => {
-                              const dv: DraftVerse = { id: i + 90000, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
-                              if (!draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)) {
-                                setDraft(prev => [...prev, dv]);
-                                toast.success('أُضيفت للمسودة');
-                              }
-                            }}
-                          >+ أضف للمسودة</button>
+                          <p className="font-display text-xl leading-loose text-foreground">{v.text}</p>
+                          <div className="flex gap-2 mt-1 flex-wrap">
+                            <button
+                              className="px-3 py-1.5 rounded text-xs font-medium text-primary/80 hover:text-primary hover:bg-primary/10 transition-colors"
+                              onClick={() => openTafsir({ id: i + 90000, bookId: 0, chapter: v.chapter, verse: v.verse, text: v.text, bookName: v.book })}
+                            >📖 تفسير الآية</button>
+                            <button
+                              className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline"
+                              onClick={() => {
+                                const dv: DraftVerse = { id: i + 90000, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
+                                if (!draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)) {
+                                  setDraft(prev => [...prev, dv]);
+                                  toast.success('أُضيفت للمسودة');
+                                }
+                              }}
+                            >+ أضف للمسودة</button>
+                          </div>
                         </div>
                       ))}
                     </div>
