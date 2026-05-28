@@ -894,15 +894,25 @@ export class DatabaseStorage implements IStorage {
     }
     
     const searchTerms = expandedTerms.slice(0, 40);
-    
+
     const likePatterns: string[] = [];
     for (const term of searchTerms) {
+      // Skip very short roots (≤3 Arabic chars) — they cause massive false-positive matches
+      // e.g. root "توب" matches "مكتوبة", "توبال" etc. via substring.
+      // Use only terms ≥4 chars so we get "توبة","تائب","التوبة" but skip bare "توب".
+      const arabicChars = term.replace(/[^؀-ۿ]/g, '').length;
+      if (arabicChars < 4) continue;
       likePatterns.push(term);
       const withDiacritics = term.split('').join('[\\u064B-\\u0652]*');
       likePatterns.push(withDiacritics);
     }
     
-    const likeConditions = likePatterns.map(pattern => 
+    // If all expanded terms were too short and filtered out, fall back to the raw query
+    const effectivePatterns = likePatterns.length > 0
+      ? likePatterns
+      : [query.trim().replace(/'/g, "''")];
+
+    const likeConditions = effectivePatterns.map(pattern =>
       `text ~* '${pattern.replace(/'/g, "''")}'`
     ).join(' OR ');
     
