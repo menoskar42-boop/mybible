@@ -51,6 +51,11 @@ export default function Service() {
   const [topic,         setTopic]         = useState('');
   const [audience,      setAudience]      = useState('');
   const [outlineVerses, setOutlineVerses] = useState<OutlineVerse[]>([]);
+  const [outlineVersesDone, setOutlineVersesDone] = useState(false);
+  const [outlineVersesLoading, setOutlineVersesLoading] = useState(false);
+  const [searchDone, setSearchDone] = useState(false);
+  const [searchMore, setSearchMore] = useState<OutlineVerse[]>([]);
+  const [searchMoreLoading, setSearchMoreLoading] = useState(false);
   const [outline,       setOutline]       = useState<Outline | null>(() => {
     try { const raw = localStorage.getItem(OUTLINE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
   });
@@ -84,6 +89,8 @@ export default function Service() {
     const qq = (q ?? query).trim();
     if (!qq) return;
     setQuery(qq);
+    setSearchDone(false);
+    setSearchMore([]);
     searchMutation.mutate(qq);
   }
 
@@ -107,9 +114,40 @@ export default function Service() {
     onSuccess: (data) => {
       setOutline({ ...data.outline, _type: data.type } as Outline);
       setOutlineVerses(data.outlineVerses ?? []);
+      setOutlineVersesDone(false);
     },
     onError: (e) => toast.error(e.message),
   });
+
+  async function loadMoreVerses(scope: 'outline' | 'search') {
+    const topicText = scope === 'outline' ? topic.trim() : query.trim();
+    if (!topicText) return;
+    const existing = scope === 'outline'
+      ? outlineVerses.map(v => v.ref)
+      : [...(searchMutation.data?.semanticResults ?? []).map((v: any) => `${v.bookName} ${v.chapter}:${v.verse}`), ...searchMore.map(v => v.ref)];
+    const setLoading = scope === 'outline' ? setOutlineVersesLoading : setSearchMoreLoading;
+    const setDone    = scope === 'outline' ? setOutlineVersesDone    : setSearchDone;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/verses/more-on-topic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: topicText, excludeRefs: existing }),
+      });
+      if (!res.ok) throw new Error('تعذّر جلب المزيد');
+      const data = await res.json() as { verses: OutlineVerse[]; done: boolean };
+      if (scope === 'outline') {
+        setOutlineVerses(prev => [...prev, ...data.verses]);
+      } else {
+        setSearchMore(prev => [...prev, ...data.verses]);
+      }
+      if (data.done || data.verses.length === 0) setDone(true);
+    } catch (e: any) {
+      toast.error(e.message || 'خطأ');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // ── تفسير الآية ──────────────────────────────────────────────────────────
   function openTafsir(v: VerseResult) {
@@ -302,6 +340,24 @@ export default function Service() {
                         </div>
                       ))}
                     </div>
+                    <div className="mt-3 pt-3 border-t border-primary/10 flex justify-center">
+                      {outlineVersesDone ? (
+                        <p className="text-xs text-muted-foreground text-center">✓ تمام، هذه تقريباً كل الآيات المتعلقة بهذا الموضوع</p>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={outlineVersesLoading || outlineVerses.length >= 150}
+                          onClick={() => loadMoreVerses('outline')}
+                        >
+                          {outlineVersesLoading
+                            ? <><Loader2 className="w-3 h-3 ml-1 animate-spin" />جاري الجلب…</>
+                            : outlineVerses.length >= 150
+                              ? '✓ تمام، 150 آية'
+                              : <><Plus className="w-3 h-3 ml-1" />هل تريد المزيد؟</>}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </motion.div>
@@ -371,6 +427,49 @@ export default function Service() {
                       </div>
                     </motion.div>
                   ))}
+                  {searchMore.map((v, i) => (
+                    <motion.div key={`more-${i}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                      <div className="p-3 border border-border rounded-lg hover:border-primary/40 transition-colors">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <Badge variant="secondary" className="text-xs">{v.book} {v.chapter}:{v.verse}</Badge>
+                          <Badge variant="outline" className="text-xs gap-1"><Sparkles className="w-3 h-3" />مقترح بالذكاء</Badge>
+                        </div>
+                        <p className="font-display text-xl leading-loose text-foreground mb-2">{v.text}</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              const dv: DraftVerse = { id: 800000 + i, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
+                              if (!draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)) {
+                                setDraft(prev => [...prev, dv]);
+                                toast.success('أُضيفت للمسودة');
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors flex items-center gap-1"
+                          >
+                            <Plus className="w-3 h-3" /> أضف للمسودة
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                  <div className="mt-2 pt-3 border-t border-border flex justify-center">
+                    {searchDone ? (
+                      <p className="text-xs text-muted-foreground text-center">✓ تمام، هذه تقريباً كل الآيات المتعلقة بهذا الموضوع</p>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={searchMoreLoading || (allResults.length + searchMore.length) >= 150}
+                        onClick={() => loadMoreVerses('search')}
+                      >
+                        {searchMoreLoading
+                          ? <><Loader2 className="w-3 h-3 ml-1 animate-spin" />جاري الجلب…</>
+                          : (allResults.length + searchMore.length) >= 150
+                            ? '✓ تمام، 150 آية'
+                            : <><Plus className="w-3 h-3 ml-1" />هل تريد المزيد؟</>}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </AnimatePresence>
