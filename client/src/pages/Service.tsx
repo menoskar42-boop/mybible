@@ -327,7 +327,7 @@ export default function Service() {
                           <Badge variant="secondary" className="text-xs">{v.bookName} {v.chapter}:{v.verse}</Badge>
                           {v.matchType === 'semantic' && <Badge variant="outline" className="text-xs gap-1"><Sparkles className="w-3 h-3" />مقترح بالذكاء</Badge>}
                         </div>
-                        <p className="text-sm leading-relaxed text-foreground mb-2">{v.text}</p>
+                        <p className="font-display text-xl leading-loose text-foreground mb-2">{v.text}</p>
                         <div className="flex gap-2">
                           <button
                             onClick={() => openTafsir(v)}
