@@ -675,7 +675,7 @@ export async function registerRoutes(
         return res.status(429).json({ message: 'بلغت الحد اليومي لاستخدام الذكاء الاصطناعي' });
       }
 
-      const { topic, audience, type } = req.body as { topic?: string; audience?: string; type?: 'sermon' | 'lesson' };
+      const { topic, audience, type, duration: durationRaw } = req.body as { topic?: string; audience?: string; type?: 'sermon' | 'lesson'; duration?: number };
       if (!topic || !type || (type !== 'sermon' && type !== 'lesson')) {
         return res.status(400).json({ message: 'topic and type (sermon|lesson) required' });
       }
@@ -684,35 +684,42 @@ export async function registerRoutes(
       if (!groqApiKey) return res.status(503).json({ message: 'AI provider not configured' });
 
       const aud = (audience || (type === 'lesson' ? 'أطفال' : 'عام')).trim();
+      const duration = Math.max(10, Math.min(120, durationRaw || 30));
+      // كل نقطة ~5 دقائق، المقدمة والخاتمة ~5 دق لكل منهما
+      const pointsCount = Math.max(2, Math.round((duration - 10) / 5));
 
       const prompt = type === 'sermon'
-        ? `أنت مساعد لاهوتي قبطي أرثوذكسي خبير. اقترح هيكلاً مختصراً لعظة كنسية أرثوذكسية.
+        ? `أنت مساعد لاهوتي قبطي أرثوذكسي خبير. اقترح هيكلاً لعظة كنسية أرثوذكسية.
 الموضوع: "${topic}"
 الجمهور المستهدف: ${aud}
+مدة العظة: ${duration} دقيقة (المقدمة ~5 دق، كل نقطة رئيسية ~5 دق، التطبيق والخاتمة ~5 دق)
 
 أجب فقط بكائن JSON خالص بهذا الشكل بالعربية الفصحى، بدون أي شرح إضافي:
 {
-  "intro": "مقدمة من 2-3 جمل تمهّد للموضوع",
-  "points": ["النقطة الأولى مع شرحها الموجز", "النقطة الثانية", "النقطة الثالثة"],
+  "intro": "مقدمة من 2-3 جمل تمهّد للموضوع (~5 دقائق)",
+  "points": ${JSON.stringify(Array(pointsCount).fill(null).map((_, i) => `النقطة ${i + 1} مع شرحها الموجز (~5 دقائق)`))},
   "application": "تطبيق عملي يربط الموضوع بحياة المؤمن",
   "conclusion": "خاتمة موجزة تدعو للالتزام",
   "verseRefs": ["..."]
 }
 
+تنبيه: يجب أن يكون عدد النقاط في points بالضبط ${pointsCount} نقاط مناسبة لمدة ${duration} دقيقة.
 في حقل verseRefs ضع حوالي 20 آية من أقوى الآيات المتعلقة بالموضوع من العهدين القديم والجديد. الصيغة لكل عنصر: "اسم السفر فصل:آية".`
-        : `أنت خادم مدارس أحد قبطي أرثوذكسي خبير. اقترح هيكلاً مختصراً لدرس مدارس أحد جذاب.
+        : `أنت خادم مدارس أحد قبطي أرثوذكسي خبير. اقترح هيكلاً لدرس مدارس أحد جذاب.
 الموضوع: "${topic}"
 الفئة العمرية: ${aud}
+مدة الدرس: ${duration} دقيقة (التمهيد ~5 دق، كل فكرة ~5 دق، النشاط والصلاة ~5 دق)
 
 أجب فقط بكائن JSON خالص بهذا الشكل بالعربية البسيطة المناسبة للأطفال، بدون أي شرح إضافي:
 {
-  "intro": "تمهيد قصير يجذب الانتباه (سؤال أو قصة قصيرة)",
-  "points": ["الفكرة الأولى مبسطة", "الفكرة الثانية مبسطة", "الفكرة الثالثة مبسطة"],
+  "intro": "تمهيد قصير يجذب الانتباه (سؤال أو قصة قصيرة) (~5 دقائق)",
+  "points": ${JSON.stringify(Array(pointsCount).fill(null).map((_, i) => `الفكرة ${i + 1} مبسطة (~5 دقائق)`))},
   "activity": "نشاط تفاعلي مناسب للعمر",
   "prayer": "صلاة ختامية قصيرة بلغة الأطفال",
   "verseRefs": ["..."]
 }
 
+تنبيه: يجب أن يكون عدد النقاط في points بالضبط ${pointsCount} أفكار مناسبة لمدة ${duration} دقيقة.
 في حقل verseRefs ضع حوالي 20 آية من أقوى الآيات المتعلقة بالموضوع بصياغة مناسبة للأطفال. الصيغة لكل عنصر: "اسم السفر فصل:آية".`;
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {

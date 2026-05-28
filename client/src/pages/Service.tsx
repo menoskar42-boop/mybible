@@ -50,6 +50,7 @@ export default function Service() {
   const [query,         setQuery]         = useState('');
   const [topic,         setTopic]         = useState('');
   const [audience,      setAudience]      = useState('');
+  const [duration,      setDuration]      = useState('30');
   const [outlineVerses, setOutlineVerses] = useState<OutlineVerse[]>([]);
   const [outlineVersesDone, setOutlineVersesDone] = useState(false);
   const [outlineVersesLoading, setOutlineVersesLoading] = useState(false);
@@ -103,7 +104,7 @@ export default function Service() {
       const res = await fetch('/api/service/outline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: t, audience: audience.trim() || undefined, type }),
+        body: JSON.stringify({ topic: t, audience: audience.trim() || undefined, type, duration: parseInt(duration) || 30 }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'فشل توليد الهيكل' }));
@@ -180,6 +181,7 @@ export default function Service() {
     lines.push(`📋 مسودة ${tab === 'clergy' ? 'العظة' : 'الدرس'}`);
     if (topic) lines.push(`الموضوع: ${topic}`);
     if (audience) lines.push(`الجمهور: ${audience}`);
+    lines.push(`المدة: ${duration} دقيقة`);
     lines.push('');
     if (outline) {
       lines.push('── الهيكل المقترح ──');
@@ -223,6 +225,7 @@ export default function Service() {
     parts.push(`<h1>${esc(title)}</h1>`);
     if (topic) parts.push(`<p><strong>الموضوع:</strong> ${esc(topic)}</p>`);
     if (audience) parts.push(`<p><strong>الجمهور:</strong> ${esc(audience)}</p>`);
+    parts.push(`<p><strong>المدة:</strong> ${esc(duration)} دقيقة</p>`);
     if (outline) {
       parts.push(`<h2>الهيكل المقترح</h2>`);
       parts.push(`<p><strong>المقدمة:</strong> ${esc(outline.intro)}</p>`);
@@ -304,7 +307,7 @@ export default function Service() {
               <Sparkles className="w-5 h-5 text-purple-500" />
               <h2 className="font-semibold">١. اقتراح هيكل {tab === 'clergy' ? 'العظة' : 'الدرس'}</h2>
             </div>
-            <div className="grid sm:grid-cols-2 gap-2 mb-3">
+            <div className="grid sm:grid-cols-2 gap-2 mb-2">
               <Input
                 placeholder={tab === 'clergy' ? 'موضوع العظة (مثال: التوبة)' : 'موضوع الدرس (مثال: محبة يسوع)'}
                 value={topic} onChange={(e) => setTopic(e.target.value)}
@@ -313,6 +316,17 @@ export default function Service() {
                 placeholder={tab === 'clergy' ? 'الجمهور (شباب، أسر، عام…)' : 'الفئة العمرية (حضانة، ابتدائي…)'}
                 value={audience} onChange={(e) => setAudience(e.target.value)}
               />
+            </div>
+            <div className="flex items-center gap-3 mb-3">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">⏱ مدة {tab === 'clergy' ? 'العظة' : 'الدرس'}:</label>
+              <div className="flex gap-2 flex-wrap">
+                {['15','20','30','45','60'].map(d => (
+                  <button key={d}
+                    onClick={() => setDuration(d)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${duration === d ? 'border-purple-500 bg-purple-500/10 text-purple-700 dark:text-purple-300' : 'border-border text-muted-foreground hover:border-primary hover:text-primary'}`}
+                  >{d} دقيقة</button>
+                ))}
+              </div>
             </div>
             <Button
               onClick={() => outlineMutation.mutate()}
