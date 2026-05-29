@@ -139,8 +139,8 @@ export function scheduleDailyNotification() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   if (!publicKey) return;
 
-  cron.schedule("0 8 * * *", sendDailyVerseNotification, { timezone: "Africa/Cairo" });
-  console.log("[push] Daily notification scheduled at 8:00 AM Cairo time");
+  cron.schedule("0 6 * * *", sendDailyVerseNotification, { timezone: "Africa/Cairo" });
+  console.log("[push] Daily notification scheduled at 6:00 AM Cairo time");
 
   // Backup: check every 30 min if today's notification was missed (handles server sleep)
   cron.schedule("*/30 * * * *", async () => {
@@ -148,8 +148,8 @@ export function scheduleDailyNotification() {
     const cairoHour = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' })).getHours();
     const today = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
       .toISOString().split('T')[0];
-    // Only attempt between 8 AM and 11 PM Cairo time, and only once per calendar day
-    if (cairoHour >= 8 && today !== lastDailyNotifDate) {
+    // Only attempt between 6 AM and 11 PM Cairo time, and only once per calendar day
+    if (cairoHour >= 6 && today !== lastDailyNotifDate) {
       console.log('[push] Backup check: sending missed daily notification for', today);
       await sendDailyVerseNotification();
     }
