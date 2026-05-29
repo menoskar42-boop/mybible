@@ -137,7 +137,11 @@ export default function Service() {
     },
     onSuccess: (data) => {
       setOutline({ ...data.outline, _type: data.type } as Outline);
-      setOutlineVerses(data.outlineVerses ?? []);
+      setOutlineVerses(prev => {
+        const newVerses = data.outlineVerses ?? [];
+        const existingRefs = new Set(prev.map(v => v.ref));
+        return [...prev, ...newVerses.filter(v => !existingRefs.has(v.ref))];
+      });
       setOutlineVersesDone(false);
     },
     onError: (e) => toast.error(e.message),
