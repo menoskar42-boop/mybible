@@ -1,6 +1,29 @@
 import webpush from "web-push";
 import cron from "node-cron";
 import { storage } from "./storage";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
+
+// ── استمرارية التاريخ بين إعادة تشغيل السيرفر ──────────────────────────────
+const DATA_DIR = join(process.cwd(), "data");
+const NOTIF_DATE_FILE = join(DATA_DIR, "last-daily-notif.txt");
+
+function loadLastNotifDate(): string {
+  try {
+    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+    if (!existsSync(NOTIF_DATE_FILE)) return "";
+    return readFileSync(NOTIF_DATE_FILE, "utf8").trim();
+  } catch { return ""; }
+}
+
+function saveLastNotifDate(date: string): void {
+  try {
+    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+    writeFileSync(NOTIF_DATE_FILE, date, "utf8");
+  } catch (err) {
+    console.error("[push] Failed to save notif date:", err);
+  }
+}
 
 // ── helper: إرسال إشعار واحد مع تسجيل النتيجة
 async function sendOne(
@@ -133,7 +156,9 @@ export async function sendTestNotification(): Promise<{ sent: number; total: num
 }
 
 // tracks which calendar date the daily notification was last sent
-let lastDailyNotifDate = '';
+// loaded from disk on startup so server restarts don't lose state
+let lastDailyNotifDate = loadLastNotifDate();
+console.log("[push] Last daily notif date:", lastDailyNotifDate || "(none)");
 
 export function scheduleDailyNotification() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
@@ -142,23 +167,24 @@ export function scheduleDailyNotification() {
   cron.schedule("0 6 * * *", sendDailyVerseNotification, { timezone: "Africa/Cairo" });
   console.log("[push] Daily notification scheduled at 6:00 AM Cairo time");
 
-  // Backup: check every 30 min if today's notification was missed (handles server sleep)
+  // Backup: check every 30 min — only within 6:00-7:59 AM window (handles server sleep at 6 AM)
+  // Narrow window prevents re-sending if server restarts later in the day
   cron.schedule("*/30 * * * *", async () => {
     const now = new Date();
-    const cairoHour = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' })).getHours();
-    const today = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
-      .toISOString().split('T')[0];
-    // Only attempt between 6 AM and 11 PM Cairo time, and only once per calendar day
-    if (cairoHour >= 6 && today !== lastDailyNotifDate) {
+    const cairoTime = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
+    const cairoHour = cairoTime.getHours();
+    const today = cairoTime.toISOString().split('T')[0];
+    if (cairoHour >= 6 && cairoHour < 8 && today !== lastDailyNotifDate) {
       console.log('[push] Backup check: sending missed daily notification for', today);
       await sendDailyVerseNotification();
     }
   });
-  console.log("[push] Backup 30-min check scheduled for missed daily notifications");
+  console.log("[push] Backup 30-min check scheduled (window: 6:00-7:59 AM Cairo)");
 }
 
-// Called by sendDailyVerseNotification to mark today as sent
+// Called by sendDailyVerseNotification to mark today as sent — persisted to disk
 export function markDailyNotifSent() {
   const today = new Date().toISOString().split('T')[0];
   lastDailyNotifDate = today;
+  saveLastNotifDate(today);
 }
