@@ -12,7 +12,7 @@ import { getVideoSeoById, getAllVideoSeoEntries } from "./video-seo-data";
 import { fetchTodaySynaxarium } from "./orthodox-service";
 import { recalculatePageScore } from "./metrics-service";
 import { detectExitReason } from "./exit-intelligence";
-import { sendWelcomeNotification, sendTestNotification } from "./push-notifications";
+import { sendWelcomeNotification, sendTestNotification, sendDailyVerseNotification } from "./push-notifications";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -1044,6 +1044,22 @@ ${excludedStr}
       res.json(result);
     } catch {
       res.status(500).json({ message: 'Test notification failed' });
+    }
+  });
+
+  // ── تشغيل إشعار آية اليوم من خدمة خارجية (cron-job.org أو UptimeRobot)
+  // مُؤمَّن بـ CRON_SECRET لمنع الاستخدام غير المصرح به
+  app.post('/api/push/trigger-daily', async (req, res) => {
+    const secret = process.env.CRON_SECRET;
+    const provided = req.headers['x-cron-secret'] || req.body?.secret;
+    if (!secret || provided !== secret) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    try {
+      await sendDailyVerseNotification();
+      res.json({ success: true, time: new Date().toISOString() });
+    } catch {
+      res.status(500).json({ message: 'Failed to send daily notification' });
     }
   });
 
