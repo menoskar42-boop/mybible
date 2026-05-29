@@ -87,6 +87,7 @@ export async function sendDailyVerseNotification() {
       else                      { errors++; }
     }));
 
+    markDailyNotifSent();
     console.log(`[push] Daily verse sent=${sent} expired_removed=${expired} errors=${errors} total=${subscriptions.length}`);
   } catch (err) {
     console.error("[push] Error sending daily verse notification:", err);
@@ -131,10 +132,33 @@ export async function sendTestNotification(): Promise<{ sent: number; total: num
   return { sent, total: subscriptions.length };
 }
 
+// tracks which calendar date the daily notification was last sent
+let lastDailyNotifDate = '';
+
 export function scheduleDailyNotification() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   if (!publicKey) return;
 
   cron.schedule("0 8 * * *", sendDailyVerseNotification, { timezone: "Africa/Cairo" });
   console.log("[push] Daily notification scheduled at 8:00 AM Cairo time");
+
+  // Backup: check every 30 min if today's notification was missed (handles server sleep)
+  cron.schedule("*/30 * * * *", async () => {
+    const now = new Date();
+    const cairoHour = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' })).getHours();
+    const today = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }))
+      .toISOString().split('T')[0];
+    // Only attempt between 8 AM and 11 PM Cairo time, and only once per calendar day
+    if (cairoHour >= 8 && today !== lastDailyNotifDate) {
+      console.log('[push] Backup check: sending missed daily notification for', today);
+      await sendDailyVerseNotification();
+    }
+  });
+  console.log("[push] Backup 30-min check scheduled for missed daily notifications");
+}
+
+// Called by sendDailyVerseNotification to mark today as sent
+export function markDailyNotifSent() {
+  const today = new Date().toISOString().split('T')[0];
+  lastDailyNotifDate = today;
 }
