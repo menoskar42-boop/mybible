@@ -1087,6 +1087,324 @@ ${kidsBibleVideos.filter(v => v.category === "قصص وأناشيد متنوعة
 <li><a href="${SITE}/search?q=اطلبوا+تجدوا">اطلبوا تجدوا، اقرعوا يُفتح لكم — متى 7:7</a></li>
 <li><a href="${SITE}/search?q=لا+تخف">لا تخف لأني معك — إشعياء 41:10</a></li>
 </ul>`,
+
+    "/orthodox/history": `<h1>تاريخ الكنيسة القبطية الأرثوذكسية</h1>
+<p>تأسست الكنيسة القبطية الأرثوذكسية على يد القديس مرقس الرسول في الإسكندرية عام 42م، وهي إحدى أقدم الكنائس المسيحية في العالم، تحتفظ بتراث ليتورجي وروحي يمتد لأكثر من عشرين قرناً.</p>
+<h2>أهم المحطات في تاريخ الكنيسة القبطية</h2>
+<ul>
+<li><strong>القرن الأول (42م)</strong>: تأسيس الكرازة المرقسية في مصر على يد القديس مرقس الإنجيلي، أول أساقفة الإسكندرية.</li>
+<li><strong>القرن الثاني والثالث</strong>: ازدهار مدرسة الإسكندرية اللاهوتية وأعلامها: كليمندس الإسكندري، أوريجانوس، ديونيسيوس الكبير.</li>
+<li><strong>325م — مجمع نيقية</strong>: أسقف الإسكندرية أثناسيوس الرسولي يدافع عن عقيدة الثالوث القدوس ضد الآريوسية.</li>
+<li><strong>431م — مجمع أفسس</strong>: البابا كيرلس الكبير (عمود الدين) يثبّت لقب "والدة الإله" لمريم العذراء.</li>
+<li><strong>451م — مجمع خلقيدونية</strong>: رفضت الكنيسة القبطية قرارات المجمع واحتفظت بالإيمان بالطبيعة الواحدة للمسيح.</li>
+<li><strong>القرن السابع</strong>: الفتح الإسلامي لمصر — الكنيسة تواصل رسالتها في ظل الحكم الإسلامي.</li>
+<li><strong>القرن العشرون</strong>: عهد البابا شنودة الثالث (1971–2012) — نهضة قبطية شاملة وانفتاح مسكوني.</li>
+<li><strong>2012 حتى الآن</strong>: قداسة البابا تواضروس الثاني — البابا الـ118 على الكرسي المرقسي.</li>
+</ul>
+<h2>قائمة البطاركة</h2>
+<p>تعاقب على كرسي مار مرقس في الإسكندرية 118 بابا، من القديس مرقس الرسول حتى قداسة البابا تواضروس الثاني الحالي. يُلقَّب بطريرك الإسكندرية بـ"بابا الإسكندرية وبطريرك الكرازة المرقسية".</p>
+<h2>المجامع المسكونية الثلاثة</h2>
+<p>تعترف الكنيسة القبطية بثلاثة مجامع مسكونية فقط: نيقية (325م)، القسطنطينية (381م)، وأفسس (431م). وهي بذلك كنيسة "ما قبل خلقيدونية".</p>
+<p><a href="${SITE}/orthodox">قسم الأرثوذوكسيات</a> | <a href="${SITE}/orthodox/saints">سير القديسين الأقباط</a> | <a href="${SITE}/orthodox/creed">قانون الإيمان</a></p>`,
+
+    "/orthodox/qa": `<h1>أسئلة وأجوبة لاهوتية في العقيدة القبطية الأرثوذكسية</h1>
+<p>إجابات شاملة على الأسئلة الشائعة في الإيمان القبطي الأرثوذكسي — من العقيدة والطقوس إلى الأسرار والحياة الروحية.</p>
+<h2>أسئلة عن العقيدة والإيمان</h2>
+<ul>
+<li><strong>س: ما هي الطبيعة الواحدة للمسيح في العقيدة القبطية؟</strong><br/>ج: تؤمن الكنيسة القبطية بالطبيعة الواحدة المركبة للسيد المسيح — إله كامل وإنسان كامل، في وحدة تامة لا تفريق فيها ولا امتزاج ولا تغيير.</li>
+<li><strong>س: ما هي الأسرار السبعة في الكنيسة القبطية؟</strong><br/>ج: المعمودية، الميرون (التثبيت)، الإفخارستيا (القربان المقدس)، التوبة والاعتراف، مسحة المرضى، الكهنوت، الإكليل (الزواج).</li>
+<li><strong>س: لماذا يصوم الأقباط أكثر من 200 يوم في السنة؟</strong><br/>ج: الصوم في الكنيسة القبطية ممارسة روحية أصيلة موروثة عن الآباء، ويشمل: الصوم الكبير (55 يوماً)، صوم الرسل، صوم العذراء (15 يوماً)، صوم الميلاد (43 يوماً)، والأصوام الأسبوعية (الأربعاء والجمعة).</li>
+<li><strong>س: ما الفرق بين الكنيسة القبطية والكنيسة الكاثوليكية؟</strong><br/>ج: الكنيسة القبطية الأرثوذكسية مستقلة عن روما ولا تعترف بسلطة البابا الروماني. تتبع الكنيسة القبطية مجامع نيقية وأفسس فقط، وتختلف عن الكاثوليكية في عقيدة طبيعة المسيح.</li>
+</ul>
+<h2>أسئلة عن الحياة الكنسية</h2>
+<ul>
+<li><strong>س: ما هو دور الاعتراف في الكنيسة القبطية؟</strong><br/>ج: الاعتراف سر مقدس يتم أمام أب الاعتراف (الكاهن) الذي يمثل المسيح. المؤمن يعترف بخطاياه ويتلقى نعمة الحل والغفران.</li>
+<li><strong>س: متى يُعمَّد الأطفال في الكنيسة القبطية؟</strong><br/>ج: يُعمَّد الأطفال في سن 40 يوماً (الذكور) و80 يوماً (الإناث)، وتتم المعمودية بالتغطيس الثلاثي.</li>
+</ul>
+<p><a href="${SITE}/orthodox">قسم الأرثوذوكسيات</a> | <a href="${SITE}/orthodox/creed">قانون الإيمان النيقاوي</a> | <a href="${SITE}/orthodox/history">تاريخ الكنيسة القبطية</a></p>`,
+
+    "/orthodox/figures": `<h1>شخصيات الكنيسة القبطية الأرثوذكسية — آباء وقديسون ومفكرون</h1>
+<p>أبرز شخصيات الكنيسة القبطية الأرثوذكسية عبر التاريخ: البطاركة العظام، الآباء اللاهوتيون، الشهداء، والرهبان الذين شكّلوا تراث الكنيسة.</p>
+<h2>آباء الكنيسة الأوائل</h2>
+<ul>
+<li><strong>القديس مرقس الرسول</strong>: مؤسس الكرازة المرقسية وأول بابا للإسكندرية، استشهد عام 68م.</li>
+<li><strong>القديس أثناسيوس الرسولي</strong>: "أبو الأرثوذكسية"، دافع بشدة عن عقيدة لاهوت المسيح ضد الآريوسية في مجمع نيقية.</li>
+<li><strong>القديس كيرلس الكبير (عمود الدين)</strong>: البابا الرابع والعشرون، أعظم لاهوتيي الكنيسة القبطية، دافع عن لقب "والدة الإله".</li>
+<li><strong>القديس أنطونيوس الكبير</strong>: أبو الرهبان، أسس الرهبانية المسيحية في صحراء مصر في القرن الثالث.</li>
+<li><strong>القديس باخوميوس</strong>: مؤسس الرهبانية الشركية (المشتركة) في صعيد مصر.</li>
+</ul>
+<h2>آباء العصر الحديث</h2>
+<ul>
+<li><strong>البابا كيرلس السادس (1959-1971)</strong>: أحيا الحياة الرهبانية وشهد عهده تجديداً روحياً عميقاً.</li>
+<li><strong>البابا شنودة الثالث (1971-2012)</strong>: أبرز آباء الكنيسة في العصر الحديث، له مئات الكتب اللاهوتية والروحية.</li>
+<li><strong>البابا تواضروس الثاني (2012-الآن)</strong>: البابا الـ118 على الكرسي المرقسي.</li>
+</ul>
+<p><a href="${SITE}/orthodox/saints">سير القديسين</a> | <a href="${SITE}/orthodox/history">تاريخ الكنيسة</a> | <a href="${SITE}/orthodox">قسم الأرثوذوكسيات</a></p>`,
+
+    "/orthodox/apocrypha": `<h1>الأسفار القانونية الثانية (الديوتيروكانونية) في الكنيسة القبطية</h1>
+<p>الأسفار القانونية الثانية هي الأسفار التي تعترف بها الكنيسة القبطية الأرثوذكسية وتعتبرها مُلهَمة، غير أنها ليست في القانون اليهودي للعهد القديم.</p>
+<h2>الأسفار القانونية الثانية المعتمدة</h2>
+<ul>
+<li><strong>طوبيا (توبيت)</strong>: قصة إيمانية عن طوبيا وأبيه وملاك الله رافائيل.</li>
+<li><strong>يهوديت</strong>: قصة البطلة يهوديت التي أنقذت شعبها من الغزو الآشوري.</li>
+<li><strong>يشوع بن سيراخ (سيراخ)</strong>: كتاب حكمة عملية ودينية من القرن الثاني قبل الميلاد.</li>
+<li><strong>حكمة سليمان</strong>: تأملات في الحكمة الإلهية والحياة الأبدية.</li>
+<li><strong>باروخ</strong>: مراثي وصلوات نُسبت إلى باروخ كاتب إرميا النبي.</li>
+<li><strong>المكابيون الأول والثاني</strong>: تاريخ انتفاضة المكابيين ضد الاضطهاد السلوقي.</li>
+<li><strong>إضافات دانيال</strong>: صلاة عزريا، نشيد الثلاثة الفتية، سوسنة، بل والتنين.</li>
+<li><strong>إضافات أستير</strong>: إضافات يونانية لسفر أستير.</li>
+</ul>
+<h2>موقف الكنيسة القبطية</h2>
+<p>تعتبر الكنيسة القبطية هذه الأسفار ملهَمة ومعتمدة ضمن قانون الكتاب المقدس، وتُقرأ في القداسات وتُستشهد بها في التعليم الكنسي مثلها مثل سائر أسفار الكتاب المقدس.</p>
+<p><a href="${SITE}/bible">قراءة الكتاب المقدس</a> | <a href="${SITE}/orthodox">قسم الأرثوذوكسيات</a> | <a href="${SITE}/orthodox/books">الكتب الأرثوذكسية</a></p>`,
+
+    "/orthodox/maps": `<h1>خرائط الكتاب المقدس — جغرافيا الأرض المقدسة والأحداث الكتابية</h1>
+<p>خرائط تفاعلية ومعلومات جغرافية عن الأماكن الواردة في الكتاب المقدس — من مصر وفلسطين إلى آسيا الصغرى واليونان وروما.</p>
+<h2>أهم المواقع الجغرافية في الكتاب المقدس</h2>
+<ul>
+<li><strong>مصر</strong>: أرض الخروج — موطن يوسف وموسى، ملجأ العائلة المقدسة.</li>
+<li><strong>أرض كنعان (فلسطين)</strong>: وطن بني إسرائيل، مسرح معظم أحداث العهد القديم.</li>
+<li><strong>أورشليم</strong>: عاصمة المملكة، موضع الهيكل، مكان الصلب والقيامة.</li>
+<li><strong>الجليل</strong>: موطن يسوع المسيح، مسرح كثير من معجزاته وتعاليمه.</li>
+<li><strong>الناصرة</strong>: مدينة طفولة السيد المسيح.</li>
+<li><strong>بيت لحم</strong>: مكان ميلاد المسيح وداود الملك.</li>
+<li><strong>الإسكندرية</strong>: مركز الكرازة المرقسية والمدرسة اللاهوتية.</li>
+<li><strong>أنطاكية</strong>: حيث سُمي التلاميذ مسيحيين لأول مرة.</li>
+<li><strong>روما</strong>: مسرح استشهاد بطرس وبولس الرسولين.</li>
+</ul>
+<h2>رحلات الرسول بولس</h2>
+<p>قام الرسول بولس بثلاث رحلات تبشيرية كبرى أسس فيها كنائس في آسيا الصغرى واليونان وأوروبا، إضافة إلى رحلته النهائية إلى روما.</p>
+<p><a href="${SITE}/bible">الكتاب المقدس</a> | <a href="${SITE}/orthodox">قسم الأرثوذوكسيات</a> | <a href="${SITE}/orthodox/history">تاريخ الكنيسة</a></p>`,
+
+    "/orthodox/pope-qa": `<h1>أسئلة وأجوبة قداسة البابا شنودة الثالث — إرث لاهوتي خالد</h1>
+<p>مجموعة من أسئلة وأجوبة قداسة البابا شنودة الثالث (البابا الـ117 للإسكندرية، 1971-2012) في العقيدة والإيمان والحياة الروحية — من أعظم اللاهوتيين الأقباط في القرن العشرين.</p>
+<h2>أسئلة في العقيدة</h2>
+<ul>
+<li><strong>س: ما هو معنى الثالوث القدوس؟</strong><br/>ج: الله واحد في جوهره، ثلاثة في أقانيمه: الآب والابن والروح القدس. ليسوا ثلاثة آلهة، بل إله واحد في ثلاثة أقانيم متمايزة.</li>
+<li><strong>س: كيف نفهم التجسد الإلهي؟</strong><br/>ج: الكلمة الأزلية اتخذ لنفسه جسداً بشرياً من العذراء مريم، فصار إلهاً كاملاً وإنساناً كاملاً — بلا تغيير في لاهوته، ومتحداً مع الناسوت اتحاداً لا انفصال فيه.</li>
+</ul>
+<h2>أسئلة في الحياة الروحية</h2>
+<ul>
+<li><strong>س: كيف أنمو روحياً؟</strong><br/>ج: بالصلاة اليومية المنتظمة، وقراءة الكتاب المقدس، والاعتراف الدوري، والتناول المستمر، والخدمة الكنسية.</li>
+<li><strong>س: ما هو دور الصوم في الحياة المسيحية؟</strong><br/>ج: الصوم رياضة روحية تقوي الإرادة وتُضعف الجسد المائل نحو الشهوات، وهو عبادة لله قبل أن يكون حمية جسدية.</li>
+</ul>
+<h2>عن البابا شنودة الثالث</h2>
+<p>وُلد نظير جيد روفائيل جيد عام 1923، تنسّك في صحراء وادي النطرون، رُسم بابا عام 1971. ترك وراءه مئات الكتب في اللاهوت والروحانيات، وآلاف العظات والأسئلة والأجوبة التي تُعدّ مرجعاً للكنيسة القبطية.</p>
+<p><a href="${SITE}/orthodox">قسم الأرثوذوكسيات</a> | <a href="${SITE}/orthodox/qa">أسئلة لاهوتية</a> | <a href="${SITE}/orthodox/books">كتب الآباء</a></p>`,
+
+    "/sitemap": `<h1>خريطة موقع الكتاب المقدس رفيقي</h1>
+<p>دليل شامل بجميع أقسام وصفحات موقع الكتاب المقدس رفيقي.</p>
+<h2>الكتاب المقدس</h2>
+<ul>
+<li><a href="${SITE}/bible">قراءة الكتاب المقدس كاملاً</a></li>
+<li><a href="${SITE}/bible/التكوين/1">سفر التكوين — الإصحاح الأول</a></li>
+<li><a href="${SITE}/bible/يوحنا/3">إنجيل يوحنا — الإصحاح الثالث</a></li>
+<li><a href="${SITE}/bible/المزامير/23">مزمور 23 — الرب راعيَّ</a></li>
+<li><a href="${SITE}/plans">خطط القراءة اليومية (30-730 يوم)</a></li>
+<li><a href="${SITE}/search">البحث في الكتاب المقدس</a></li>
+<li><a href="${SITE}/highlights">آياتي المظللة</a></li>
+</ul>
+<h2>التغذية الروحية</h2>
+<ul>
+<li><a href="${SITE}/emotions">آيات حسب مشاعرك</a></li>
+<li><a href="${SITE}/daily-verse">آية اليوم</a></li>
+<li><a href="${SITE}/challenge">تحدي القراءة المقدسة</a></li>
+</ul>
+<h2>الأرثوذوكسيات</h2>
+<ul>
+<li><a href="${SITE}/orthodox">قسم الأرثوذوكسيات</a></li>
+<li><a href="${SITE}/orthodox/agpeya">كتاب الأجبية — ساعات الصلاة السبع</a></li>
+<li><a href="${SITE}/orthodox/synaxarium">السنكسار القبطي</a></li>
+<li><a href="${SITE}/orthodox/kholagy">الخولاجي المقدس</a></li>
+<li><a href="${SITE}/orthodox/hymns">الألحان القبطية والإبصلمودية</a></li>
+<li><a href="${SITE}/orthodox/katameros">القطمارس</a></li>
+<li><a href="${SITE}/orthodox/deacon">مردات الشماس</a></li>
+<li><a href="${SITE}/orthodox/saints">سير القديسين الأقباط</a></li>
+<li><a href="${SITE}/orthodox/creed">قانون الإيمان النيقاوي</a></li>
+<li><a href="${SITE}/orthodox/books">الكتب الأرثوذكسية</a></li>
+<li><a href="${SITE}/orthodox/tafseer">التفسير الأرثوذكسي</a></li>
+<li><a href="${SITE}/orthodox/history">تاريخ الكنيسة القبطية</a></li>
+<li><a href="${SITE}/orthodox/apocrypha">الأسفار الديوتيروكانونية</a></li>
+</ul>
+<h2>الأطفال والعائلة</h2>
+<ul>
+<li><a href="${SITE}/kids">قسم الأطفال</a></li>
+<li><a href="${SITE}/kids/hymns">ترانيم الأطفال</a></li>
+<li><a href="${SITE}/kids/videos">قصص بالفيديو</a></li>
+<li><a href="${SITE}/kids/stories">قصص مصورة</a></li>
+<li><a href="${SITE}/kids/memorize">حفظ الآيات</a></li>
+<li><a href="${SITE}/family">ركن العائلة المسيحية</a></li>
+<li><a href="${SITE}/service">قسم الخدمة</a></li>
+</ul>
+<h2>المجتمع والكنائس</h2>
+<ul>
+<li><a href="${SITE}/groups">المجموعات</a></li>
+<li><a href="${SITE}/church">الكنائس القبطية</a></li>
+</ul>
+<h2>عن الموقع</h2>
+<ul>
+<li><a href="${SITE}/about">من نحن</a></li>
+<li><a href="${SITE}/contact">تواصل معنا</a></li>
+<li><a href="${SITE}/privacy">سياسة الخصوصية</a></li>
+<li><a href="${SITE}/terms">شروط الاستخدام</a></li>
+</ul>`,
+
+    "/terms": `<h1>شروط وأحكام استخدام موقع الكتاب المقدس رفيقي</h1>
+<p>باستخدامك لموقع الكتاب المقدس رفيقي، فإنك توافق على الشروط والأحكام التالية. يُرجى قراءتها بعناية.</p>
+<h2>استخدام المحتوى</h2>
+<ul>
+<li>المحتوى المنشور على الموقع (نصوص الكتاب المقدس، التفاسير، الألحان) للاستخدام الشخصي والتعليمي والروحي فقط.</li>
+<li>لا يُسمح بإعادة نشر محتوى الموقع تجارياً دون إذن مسبق.</li>
+<li>نصوص الكتاب المقدس مصدرها ترجمات تقليدية عربية وهي في الملكية العامة.</li>
+</ul>
+<h2>إخلاء المسؤولية</h2>
+<ul>
+<li>المحتوى الديني والتفاسير المقدمة هي لأغراض التثقيف الروحي ولا تُغني عن الرجوع لأب الاعتراف أو الراعي الكنسي.</li>
+<li>المحتوى المُولَّد بالذكاء الاصطناعي (في قسم الخدمة) هو مساعد للتحضير فقط.</li>
+</ul>
+<h2>الخصوصية والبيانات</h2>
+<p>نلتزم بحماية بياناتك. لمزيد من التفاصيل راجع <a href="${SITE}/privacy">سياسة الخصوصية</a>.</p>
+<h2>التعديلات</h2>
+<p>نحتفظ بحق تعديل هذه الشروط في أي وقت. الاستمرار في استخدام الموقع يعني قبولك للشروط المعدلة.</p>
+<p><a href="${SITE}/privacy">سياسة الخصوصية</a> | <a href="${SITE}/contact">تواصل معنا</a> | <a href="${SITE}/about">من نحن</a></p>`,
+
+    "/premium": `<h1>الاشتراك المميز في رفيقي — ميزات متقدمة للرحلة الروحية</h1>
+<p>ارتقِ بتجربتك الروحية مع الاشتراك المميز في الكتاب المقدس رفيقي. ميزات متقدمة تساعدك على التعمق أكثر في كلمة الله.</p>
+<h2>ما يقدمه الاشتراك المميز</h2>
+<ul>
+<li><strong>البحث الذكي بالمعنى (Semantic Search)</strong>: ابحث بأفكارك لا بالكلمات الحرفية فقط — يفهم محرك البحث نيّتك.</li>
+<li><strong>تحليل المشاعر المتقدم</strong>: آيات مقترحة بدقة أعلى بناءً على مشاعرك الحالية.</li>
+<li><strong>اقتراحات آيات مخصصة</strong>: توصيات يومية تتناسب مع رحلتك الروحية الشخصية.</li>
+<li><strong>قسم الخدمة الكامل</strong>: للكهنة وخدام مدارس الأحد — مولِّد العظات والدروس بالذكاء الاصطناعي.</li>
+<li><strong>بلا قيود على الاستخدام</strong>: وصول غير محدود لجميع الأدوات الذكية.</li>
+</ul>
+<h2>لمن يصلح الاشتراك المميز؟</h2>
+<ul>
+<li>الآباء الكهنة الراغبين في أداة احترافية لإعداد العظات.</li>
+<li>خدام مدارس الأحد لإعداد الدروس بأسلوب إبداعي.</li>
+<li>المؤمنين الراغبين في تجربة روحية أعمق وأكثر تخصيصاً.</li>
+</ul>
+<p><a href="${SITE}/service">قسم الخدمة</a> | <a href="${SITE}/bible">الكتاب المقدس</a> | <a href="${SITE}/about">عن الموقع</a></p>`,
+
+    "/church": `<h1>دليل الكنائس القبطية الأرثوذكسية — ابحث عن كنيستك</h1>
+<p>دليل شامل للكنائس القبطية الأرثوذكسية في مصر ومختلف دول العالم. تواصل مع مجتمعك الكنسي وتابع قراءة الكتاب المقدس مع جماعتك.</p>
+<h2>الكنيسة القبطية الأرثوذكسية</h2>
+<p>تضم الكنيسة القبطية الأرثوذكسية أكثر من 2500 كنيسة في مصر وحدها، إضافة إلى مئات الكنائس في المهجر عبر أمريكا الشمالية وأوروبا وأستراليا وكندا.</p>
+<h2>أبرشيات الكنيسة القبطية في مصر</h2>
+<ul>
+<li>القاهرة والجيزة — المركز الرئيسي للبطريركية</li>
+<li>الإسكندرية — مقر الكرازة المرقسية التاريخية</li>
+<li>أسيوط والصعيد — قلب الوجود القبطي التاريخي</li>
+<li>المنيا وسوهاج وقنا وأسوان — المحافظات ذات الكثافة القبطية</li>
+<li>الغربية والمنوفية والبحيرة — أبرشيات الوجه البحري</li>
+</ul>
+<h2>كيف تجد كنيستك؟</h2>
+<p>استخدم محرك البحث في صفحة الكنائس للبحث حسب المحافظة أو المدينة. يمكنك أيضاً اقتراح إضافة كنيسة غير موجودة.</p>
+<p><a href="${SITE}/church-request">أضف كنيستك</a> | <a href="${SITE}/orthodox">قسم الأرثوذوكسيات</a> | <a href="${SITE}/groups">المجموعات</a></p>`,
+
+    "/challenge": `<h1>تحدي القراءة المقدسة — نافس وتقدم في قراءة الكتاب المقدس</h1>
+<p>شارك في تحديات قراءة الكتاب المقدس مع مجتمع رفيقي. احرز إنجازات روحية، تابع تقدمك، وشارك أصدقاءك في رحلة القراءة.</p>
+<h2>أنواع التحديات</h2>
+<ul>
+<li><strong>تحدي السنة الكاملة</strong>: اقرأ الكتاب المقدس كاملاً في 365 يوماً — 3 إصحاحات يومياً تقريباً.</li>
+<li><strong>تحدي الشهر</strong>: اقرأ سفراً كاملاً في شهر واحد — يناسب المبتدئين.</li>
+<li><strong>تحدي العهد الجديد</strong>: اقرأ العهد الجديد (27 سفراً) في 90 يوماً.</li>
+<li><strong>تحدي المزامير</strong>: اقرأ مزمور كل يوم خلال شهر واحد (150 مزموراً).</li>
+</ul>
+<h2>لماذا تشارك في التحدي؟</h2>
+<ul>
+<li>المحاسبة المشتركة تساعدك على الالتزام بالقراءة اليومية.</li>
+<li>إنجازات مرئية تُحفزك على الاستمرار.</li>
+<li>مشاركة التقدم مع الأصدقاء تُعمّق التجربة الروحية.</li>
+</ul>
+<p><a href="${SITE}/plans">خطط القراءة</a> | <a href="${SITE}/bible">الكتاب المقدس</a> | <a href="${SITE}/groups">المجموعات</a></p>`,
+
+    "/kids/memorize": `<h1>حفظ آيات الكتاب المقدس للأطفال — طريقة مسيحية ممتعة</h1>
+<p>تعلّم الأطفال حفظ آيات الكتاب المقدس بطريقة تفاعلية وممتعة. الحفظ ينمي الذاكرة الروحية ويرسّخ كلمة الله في القلب منذ الصغر.</p>
+<h2>آيات مقترحة للحفظ حسب العمر</h2>
+<h3>للأطفال الصغار (4-7 سنوات)</h3>
+<ul>
+<li>"الرب راعيَّ فلا يعوزني شيء" — مزمور 23:1</li>
+<li>"محبوب يا يسوع في قلبي" — ترنيمة</li>
+<li>"هكذا أحب الله العالم" — يوحنا 3:16</li>
+<li>"الله محبة" — 1 يوحنا 4:8</li>
+</ul>
+<h3>للأطفال الكبار (8-12 سنوات)</h3>
+<ul>
+<li>"أنا هو الطريق والحق والحياة" — يوحنا 14:6</li>
+<li>"اطلبوا أولاً ملكوت الله وبره" — متى 6:33</li>
+<li>"أستطيع كل شيء في المسيح الذي يقويني" — فيلبي 4:13</li>
+<li>"كلمتك سراج لقدمي ونور لسبيلي" — مزمور 119:105</li>
+</ul>
+<h2>طرق الحفظ الممتعة للأطفال</h2>
+<ul>
+<li>الترديد مع الحركات والإيماءات</li>
+<li>الحفظ بالألحان والترانيم</li>
+<li>بطاقات ذاكرة ملوّنة</li>
+<li>المسابقات العائلية</li>
+</ul>
+<p><a href="${SITE}/kids">قسم الأطفال</a> | <a href="${SITE}/kids/hymns">ترانيم الأطفال</a> | <a href="${SITE}/bible">الكتاب المقدس</a></p>`,
+
+    "/kids/games": `<h1>ألعاب وأنشطة الكتاب المقدس للأطفال — تعلّم وانبسط</h1>
+<p>أنشطة وألعاب تفاعلية مستوحاة من قصص الكتاب المقدس للأطفال — التعلم من خلال اللعب يُرسّخ المعلومة ويُقوي الإيمان.</p>
+<h2>أنواع الأنشطة المتاحة</h2>
+<ul>
+<li><strong>أسئلة وإجابات كتابية</strong>: اختبر معلوماتك عن قصص الكتاب المقدس.</li>
+<li><strong>مطابقة الآيات</strong>: اربط الآية بالسفر الصحيح.</li>
+<li><strong>تصحيح الجمل</strong>: اكتشف الخطأ في الآية المكتوبة.</li>
+<li><strong>ترتيب القصة</strong>: رتّب أحداث القصة الكتابية بالترتيب الصحيح.</li>
+</ul>
+<h2>لماذا الألعاب الكتابية؟</h2>
+<p>الطفل الذي يتعلم من خلال اللعب يحتفظ بالمعلومة أطول وأعمق. الألعاب الكتابية تُعرّف الأطفال على شخصيات وقصص وآيات الكتاب المقدس بأسلوب شيّق لا يُنسى.</p>
+<p><a href="${SITE}/kids">قسم الأطفال</a> | <a href="${SITE}/kids/stories">قصص مصورة</a> | <a href="${SITE}/kids/memorize">حفظ الآيات</a></p>`,
+
+    "/kids/adventures": `<h1>مغامرات الإيمان للأطفال — رحلات في قصص الكتاب المقدس</h1>
+<p>مغامرات تفاعلية تأخذ الأطفال في رحلة ممتعة عبر قصص الكتاب المقدس. كل مغامرة تروي قصة كتابية وتعلّم درساً روحياً.</p>
+<h2>مغامرات شهيرة من الكتاب المقدس</h2>
+<ul>
+<li><strong>مغامرة نوح</strong>: بناء السفينة، الطوفان العظيم، وقوس قزح وعد الله.</li>
+<li><strong>مغامرة موسى</strong>: العليقة المشتعلة، الخروج من مصر، عبور البحر الأحمر.</li>
+<li><strong>مغامرة يوسف</strong>: من الجُبّ إلى القصر — كيف حوّل الله الألم لبركة.</li>
+<li><strong>مغامرة داود</strong>: الراعي الصغير الذي واجه العملاق جالوت.</li>
+<li><strong>مغامرة يونان</strong>: داخل الحوت الكبير — درس عن طاعة الله.</li>
+<li><strong>مغامرة دانيال</strong>: الأتون الملتهب وجُبّ الأسود — الثبات في الإيمان.</li>
+</ul>
+<p><a href="${SITE}/kids">قسم الأطفال</a> | <a href="${SITE}/kids/stories">قصص مصورة</a> | <a href="${SITE}/kids/videos">قصص بالفيديو</a></p>`,
+
+    "/kids/parents": `<h1>ركن الآباء والأمهات المسيحيين — تربية روحية في البيت</h1>
+<p>دليل عملي للآباء المسيحيين لتربية أطفالهم روحياً في البيت، بأدوات وموارد مناسبة لكل مرحلة عمرية.</p>
+<h2>نصائح عملية للتربية المسيحية</h2>
+<ul>
+<li><strong>الصلاة العائلية اليومية</strong>: خصّص وقتاً يومياً للصلاة مع أطفالك — صباحاً أو مساءً. حتى 5 دقائق تبني عادة روحية قوية.</li>
+<li><strong>قراءة الكتاب المقدس معاً</strong>: اقرأ قصة كتابية واحدة كل مساء قبل النوم. استخدم قصصاً مبسطة للأطفال الصغار.</li>
+<li><strong>الذهاب للكنيسة أسبوعياً</strong>: احضر القداس الإلهي وحصص مدارس الأحد مع أطفالك.</li>
+<li><strong>حفظ الآيات</strong>: علّم أطفالك آية جديدة كل أسبوع.</li>
+<li><strong>مشاهدة الفيديوهات الدينية معاً</strong>: استخدم قصص الكتاب المقدس بالفيديو كوسيلة تعليمية ممتعة.</li>
+</ul>
+<h2>الأسئلة الشائعة من الآباء</h2>
+<ul>
+<li><strong>في أي سن أبدأ التعليم الديني؟</strong>: من سن 2-3 سنوات — بالصلاة البسيطة والترانيم.</li>
+<li><strong>كيف أتعامل مع الأسئلة الصعبة؟</strong>: كن صادقاً، وأشرك الكاهن أو معلم مدرسة الأحد في الإجابة.</li>
+</ul>
+<p><a href="${SITE}/family">ركن العائلة</a> | <a href="${SITE}/kids">قسم الأطفال</a> | <a href="${SITE}/kids/stories">قصص للأطفال</a></p>`,
+
+    "/groups": `<h1>مجموعات الكتاب المقدس — اقرأ وتأمّل مع الجماعة</h1>
+<p>انضم إلى مجموعات قراءة الكتاب المقدس في رفيقي — تشارك الدراسة الكتابية مع أصدقائك، ومتابعة التقدم معاً، والتشجيع المتبادل في الرحلة الروحية.</p>
+<h2>لماذا القراءة الجماعية؟</h2>
+<ul>
+<li>المحاسبة الجماعية تُعزز الانتظام في القراءة اليومية.</li>
+<li>تبادل التأملات يُعمّق الفهم الروحي.</li>
+<li>التشجيع المتبادل يُقوّي الإيمان في الجماعة.</li>
+<li>"إذ اجتمع اثنان أو ثلاثة باسمي أنا هناك في وسطهم" — متى 18:20</li>
+</ul>
+<h2>كيف تنشئ مجموعة؟</h2>
+<ol>
+<li>أنشئ مجموعة جديدة وحدد اسمها وموضوعها.</li>
+<li>شارك رابط الدعوة مع أصدقائك وزملائك في الخدمة.</li>
+<li>حددوا خطة قراءة مشتركة.</li>
+<li>تابعوا التقدم وشاركوا التأملات.</li>
+</ol>
+<p><a href="${SITE}/groups/create">أنشئ مجموعة</a> | <a href="${SITE}/groups/join">انضم لمجموعة</a> | <a href="${SITE}/plans">خطط القراءة</a></p>`,
   };
 
   const body = richBodies[path] || `<h1>${page.title.split('|')[0].trim()}</h1>\n<p>${page.desc}</p>`;
@@ -1792,15 +2110,66 @@ ${entriesHtml}
     return cacheAndServe(res, cacheKey, staticSnapshot);
   }
 
+  // ── Orthodox/kholagy paths (canonical: /orthodox/kholagy/...) ─────────────
+  const orthodoxKholagyChapterMatch = path.match(/^\/orthodox\/kholagy\/([^/]+)\/([^/]+)$/);
+  if (orthodoxKholagyChapterMatch) {
+    const liturgyId = orthodoxKholagyChapterMatch[1];
+    const chapterId = orthodoxKholagyChapterMatch[2];
+    const liturgy = liturgies.find(l => l.id === liturgyId);
+    if (!liturgy) return next();
+    const chapter = liturgy.chapters.find(c => c.id === chapterId);
+    if (!chapter) return next();
+    const cacheKey = `okh:${liturgyId}:${chapterId}`;
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/kholagy/${liturgyId}/${chapterId}`;
+    const title = `${chapter.title} — ${liturgy.name} — الخولاجي | الكتاب المقدس رفيقي`;
+    const description = chapter.description ?? `${chapter.title} من ${liturgy.name} — نص القداس القبطي بالعربية والقبطية`;
+    const partsHtml = chapter.parts.map(p =>
+      `<section><h3>${esc(p.title)}${p.role ? ` <span>(${esc(p.role)})</span>` : ""}</h3><p>${esc(p.text.substring(0, 600))}${p.text.length > 600 ? "..." : ""}</p></section>`
+    ).join("\n");
+    const chapterIdx = liturgy.chapters.findIndex(c => c.id === chapterId);
+    const prevChapter = chapterIdx > 0 ? liturgy.chapters[chapterIdx - 1] : null;
+    const nextChapter = chapterIdx < liturgy.chapters.length - 1 ? liturgy.chapters[chapterIdx + 1] : null;
+    const schema = { "@context": "https://schema.org", "@type": "WebPage", "name": title, "description": description, "inLanguage": "ar", "url": canonical, "isPartOf": { "@type": "Book", "name": liturgy.name, "url": `${SITE}/orthodox/kholagy/${liturgyId}` } };
+    const body = `<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/orthodox/kholagy">الخولاجي</a> &rsaquo; <a href="${SITE}/orthodox/kholagy/${liturgyId}">${esc(liturgy.name)}</a> &rsaquo; ${esc(chapter.title)}</nav>
+<h1>${esc(chapter.title)}</h1>
+${chapter.description ? `<p>${esc(chapter.description)}</p>` : ""}
+${partsHtml}
+<nav>${prevChapter ? `<a href="${SITE}/orthodox/kholagy/${liturgyId}/${prevChapter.id}">← ${esc(prevChapter.title)}</a>` : ""} &nbsp;|&nbsp; ${nextChapter ? `<a href="${SITE}/orthodox/kholagy/${liturgyId}/${nextChapter.id}">${esc(nextChapter.title)} →</a>` : ""}</nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+  }
+
+  const orthodoxKholagyLiturgyMatch = path.match(/^\/orthodox\/kholagy\/([^/]+)$/);
+  if (orthodoxKholagyLiturgyMatch) {
+    const liturgyId = orthodoxKholagyLiturgyMatch[1];
+    const liturgy = liturgies.find(l => l.id === liturgyId);
+    if (!liturgy) return next();
+    const cacheKey = `okh:${liturgyId}`;
+    if (serveCached(res, cacheKey)) return;
+    const canonical = `${SITE}/orthodox/kholagy/${liturgyId}`;
+    const title = `${liturgy.name} — الخولاجي المقدس | الكتاب المقدس رفيقي`;
+    const description = liturgy.description;
+    const chaptersHtml = liturgy.chapters.map(ch =>
+      `<li><a href="${SITE}/orthodox/kholagy/${liturgyId}/${ch.id}">${esc(ch.title)}</a>${ch.description ? ` — ${esc(ch.description.substring(0, 80))}` : ""}</li>`
+    ).join("\n");
+    const schema = { "@context": "https://schema.org", "@type": "Book", "name": liturgy.name, "description": description, "inLanguage": "ar", "url": canonical, "numberOfPages": liturgy.chapters.length, "genre": "Liturgy", "about": "القداس القبطي الأرثوذكسي", "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE } };
+    const body = `<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/orthodox/kholagy">الخولاجي</a> &rsaquo; ${esc(liturgy.name)}</nav>
+<h1>${esc(liturgy.name)}</h1>
+<p><strong>يُقام في:</strong> ${esc(liturgy.occasion)}</p>
+<p>${esc(description)}</p>
+<nav aria-label="أقسام القداس"><h2>أقسام ${esc(liturgy.name)}</h2><ol>${chaptersHtml}</ol></nav>`;
+    return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+  }
+
   // ── Kholagy index: /kholagy ───────────────────────────────────────────────
   if (path === "/kholagy") {
     const cacheKey = "kh:index";
     if (serveCached(res, cacheKey)) return;
-    const canonical = `${SITE}/kholagy`;
+    const canonical = `${SITE}/orthodox/kholagy`;
     const title = "الخولاجي المقدس — القداسات القبطية الأرثوذكسية | الكتاب المقدس رفيقي";
     const description = "اقرأ نصوص القداسات القبطية الأرثوذكسية الثلاثة: قداس القديس باسيليوس وغريغوريوس وكيرلس، بالعربية والقبطية.";
     const liturgiesHtml = liturgies.map(lit =>
-      `<li><a href="${SITE}/kholagy/${lit.id}">${esc(lit.name)}</a> — ${esc(lit.occasion)}</li>`
+      `<li><a href="${SITE}/orthodox/kholagy/${lit.id}">${esc(lit.name)}</a> — ${esc(lit.occasion)}</li>`
     ).join("\n");
     const schema = {
       "@context": "https://schema.org",
@@ -1827,11 +2196,11 @@ ${entriesHtml}
     if (!liturgy) return next();
     const cacheKey = `kh:${liturgyId}`;
     if (serveCached(res, cacheKey)) return;
-    const canonical = `${SITE}/kholagy/${liturgyId}`;
+    const canonical = `${SITE}/orthodox/kholagy/${liturgyId}`;
     const title = `${liturgy.name} — الخولاجي المقدس | الكتاب المقدس رفيقي`;
     const description = liturgy.description;
     const chaptersHtml = liturgy.chapters.map(ch =>
-      `<li><a href="${SITE}/kholagy/${liturgyId}/${ch.id}">${esc(ch.title)}</a>${ch.description ? ` — ${esc(ch.description.substring(0, 80))}` : ""}</li>`
+      `<li><a href="${SITE}/orthodox/kholagy/${liturgyId}/${ch.id}">${esc(ch.title)}</a>${ch.description ? ` — ${esc(ch.description.substring(0, 80))}` : ""}</li>`
     ).join("\n");
     const schema = {
       "@context": "https://schema.org",
@@ -1846,7 +2215,7 @@ ${entriesHtml}
       "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
     };
     const body = `
-<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/kholagy">الخولاجي</a> &rsaquo; ${esc(liturgy.name)}</nav>
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/orthodox/kholagy">الخولاجي</a> &rsaquo; ${esc(liturgy.name)}</nav>
 <h1>${esc(liturgy.name)}</h1>
 <p><strong>يُقام في:</strong> ${esc(liturgy.occasion)}</p>
 <p>${esc(description)}</p>
@@ -1865,7 +2234,7 @@ ${entriesHtml}
     if (!chapter) return next();
     const cacheKey = `kh:${liturgyId}:${chapterId}`;
     if (serveCached(res, cacheKey)) return;
-    const canonical = `${SITE}/kholagy/${liturgyId}/${chapterId}`;
+    const canonical = `${SITE}/orthodox/kholagy/${liturgyId}/${chapterId}`;
     const title = `${chapter.title} — ${liturgy.name} — الخولاجي | الكتاب المقدس رفيقي`;
     const description = chapter.description ?? `${chapter.title} من ${liturgy.name} — نص القداس القبطي بالعربية والقبطية`;
     const partsHtml = chapter.parts.map(p =>
@@ -1884,13 +2253,13 @@ ${entriesHtml}
       "description": description,
       "inLanguage": "ar",
       "url": canonical,
-      "isPartOf": { "@type": "Book", "name": liturgy.name, "url": `${SITE}/kholagy/${liturgyId}` },
+      "isPartOf": { "@type": "Book", "name": liturgy.name, "url": `${SITE}/orthodox/kholagy/${liturgyId}` },
       "breadcrumb": {
         "@type": "BreadcrumbList",
         "itemListElement": [
           { "@type": "ListItem", "position": 1, "name": "الرئيسية", "item": SITE },
-          { "@type": "ListItem", "position": 2, "name": "الخولاجي", "item": `${SITE}/kholagy` },
-          { "@type": "ListItem", "position": 3, "name": liturgy.name, "item": `${SITE}/kholagy/${liturgyId}` },
+          { "@type": "ListItem", "position": 2, "name": "الخولاجي", "item": `${SITE}/orthodox/kholagy` },
+          { "@type": "ListItem", "position": 3, "name": liturgy.name, "item": `${SITE}/orthodox/kholagy/${liturgyId}` },
           { "@type": "ListItem", "position": 4, "name": chapter.title, "item": canonical }
         ]
       }
@@ -1899,19 +2268,34 @@ ${entriesHtml}
 <nav aria-label="breadcrumb">
   <a href="${SITE}">الرئيسية</a> &rsaquo;
   <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo;
-  <a href="${SITE}/kholagy">الخولاجي</a> &rsaquo;
-  <a href="${SITE}/kholagy/${liturgyId}">${esc(liturgy.name)}</a> &rsaquo;
+  <a href="${SITE}/orthodox/kholagy">الخولاجي</a> &rsaquo;
+  <a href="${SITE}/orthodox/kholagy/${liturgyId}">${esc(liturgy.name)}</a> &rsaquo;
   ${esc(chapter.title)}
 </nav>
 <h1>${esc(chapter.title)}</h1>
 ${chapter.description ? `<p>${esc(chapter.description)}</p>` : ""}
 ${partsHtml}
 <nav aria-label="تنقل الأقسام">
-  ${prevChapter ? `<a href="${SITE}/kholagy/${liturgyId}/${prevChapter.id}">← ${esc(prevChapter.title)}</a>` : ""}
+  ${prevChapter ? `<a href="${SITE}/orthodox/kholagy/${liturgyId}/${prevChapter.id}">← ${esc(prevChapter.title)}</a>` : ""}
   &nbsp;|&nbsp;
-  ${nextChapter ? `<a href="${SITE}/kholagy/${liturgyId}/${nextChapter.id}">${esc(nextChapter.title)} →</a>` : ""}
+  ${nextChapter ? `<a href="${SITE}/orthodox/kholagy/${liturgyId}/${nextChapter.id}">${esc(nextChapter.title)} →</a>` : ""}
 </nav>`;
     return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+  }
+
+  // ── noindex for admin and utility pages ───────────────────────────────────
+  const noindexPaths = ['/admin', '/admin/exit', '/ministry-auth', '/liturgy-control', '/liturgy-display', '/groups/create', '/groups/join', '/church-request'];
+  if (noindexPaths.some(p => path === p || path.startsWith(p + '/'))) {
+    const html = wrapHtml(
+      'رفيقي',
+      'صفحة داخلية',
+      `${SITE}${path}`,
+      `<h1>رفيقي</h1><p><a href="${SITE}">الرئيسية</a></p>`,
+      { "@context": "https://schema.org", "@type": "WebPage" },
+      undefined,
+      true // noindex
+    );
+    return res.set("Content-Type", "text/html; charset=utf-8").send(html);
   }
 
   next();
