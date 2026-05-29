@@ -780,6 +780,56 @@ export async function registerRoutes(
     }
   });
 
+  // توسيع نقطة من هيكل العظة/الدرس إلى مقالة كلامية
+  app.post('/api/service/expand-point', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ message: 'Unauthorized' });
+      const usageCheck = await checkAiUsageLimit(user);
+      if (!usageCheck.allowed) return res.status(429).json({ message: 'بلغت الحد اليومي' });
+
+      const { point, topic, type } = req.body as { point?: string; topic?: string; type?: 'sermon' | 'lesson' };
+      if (!point) return res.status(400).json({ message: 'point required' });
+
+      const groqApiKey = process.env.GROQ_API_KEY;
+      if (!groqApiKey) return res.status(503).json({ message: 'AI not configured' });
+
+      const isLesson = type === 'lesson';
+      const prompt = isLesson
+        ? `أنت خادم مدارس أحد قبطي أرثوذكسي. اكتب شرحاً موسّعاً لهذه الفكرة من درس مدارس الأحد بأسلوب بسيط ومحبب للأطفال والشباب.
+الموضوع العام: "${topic || ''}"
+الفكرة: "${point}"
+
+اكتب مقطعاً من 3-4 فقرات يشمل: شرح الفكرة ببساطة، قصة أو مثال من الإنجيل أو الحياة اليومية، سؤال للتفكير، وتطبيق عملي.
+أجب بنص عربي مباشر فقط بدون عناوين أو JSON.`
+        : `أنت مساعد لاهوتي قبطي أرثوذكسي. اكتب شرحاً موسّعاً لهذه النقطة من العظة بأسلوب لاهوتي أرثوذكسي رصين.
+الموضوع العام: "${topic || ''}"
+النقطة: "${point}"
+
+اكتب مقطعاً من 3-5 فقرات يشمل: الشرح اللاهوتي، آيات داعمة من العهدين، تطبيق روحي على حياة المؤمن، وخلاصة موجزة.
+أجب بنص عربي مباشر فقط بدون عناوين أو JSON.`;
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 1200,
+        }),
+      });
+      if (!response.ok) return res.status(502).json({ message: 'AI request failed' });
+      const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+      const text = data.choices?.[0]?.message?.content?.trim() || '';
+      if (!text) return res.status(500).json({ message: 'Empty response' });
+      res.json({ text });
+    } catch (e) {
+      console.error('[service/expand-point] error:', e);
+      res.status(500).json({ message: 'فشل التوسيع' });
+    }
+  });
+
   // More verses on a topic — used by both Service outline and Search "load more" buttons
   app.post('/api/verses/more-on-topic', async (req, res) => {
     try {

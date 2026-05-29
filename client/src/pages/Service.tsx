@@ -70,6 +70,29 @@ export default function Service() {
   const [tafsirText,    setTafsirText]    = useState<string | null>(null);
   const [tafsirLoading, setTafsirLoading] = useState(false);
 
+  // توسيع نقطة من الهيكل
+  const [expandOpen,    setExpandOpen]    = useState(false);
+  const [expandPoint,   setExpandPoint]   = useState('');
+  const [expandText,    setExpandText]    = useState<string | null>(null);
+  const [expandLoading, setExpandLoading] = useState(false);
+
+  async function openExpand(point: string) {
+    setExpandPoint(point);
+    setExpandText(null);
+    setExpandLoading(true);
+    setExpandOpen(true);
+    try {
+      const res = await fetch('/api/service/expand-point', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ point, topic: topic.trim(), type: tab === 'clergy' ? 'sermon' : 'lesson' }),
+      });
+      const data = await res.json();
+      setExpandText(data.text || null);
+    } catch { setExpandText(null); }
+    finally { setExpandLoading(false); }
+  }
+
   useEffect(() => { localStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); }, [draft]);
   useEffect(() => {
     if (outline) localStorage.setItem(OUTLINE_KEY, JSON.stringify(outline));
@@ -339,13 +362,30 @@ export default function Service() {
             {outline && (
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 space-y-3 text-sm leading-relaxed">
                 <div className="p-3 bg-muted/40 rounded-lg">
-                  <p className="font-semibold text-primary mb-1">المقدمة</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-semibold text-primary">المقدمة</p>
+                    <button onClick={() => openExpand(outline.intro)}
+                      className="px-2 py-1 rounded text-xs font-medium text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />توسّع
+                    </button>
+                  </div>
                   <p>{outline.intro}</p>
                 </div>
                 <div className="p-3 bg-muted/40 rounded-lg">
-                  <p className="font-semibold text-primary mb-1">النقاط الرئيسية</p>
-                  <ol className="list-decimal pr-5 space-y-1">
-                    {outline.points.map((p, i) => <li key={i}>{p}</li>)}
+                  <p className="font-semibold text-primary mb-2">النقاط الرئيسية</p>
+                  <ol className="pr-5 space-y-2">
+                    {outline.points.map((p, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-primary font-bold min-w-[1.2rem]">{i + 1}.</span>
+                        <div className="flex-1">
+                          <span>{p}</span>
+                          <button onClick={() => openExpand(p)}
+                            className="mr-2 px-2 py-0.5 rounded text-xs font-medium text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors inline-flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />توسّع
+                          </button>
+                        </div>
+                      </li>
+                    ))}
                   </ol>
                 </div>
                 {outline._type === 'sermon' ? (
@@ -587,6 +627,44 @@ export default function Service() {
       </div>
 
       {/* Sheet التفسير (يعيد استخدام TafsirText) */}
+      {/* Sheet توسيع النقطة */}
+      <Sheet open={expandOpen} onOpenChange={setExpandOpen}>
+        <SheetContent side="bottom" className="h-[75vh] overflow-y-auto" dir="rtl">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2 text-right text-base">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              <span className="line-clamp-2">{expandPoint}</span>
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {expandLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+                <p className="text-sm text-muted-foreground">جاري التوسيع…</p>
+              </div>
+            ) : expandText ? (
+              <>
+                <div className="font-display text-base leading-loose text-foreground whitespace-pre-wrap mb-6">{expandText}</div>
+                <Button
+                  onClick={() => {
+                    const dv: DraftVerse = { id: Date.now(), bookName: '—', chapter: 0, verse: 0, text: `[${expandPoint}]\n\n${expandText}` };
+                    setDraft(prev => [...prev, dv]);
+                    toast.success('أُضيفت للمسودة');
+                    setExpandOpen(false);
+                  }}
+                  className="w-full"
+                  style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                >
+                  <Plus className="w-4 h-4 ml-2" /> أضف للمسودة
+                </Button>
+              </>
+            ) : (
+              <p className="text-center text-sm text-muted-foreground py-12">تعذّر التوسيع، حاول مرة أخرى</p>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <Sheet open={tafsirOpen} onOpenChange={setTafsirOpen}>
         <SheetContent side="bottom" className="h-[70vh] overflow-y-auto" dir="rtl">
           <SheetHeader>
