@@ -582,16 +582,16 @@ export async function autoSeedIfNeeded(): Promise<void> {
       console.log('[auto-seed] AI user phrases already exist');
     }
 
-    // Seed calendar daily verses — check unique verse count to detect duplicated/bad data
-    const uniqueVerseCount = await db.execute(
-      sql`SELECT COUNT(DISTINCT verse_reference) as cnt FROM calendar_daily_verses`
+    // Seed calendar daily verses — check total row count to ensure all 366 days exist
+    const totalVerseCount = await db.execute(
+      sql`SELECT COUNT(*) as cnt FROM calendar_daily_verses`
     );
-    const uniqueCount = Number((uniqueVerseCount.rows[0] as any)?.cnt ?? 0);
-    if (uniqueCount < 200) {
-      console.log(`[auto-seed] Calendar daily verses: only ${uniqueCount} unique refs — reseeding 366 unique verses...`);
+    const totalCount = Number((totalVerseCount.rows[0] as any)?.cnt ?? 0);
+    if (totalCount < 366) {
+      console.log(`[auto-seed] Calendar daily verses: only ${totalCount} rows — reseeding 366 unique verses...`);
       await seedCalendarDailyVersesHardcoded();
     } else {
-      console.log(`[auto-seed] Calendar daily verses OK: ${uniqueCount} unique refs`);
+      console.log(`[auto-seed] Calendar daily verses OK: ${totalCount} rows`);
     }
 
     // ── إنشاء مجموعة "درس كتاب مارمرقس" إذا لم تكن موجودة ──────────────
