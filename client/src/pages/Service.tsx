@@ -187,12 +187,20 @@ export default function Service() {
   }
 
   // ── المسودة ──────────────────────────────────────────────────────────────
-  function addToDraft(v: VerseResult) {
-    if (!v.bookName) return;
-    if (draft.some(d => d.id === v.id)) { toast.info('هذه الآية موجودة في المسودة'); return; }
-    setDraft(prev => [...prev, { id: v.id, bookName: v.bookName!, chapter: v.chapter, verse: v.verse, text: v.text }]);
-    toast.success('أُضيفت للمسودة');
+  function isInDraft(v: { bookName?: string | null; chapter: number; verse: number }) {
+    return draft.some(d => d.bookName === v.bookName && d.chapter === v.chapter && d.verse === v.verse);
   }
+  function toggleDraft(v: VerseResult) {
+    if (!v.bookName) return;
+    if (isInDraft(v)) {
+      setDraft(prev => prev.filter(d => !(d.bookName === v.bookName && d.chapter === v.chapter && d.verse === v.verse)));
+      toast.info('حُذفت من المسودة');
+    } else {
+      setDraft(prev => [...prev, { id: v.id, bookName: v.bookName!, chapter: v.chapter, verse: v.verse, text: v.text }]);
+      toast.success('أُضيفت للمسودة');
+    }
+  }
+  function addToDraft(v: VerseResult) { toggleDraft(v); }
   function removeFromDraft(id: number) { setDraft(prev => prev.filter(d => d.id !== id)); }
   function clearDraft() {
     if (!confirm('مسح المسودة كاملة؟')) return;
@@ -425,15 +433,18 @@ export default function Service() {
                               onClick={() => openTafsir({ id: i + 90000, bookId: 0, chapter: v.chapter, verse: v.verse, text: v.text, bookName: v.book })}
                             >📖 تفسير الآية</button>
                             <button
-                              className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline"
+                              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse) ? 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40' : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'}`}
                               onClick={() => {
-                                const dv: DraftVerse = { id: i + 90000, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
-                                if (!draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)) {
-                                  setDraft(prev => [...prev, dv]);
+                                const inDraft = draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse);
+                                if (inDraft) {
+                                  setDraft(prev => prev.filter(d => !(d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)));
+                                  toast.info('حُذفت من المسودة');
+                                } else {
+                                  setDraft(prev => [...prev, { id: i + 90000, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text }]);
                                   toast.success('أُضيفت للمسودة');
                                 }
                               }}
-                            >+ أضف للمسودة</button>
+                            >{draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse) ? '✓ مضافة' : '+ أضف للمسودة'}</button>
                           </div>
                         </div>
                       ))}
@@ -516,10 +527,10 @@ export default function Service() {
                             📖 تفسير الآية
                           </button>
                           <button
-                            onClick={() => addToDraft(v)}
-                            className="px-3 py-1.5 rounded text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors flex items-center gap-1"
+                            onClick={() => toggleDraft(v)}
+                            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1 ${isInDraft(v) ? 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200' : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'}`}
                           >
-                            <Plus className="w-3 h-3" /> أضف للمسودة
+                            {isInDraft(v) ? '✓ مضافة (اضغط للإزالة)' : <><Plus className="w-3 h-3" /> أضف للمسودة</>}
                           </button>
                         </div>
                       </div>
@@ -542,15 +553,18 @@ export default function Service() {
                           </button>
                           <button
                             onClick={() => {
-                              const dv: DraftVerse = { id: 800000 + i, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text };
-                              if (!draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)) {
-                                setDraft(prev => [...prev, dv]);
+                              const inDraft = draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse);
+                              if (inDraft) {
+                                setDraft(prev => prev.filter(d => !(d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse)));
+                                toast.info('حُذفت من المسودة');
+                              } else {
+                                setDraft(prev => [...prev, { id: 800000 + i, bookName: v.book, chapter: v.chapter, verse: v.verse, text: v.text }]);
                                 toast.success('أُضيفت للمسودة');
                               }
                             }}
-                            className="px-3 py-1.5 rounded text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors flex items-center gap-1"
+                            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1 ${draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse) ? 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40' : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30'}`}
                           >
-                            <Plus className="w-3 h-3" /> أضف للمسودة
+                            {draft.some(d => d.bookName === v.book && d.chapter === v.chapter && d.verse === v.verse) ? '✓ مضافة' : <><Plus className="w-3 h-3" /> أضف للمسودة</>}
                           </button>
                         </div>
                       </div>
