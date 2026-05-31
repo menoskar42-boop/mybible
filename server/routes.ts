@@ -620,6 +620,36 @@ export async function registerRoutes(
     }
   });
 
+  // ── نص قراءة من نطاق آيات (للكتامارس في الخولاجي)
+  app.get('/api/reading-text', async (req, res) => {
+    try {
+      const { bookName, fromCh, fromVs, toCh, toVs } = req.query as Record<string, string>;
+      if (!bookName || !fromCh || !fromVs || !toCh || !toVs) {
+        return res.status(400).json({ message: 'bookName, fromCh, fromVs, toCh, toVs required' });
+      }
+      const book = await storage.getBookByName(bookName);
+      if (!book) return res.status(404).json({ message: `Book not found: ${bookName}` });
+
+      const fCh = parseInt(fromCh), fVs = parseInt(fromVs), tCh = parseInt(toCh), tVs = parseInt(toVs);
+      const verses: { chapter: number; verse: number; text: string }[] = [];
+
+      for (let ch = fCh; ch <= tCh; ch++) {
+        const chVerses = await storage.getVersesByBook(book.id, ch);
+        for (const v of chVerses) {
+          const inRange =
+            (ch === fCh && ch === tCh) ? (v.verse >= fVs && v.verse <= tVs) :
+            (ch === fCh)               ? (v.verse >= fVs) :
+            (ch === tCh)               ? (v.verse <= tVs) :
+            true;
+          if (inRange) verses.push({ chapter: v.chapter, verse: v.verse, text: v.text });
+        }
+      }
+      res.json({ bookName, verses });
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to fetch reading text' });
+    }
+  });
+
   app.get('/api/verses/search', async (req, res) => {
     try {
       const query = req.query.q as string;

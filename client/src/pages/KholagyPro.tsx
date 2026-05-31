@@ -8,6 +8,48 @@ import { Card } from '@/components/ui/card';
 import { SEOHead } from '@/components/SEOHead';
 import { kholagyLiturgies, type KholagyLiturgy, type KholagySection } from '@/lib/kholagy-data';
 import { COPTIC_TEXT_MAP, COPTIC_ARABIC_MAP } from '@/lib/liturgy-map';
+import { getLectionaryForDate, type ReadingRef } from '@/lib/coptic-lectionary';
+
+// ── تعيين أقسام القراءات إلى نوع القراءة في الكتامارس
+const SECTION_TO_READING: Record<string, keyof ReturnType<typeof getLectionaryForDate>['reading']> = {
+  'basil-pauline':  'pauline',
+  'basil-catholic': 'catholic',
+  'basil-praxis':   'praxis',
+  'basil-gospel':   'gospel',
+  'greg-pauline':   'pauline',
+  'greg-catholic':  'catholic',
+  'greg-praxis':    'praxis',
+  'greg-gospel':    'gospel',
+  'cyril-pauline':  'pauline',
+  'cyril-catholic': 'catholic',
+  'cyril-praxis':   'praxis',
+  'cyril-gospel':   'gospel',
+};
+
+// ── جلب نص القراءة من السيرفر
+function useDailyReadingText(ref: ReadingRef | null) {
+  const [verses, setVerses] = useState<{ chapter: number; verse: number; text: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!ref) return;
+    setLoading(true);
+    setVerses([]);
+    const params = new URLSearchParams({
+      bookName: ref.book,
+      fromCh: String(ref.fromCh),
+      fromVs: String(ref.fromVs),
+      toCh:   String(ref.toCh),
+      toVs:   String(ref.toVs),
+    });
+    fetch(`/api/reading-text?${params}`)
+      .then(r => r.json())
+      .then(data => { setVerses(data.verses ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [ref?.book, ref?.fromCh, ref?.fromVs, ref?.toCh, ref?.toVs]);
+
+  return { verses, loading };
+}
 
 // ── ألوان الأدوار
 const roleColors: Record<string, string> = {
@@ -148,8 +190,14 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
   const badgeClass = roleColors[section.role] ?? 'bg-slate-100 text-slate-700';
 
   const copticScript = section.copticText || COPTIC_TEXT_MAP[section.id] || null;
-  const copticArabic = COPTIC_ARABIC_MAP[section.id] || null;
+  const copticArabic = section.copticArabicText || COPTIC_ARABIC_MAP[section.id] || null;
   const hasCoptic = !!(copticScript || copticArabic);
+
+  // ── قراءة اليوم من الكتامارس
+  const readingType = SECTION_TO_READING[section.id] ?? null;
+  const todayLectionary = useMemo(() => getLectionaryForDate(new Date()), []);
+  const todayRef: ReadingRef | null = readingType ? todayLectionary.reading[readingType] : null;
+  const { verses: readingVerses, loading: readingLoading } = useDailyReadingText(todayRef);
 
   // الزر يعرض الوضع الحالي — يدور: عربي ← قبطي بحروف قبطية ← قبطي بحروف عربية ← عربي
   const modeIcon: Record<typeof textMode, string> = {
@@ -284,7 +332,36 @@ function SectionReader({ liturgy, section, sectionIdx, basePath }: {
           </p>
         </div>
 
-        {/* النص */}
+        {/* ── قراءة اليوم (تظهر في أقسام القراءات فقط) */}
+        {todayRef && (
+          <div className="px-4 mb-4">
+            <div className="rounded-xl border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-4" dir="rtl">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <span className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                  قراءة اليوم — {todayLectionary.copticDate}
+                </span>
+                <span className="text-xs text-amber-600 dark:text-amber-400 mr-auto">{todayRef.label}</span>
+              </div>
+              {readingLoading ? (
+                <p className="text-sm text-amber-700 dark:text-amber-400 animate-pulse">جاري التحميل…</p>
+              ) : readingVerses.length > 0 ? (
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {readingVerses.map(v => (
+                    <p key={`${v.chapter}-${v.verse}`} className="text-sm leading-7 text-foreground text-right">
+                      <span className="text-xs text-amber-600 dark:text-amber-400 ml-1">{v.verse}</span>
+                      {v.text}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-amber-700 dark:text-amber-400">{todayRef.label}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* النص الطقسي */}
         <div className="px-4">
           <div className={`rounded-xl p-5 bg-muted/20 border ${borderClass} space-y-4`}>
             {/* عربي */}
