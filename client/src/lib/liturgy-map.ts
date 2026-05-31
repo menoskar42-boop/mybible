@@ -494,6 +494,31 @@ export function getSplitSlidesForSection(
   return [...occBefore, ...occPrelude, ...seasonal, ...prelude, ...result, ...occAfter];
 }
 
+// ── شرائح ما قبل القراءة (تقديسات، مردات الشماس، إقحامات المناسبة قبل المحتوى)
+// تُستخدم عند بناء الشرائح لأقسام القراءات اليومية لتأتي الإقحامات قبل النص
+export function getPreludeSlidesForSection(
+  liturgyType: LiturgyType,
+  sectionKey: string,
+  occasion: OccasionTag = 'ordinary',
+  seasonalLitany: SeasonalLitanyType = 'weather',
+): LiturgySlide[] {
+  const occBefore  = getOccasionInserts(sectionKey, occasion, 'before');
+  const occPrelude = getOccasionInserts(sectionKey, occasion, 'prelude');
+  const seasonal   = getSeasonalLitanySlides(sectionKey, seasonalLitany);
+  const prelude = (occBefore.length > 0 || occPrelude.length > 0)
+    ? []
+    : (SECTION_DEACON_PRELUDE[sectionKey] ?? []);
+  return [...occBefore, ...occPrelude, ...seasonal, ...prelude];
+}
+
+// ── شرائح ما بعد القراءة (مرد الإنجيل / إقحامات المناسبة بعد المحتوى)
+export function getPostludeSlidesForSection(
+  sectionKey: string,
+  occasion: OccasionTag = 'ordinary',
+): LiturgySlide[] {
+  return getOccasionInserts(sectionKey, occasion, 'after');
+}
+
 // ── مجموعات الأقسام المتكافئة بين القداسات الثلاثة
 // كل سجل يربط الأقسام ذات الدلالة الليتورجية المتماثلة
 const SECTION_GROUPS: Partial<Record<LiturgyType, string>>[] = [

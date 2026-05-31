@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   getSectionsForLiturgy,
   getSplitSlidesForSection,
+  getPreludeSlidesForSection,
+  getPostludeSlidesForSection,
+  getReadingType,
   findEquivalentSection,
   getLiturgyLabel,
   getRoleLabel,
@@ -85,24 +88,28 @@ export default function LiturgyControl() {
     });
   }
 
-  // ── الشرائح: الطقس أولاً (مع القبطي) ثم القراءة اليومية
-  const _staticSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);
-  const _readingType = READINGS_SECTION_KEYS.has(session.sectionKey)
-    ? (['pauline','catholic','praxis','psalm','synaxar','gospel'].find(t => session.sectionKey.includes(t)) as keyof DailyReadingSlides | undefined)
-    : undefined;
-  const _readingOverrideData = _readingType ? session.readingsOverride?.[_readingType] : null;
-  const _dailySlides: LiturgySlide[] = _readingOverrideData?.slides?.length
-    ? _readingOverrideData.slides.map((text, i) => ({
-        id: `reading-${_readingType}-${i}`,
-        title: _readingOverrideData.title,
-        role: 'deacon' as const,
-        text,
-      }))
-    : [];
-  // الشرائح الطقسية + القراءة اليومية معاً
-  const currentSlides: LiturgySlide[] = _dailySlides.length
-    ? [..._staticSlides, ..._dailySlides]
-    : _staticSlides;
+  // ── بناء الشرائح: للأقسام القرائية = مقدمة + مزمور (للإنجيل) + قراءة اليوم + خاتمة
+  const _readingType = READINGS_SECTION_KEYS.has(session.sectionKey) ? getReadingType(session.sectionKey) : null;
+  const _activeReadings = session.readingsOverride as Record<string, { title: string; slides: string[] }> | null;
+  const currentSlides: LiturgySlide[] = (() => {
+    if (_readingType && _activeReadings) {
+      const prelude = getPreludeSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);
+      const postlude = getPostludeSlidesForSection(session.sectionKey, session.occasion);
+      const isGospel = session.sectionKey.includes('gospel');
+      const psalmData = isGospel ? _activeReadings['psalm'] : null;
+      const psalmSlides: LiturgySlide[] = psalmData?.slides?.length
+        ? psalmData.slides.map((text, i) => ({ id: `reading-psalm-${i}`, title: psalmData.title, role: 'deacon' as const, text }))
+        : [];
+      const readingData = _activeReadings[_readingType];
+      const readingSlides: LiturgySlide[] = readingData?.slides?.length
+        ? readingData.slides.map((text, i) => ({ id: `reading-${_readingType}-${i}`, title: readingData.title, role: 'deacon' as const, text }))
+        : [];
+      if (psalmSlides.length || readingSlides.length) {
+        return [...prelude, ...psalmSlides, ...readingSlides, ...postlude];
+      }
+    }
+    return getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);
+  })();
   const currentSlide = currentSlides[session.slideIndex];
   // section key هو المعرّف الأصلي قبل التقسيم (basil-opening لا basil-opening-p4)
   const currentSectionKey = session.sectionKey;
