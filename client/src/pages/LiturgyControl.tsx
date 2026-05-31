@@ -222,7 +222,12 @@ export default function LiturgyControl() {
     const slides = getSplitSlidesForSection(session.liturgyType, s.sectionKey, session.occasion, session.seasonalLitany);
     return slides.length > 0;
   }) ?? null;
+  const prevSection = allSections.slice(0, currentSectionIdx).reverse().find(s => {
+    const slides = getSplitSlidesForSection(session.liturgyType, s.sectionKey, session.occasion, session.seasonalLitany);
+    return slides.length > 0;
+  }) ?? null;
   const isLastSlide = !session.deaconOverride && session.slideIndex >= currentSlides.length - 1;
+  const isFirstSlide = !session.deaconOverride && session.slideIndex === 0;
 
   function goNext() {
     if (session.deaconOverride) {
@@ -243,6 +248,9 @@ export default function LiturgyControl() {
     }
     if (session.slideIndex > 0) {
       pushSession({ slideIndex: session.slideIndex - 1, deaconOverride: null });
+    } else if (prevSection) {
+      const prevSlides = getSplitSlidesForSection(session.liturgyType, prevSection.sectionKey, session.occasion, session.seasonalLitany);
+      pushSession({ sectionKey: prevSection.sectionKey, slideIndex: prevSlides.length - 1, deaconOverride: null });
     }
   }
 
@@ -536,12 +544,14 @@ export default function LiturgyControl() {
                 size="lg"
                 variant="outline"
                 onClick={goPrev}
-                disabled={!session.deaconOverride && session.slideIndex === 0}
-                className="border-gray-600 text-white hover:bg-gray-700 flex-1"
+                disabled={isFirstSlide && !prevSection}
+                className={`flex-1 ${isFirstSlide && prevSection ? 'bg-blue-700 hover:bg-blue-800 text-white border-0' : 'border-gray-600 text-white hover:bg-gray-700'}`}
                 data-testid="ctrl-prev"
               >
-                <ChevronRight className="w-5 h-5 ml-1" />
-                السابق
+                <ChevronRight className="w-5 h-5 ml-1 flex-shrink-0" />
+                {isFirstSlide && prevSection ? (
+                  <span className="truncate text-sm">{prevSection.icon} {prevSection.label}</span>
+                ) : 'السابق'}
               </Button>
               <Button
                 size="lg"
