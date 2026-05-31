@@ -216,6 +216,19 @@ export default function LiturgyControl() {
   const [showHymnsPanel, setShowHymnsPanel] = useState(false);
   const [expandedHymnId, setExpandedHymnId] = useState<string | null>(null);
 
+  const allSections = getSectionsForLiturgy(session.liturgyType);
+  const currentSectionIdx = allSections.findIndex(s => s.sectionKey === session.sectionKey);
+  const nextSection = allSections.slice(currentSectionIdx + 1).find(s => {
+    const slides = getSplitSlidesForSection(session.liturgyType, s.sectionKey, session.occasion, session.seasonalLitany);
+    return slides.length > 0;
+  }) ?? null;
+  const prevSection = allSections.slice(0, currentSectionIdx).reverse().find(s => {
+    const slides = getSplitSlidesForSection(session.liturgyType, s.sectionKey, session.occasion, session.seasonalLitany);
+    return slides.length > 0;
+  }) ?? null;
+  const isLastSlide = !session.deaconOverride && session.slideIndex >= currentSlides.length - 1;
+  const isFirstSlide = !session.deaconOverride && session.slideIndex === 0;
+
   function goNext() {
     if (session.deaconOverride) {
       pushSession({ deaconOverride: null });
@@ -223,6 +236,8 @@ export default function LiturgyControl() {
     }
     if (session.slideIndex < currentSlides.length - 1) {
       pushSession({ slideIndex: session.slideIndex + 1, deaconOverride: null });
+    } else if (nextSection) {
+      pushSession({ sectionKey: nextSection.sectionKey, slideIndex: 0, deaconOverride: null });
     }
   }
 
@@ -233,6 +248,9 @@ export default function LiturgyControl() {
     }
     if (session.slideIndex > 0) {
       pushSession({ slideIndex: session.slideIndex - 1, deaconOverride: null });
+    } else if (prevSection) {
+      const prevSlides = getSplitSlidesForSection(session.liturgyType, prevSection.sectionKey, session.occasion, session.seasonalLitany);
+      pushSession({ sectionKey: prevSection.sectionKey, slideIndex: prevSlides.length - 1, deaconOverride: null });
     }
   }
 
@@ -526,22 +544,26 @@ export default function LiturgyControl() {
                 size="lg"
                 variant="outline"
                 onClick={goPrev}
-                disabled={!session.deaconOverride && session.slideIndex === 0}
-                className="border-gray-600 text-white hover:bg-gray-700 flex-1"
+                disabled={isFirstSlide && !prevSection}
+                className={`flex-1 ${isFirstSlide && prevSection ? 'bg-blue-700 hover:bg-blue-800 text-white border-0' : 'border-gray-600 text-white hover:bg-gray-700'}`}
                 data-testid="ctrl-prev"
               >
-                <ChevronRight className="w-5 h-5 ml-1" />
-                السابق
+                <ChevronRight className="w-5 h-5 ml-1 flex-shrink-0" />
+                {isFirstSlide && prevSection ? (
+                  <span className="truncate text-sm">{prevSection.icon} {prevSection.label}</span>
+                ) : 'السابق'}
               </Button>
               <Button
                 size="lg"
                 onClick={goNext}
-                disabled={!session.deaconOverride && session.slideIndex >= currentSlides.length - 1}
-                className="bg-amber-600 hover:bg-amber-700 text-white flex-1"
+                disabled={isLastSlide && !nextSection}
+                className={`text-white flex-1 ${isLastSlide && nextSection ? 'bg-blue-700 hover:bg-blue-800' : 'bg-amber-600 hover:bg-amber-700'}`}
                 data-testid="ctrl-next"
               >
-                التالي
-                <ChevronLeft className="w-5 h-5 mr-1" />
+                {isLastSlide && nextSection ? (
+                  <span className="truncate text-sm">{nextSection.icon} {nextSection.label}</span>
+                ) : 'التالي'}
+                <ChevronLeft className="w-5 h-5 mr-1 flex-shrink-0" />
               </Button>
             </div>
           </Card>
