@@ -265,6 +265,7 @@ export default function LiturgyControl() {
       .replace(/[أإآ]/g, 'ا')
       .replace(/[ؤئ]/g, 'و')
       .replace(/ة/g, 'ه')
+      .replace(/وا(?=\s|$)/g, 'و')         // الألف الفارقة: أنصتوا = أنصتو
       .replace(/[،,.:;؛!?؟\-\s]+/g, ' ')
       .trim();
   }
