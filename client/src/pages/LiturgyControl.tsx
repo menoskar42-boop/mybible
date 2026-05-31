@@ -85,21 +85,23 @@ export default function LiturgyControl() {
     });
   }
 
-  // ── الشرائح: للأقسام القرائية نستخدم readingsOverride أولاً
+  // ── الشرائح: الطقس أولاً (مع القبطي) ثم القراءة اليومية
   const _staticSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);
   const _readingType = READINGS_SECTION_KEYS.has(session.sectionKey)
-    ? (['pauline','catholic','praxis','psalm','synaxar','gospel'].find(t => session.sectionKey.includes(
-        t === 'synaxar' ? 'synaxar' : t === 'gospel' ? 'gospel' : t
-      )) as keyof DailyReadingSlides | undefined)
+    ? (['pauline','catholic','praxis','psalm','synaxar','gospel'].find(t => session.sectionKey.includes(t)) as keyof DailyReadingSlides | undefined)
     : undefined;
   const _readingOverrideData = _readingType ? session.readingsOverride?.[_readingType] : null;
-  const currentSlides: LiturgySlide[] = _readingOverrideData?.slides?.length
+  const _dailySlides: LiturgySlide[] = _readingOverrideData?.slides?.length
     ? _readingOverrideData.slides.map((text, i) => ({
         id: `reading-${_readingType}-${i}`,
         title: _readingOverrideData.title,
         role: 'deacon' as const,
         text,
       }))
+    : [];
+  // الشرائح الطقسية + القراءة اليومية معاً
+  const currentSlides: LiturgySlide[] = _dailySlides.length
+    ? [..._staticSlides, ..._dailySlides]
     : _staticSlides;
   const currentSlide = currentSlides[session.slideIndex];
   // section key هو المعرّف الأصلي قبل التقسيم (basil-opening لا basil-opening-p4)

@@ -70,28 +70,22 @@ export default function LiturgyDisplay() {
           setCurrentSlide(null);
         } else {
           setDeaconSlide(null);
-          // قراءات اليوم: من الجلسة أولاً، ثم localReadings كـ fallback
+          // الشرائح الطقسية + القراءة اليومية: الطقس أولاً (مع القبطي) ثم القراءة
           const sessionOverride = (data as LiturgySession & { readingsOverride?: Record<string, { title: string; slides: string[] }> }).readingsOverride;
           const readingType = READINGS_SECTION_KEYS.has(data.sectionKey) ? getReadingType(data.sectionKey) : null;
           const activeReadings = sessionOverride ?? localReadings;
-          if (activeReadings && readingType && activeReadings[readingType]) {
-            const reading = activeReadings[readingType];
-            const rawSlides = reading.slides ?? [];
-            const idx = Math.min(data.slideIndex, Math.max(0, rawSlides.length - 1));
-            if (rawSlides.length > 0) {
-              setCurrentSlide({
-                id: `override-${readingType}-${idx}`,
-                title: reading.title,
+          const staticSlides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, data.occasion, data.seasonalLitany);
+          const readingData = readingType ? activeReadings?.[readingType] : null;
+          const extraSlides: LiturgySlide[] = readingData?.slides?.length
+            ? readingData.slides.map((text, i) => ({
+                id: `reading-${readingType}-${i}`,
+                title: readingData.title,
                 role: 'deacon' as LiturgySlide['role'],
-                text: rawSlides[idx] ?? '',
-              });
-            } else {
-              setCurrentSlide(null);
-            }
-          } else {
-            const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, data.occasion, data.seasonalLitany);
-            setCurrentSlide(slides[data.slideIndex] ?? null);
-          }
+                text,
+              }))
+            : [];
+          const allSlides = extraSlides.length ? [...staticSlides, ...extraSlides] : staticSlides;
+          setCurrentSlide(allSlides[data.slideIndex] ?? null);
         }
       } catch {
         // silent — keep last state
