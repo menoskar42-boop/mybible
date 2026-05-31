@@ -21,6 +21,8 @@ export default function LiturgyDisplay() {
   const [session, setSession] = useState<LiturgySession>(defaultSession as LiturgySession);
   const [currentSlide, setCurrentSlide] = useState<LiturgySlide | null>(null);
   const [deaconSlide, setDeaconSlide] = useState<DeaconResponse | null>(null);
+  // قراءات اليوم — مستقلة عن الجلسة لضمان التحميل حتى بعد إعادة تشغيل السيرفر
+  const [localReadings, setLocalReadings] = useState<Record<string, { title: string; slides: string[] }> | null>(null);
 
   // copticMode قد يأتي undefined من sessions قديمة — نضع fallback صريح
   const copticMode: 'script' | 'arabic' =
@@ -39,6 +41,15 @@ export default function LiturgyDisplay() {
     document.title = 'عرض القداس';
     document.body.style.background = '#000';
     document.body.style.overflow = 'hidden';
+    // جلب قراءات اليوم مباشرة — لا نعتمد على الجلسة وحدها
+    fetch('/api/daily-readings')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        const { copticDate: _cd, ...readings } = data;
+        setLocalReadings(readings as Record<string, { title: string; slides: string[] }>);
+      })
+      .catch(() => {});
     return () => {
       document.body.style.background = '';
       document.body.style.overflow = '';
@@ -59,18 +70,19 @@ export default function LiturgyDisplay() {
           setCurrentSlide(null);
         } else {
           setDeaconSlide(null);
-          // قراءات اليوم الديناميكية — إن وُجد override وكان القسم من أقسام القراءات
-          const override = (data as LiturgySession & { readingsOverride?: Record<string, { title: string; slides: string[] }> }).readingsOverride;
+          // قراءات اليوم: من الجلسة أولاً، ثم localReadings كـ fallback
+          const sessionOverride = (data as LiturgySession & { readingsOverride?: Record<string, { title: string; slides: string[] }> }).readingsOverride;
           const readingType = READINGS_SECTION_KEYS.has(data.sectionKey) ? getReadingType(data.sectionKey) : null;
-          if (override && readingType && override[readingType]) {
-            const reading = override[readingType];
+          const activeReadings = sessionOverride ?? localReadings;
+          if (activeReadings && readingType && activeReadings[readingType]) {
+            const reading = activeReadings[readingType];
             const rawSlides = reading.slides ?? [];
-            const idx = Math.min(data.slideIndex, rawSlides.length - 1);
+            const idx = Math.min(data.slideIndex, Math.max(0, rawSlides.length - 1));
             if (rawSlides.length > 0) {
               setCurrentSlide({
                 id: `override-${readingType}-${idx}`,
                 title: reading.title,
-                role: 'reader' as LiturgySlide['role'],
+                role: 'deacon' as LiturgySlide['role'],
                 text: rawSlides[idx] ?? '',
               });
             } else {

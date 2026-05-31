@@ -11,6 +11,7 @@ import {
   deaconResponses,
   defaultSession,
   COPTIC_ARABIC_MAP,
+  READINGS_SECTION_KEYS,
   type LiturgyType,
   type LiturgySession,
   type LiturgySlide,
@@ -84,7 +85,22 @@ export default function LiturgyControl() {
     });
   }
 
-  const currentSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);
+  // ── الشرائح: للأقسام القرائية نستخدم readingsOverride أولاً
+  const _staticSlides = getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);
+  const _readingType = READINGS_SECTION_KEYS.has(session.sectionKey)
+    ? (['pauline','catholic','praxis','psalm','synaxar','gospel'].find(t => session.sectionKey.includes(
+        t === 'synaxar' ? 'synaxar' : t === 'gospel' ? 'gospel' : t
+      )) as keyof DailyReadingSlides | undefined)
+    : undefined;
+  const _readingOverrideData = _readingType ? session.readingsOverride?.[_readingType] : null;
+  const currentSlides: LiturgySlide[] = _readingOverrideData?.slides?.length
+    ? _readingOverrideData.slides.map((text, i) => ({
+        id: `reading-${_readingType}-${i}`,
+        title: _readingOverrideData.title,
+        role: 'deacon' as const,
+        text,
+      }))
+    : _staticSlides;
   const currentSlide = currentSlides[session.slideIndex];
   // section key هو المعرّف الأصلي قبل التقسيم (basil-opening لا basil-opening-p4)
   const currentSectionKey = session.sectionKey;
