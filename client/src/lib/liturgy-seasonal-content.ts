@@ -9,6 +9,54 @@ import type { SeasonalLitanyInsert } from './liturgy-map';
 
 export const seasonalLitanyInserts: SeasonalLitanyInsert[] = [
   {
+    anchorSectionKey: 'basil-short-litanies',
+    replaceContent: true,
+    slides: {
+      water: [
+        {
+          id: 'seasonal-water-short-1',
+          role: 'deacon',
+          title: 'الهيتينيات القصيرة — هيتينية المياه',
+          text: 'اِطْلُبُوا مِنْ أَجْلِ صُعُودِ مِيَاهِ الأنهار في هذه السنة لكي يُبَارِكَهَا الْمَسِيحُ إِلَهُنَا وَيُصَعِّدَهَا كَمِقْدَارِهَا لِيَفْرَحَ بِهَا وَجْهُ الأَرْضِ وَتَتِمَّ حَاجَتُنَا.',
+        },
+        {
+          id: 'seasonal-water-short-2',
+          role: 'people',
+          title: 'الهيتينيات القصيرة — هيتينية المياه',
+          text: 'يَا رَبِّ ارْحَمْ.',
+        },
+      ],
+      crops: [
+        {
+          id: 'seasonal-crops-short-1',
+          role: 'deacon',
+          title: 'الهيتينيات القصيرة — هيتينية الزروع',
+          text: 'اِطْلُبُوا مِنْ أَجْلِ الزُّرُوعِ وَالْعُشْبِ وَثِمَارِ الأَرْضِ في هذه السنة لكي يُبَارِكَهَا الْمَسِيحُ إِلَهُنَا وَيُعْطِيَهَا كَمِقْدَارِهَا لِيَفْرَحَ بِهَا وَجْهُ الأَرْضِ وَتَتِمَّ حَاجَتُنَا.',
+        },
+        {
+          id: 'seasonal-crops-short-2',
+          role: 'people',
+          title: 'الهيتينيات القصيرة — هيتينية الزروع',
+          text: 'يَا رَبِّ ارْحَمْ.',
+        },
+      ],
+      weather: [
+        {
+          id: 'seasonal-weather-short-1',
+          role: 'deacon',
+          title: 'الهيتينيات القصيرة — هيتينية الأهوية',
+          text: 'اِطْلُبُوا مِنْ أَجْلِ أَهْوِيَةِ السَّمَاءِ الصَّالِحَةِ وَالثِّمَارِ الْكَامِلَةِ في هذه السنة لكي يُبَارِكَهَا الْمَسِيحُ إِلَهُنَا وَيَدْفَعَ عَنَّا كُلَّ وَبَاءٍ وَضِيقٍ وَيُعْطِيَنَا سَلاَمَ أَيَّامِنَا.',
+        },
+        {
+          id: 'seasonal-weather-short-2',
+          role: 'people',
+          title: 'الهيتينيات القصيرة — هيتينية الأهوية',
+          text: 'يَا رَبِّ ارْحَمْ.',
+        },
+      ],
+    },
+  },
+  {
     anchorSectionKey: 'basil-general-canon',
     slides: {
       water: [
