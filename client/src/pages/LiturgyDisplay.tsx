@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'wouter';
 import {
   getSectionsForLiturgy,
@@ -21,8 +21,8 @@ export default function LiturgyDisplay() {
   const [session, setSession] = useState<LiturgySession>(defaultSession as LiturgySession);
   const [currentSlide, setCurrentSlide] = useState<LiturgySlide | null>(null);
   const [deaconSlide, setDeaconSlide] = useState<DeaconResponse | null>(null);
-  // قراءات اليوم — مستقلة عن الجلسة لضمان التحميل حتى بعد إعادة تشغيل السيرفر
-  const [localReadings, setLocalReadings] = useState<Record<string, { title: string; slides: string[] }> | null>(null);
+  // قراءات اليوم — ref لتجنب stale closure في polling interval
+  const localReadingsRef = useRef<Record<string, { title: string; slides: string[] }> | null>(null);
 
   // copticMode قد يأتي undefined من sessions قديمة — نضع fallback صريح
   const copticMode: 'script' | 'arabic' =
@@ -47,7 +47,7 @@ export default function LiturgyDisplay() {
       .then(data => {
         if (!data) return;
         const { copticDate: _cd, ...readings } = data;
-        setLocalReadings(readings as Record<string, { title: string; slides: string[] }>);
+        localReadingsRef.current = readings as Record<string, { title: string; slides: string[] }>;
       })
       .catch(() => {});
     return () => {
@@ -73,7 +73,7 @@ export default function LiturgyDisplay() {
           // الشرائح الطقسية + القراءة اليومية: الطقس أولاً (مع القبطي) ثم القراءة
           const sessionOverride = (data as LiturgySession & { readingsOverride?: Record<string, { title: string; slides: string[] }> }).readingsOverride;
           const readingType = READINGS_SECTION_KEYS.has(data.sectionKey) ? getReadingType(data.sectionKey) : null;
-          const activeReadings = sessionOverride ?? localReadings;
+          const activeReadings = sessionOverride ?? localReadingsRef.current;
           const staticSlides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, data.occasion, data.seasonalLitany);
           const readingData = readingType ? activeReadings?.[readingType] : null;
           const extraSlides: LiturgySlide[] = readingData?.slides?.length
