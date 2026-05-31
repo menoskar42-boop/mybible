@@ -286,10 +286,10 @@ export const occasionInserts: OccasionInsert[] = [
     ],
   },
 
-  // ── عيد العنصرة — المجد للروح القدس (لحن التناول) ──────────────────────────
+  // ── عيد العنصرة — المجد للروح القدس (قبل القسمة) ──────────────────────────
   {
     occasion: 'pentecost',
-    anchorSectionKey: 'basil-communion',
+    anchorSectionKey: 'basil-fraction',
     position: 'before',
     slides: [
       {
