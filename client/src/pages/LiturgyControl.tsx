@@ -216,6 +216,14 @@ export default function LiturgyControl() {
   const [showHymnsPanel, setShowHymnsPanel] = useState(false);
   const [expandedHymnId, setExpandedHymnId] = useState<string | null>(null);
 
+  const allSections = getSectionsForLiturgy(session.liturgyType);
+  const currentSectionIdx = allSections.findIndex(s => s.sectionKey === session.sectionKey);
+  const nextSection = allSections.slice(currentSectionIdx + 1).find(s => {
+    const slides = getSplitSlidesForSection(session.liturgyType, s.sectionKey, session.occasion, session.seasonalLitany);
+    return slides.length > 0;
+  }) ?? null;
+  const isLastSlide = !session.deaconOverride && session.slideIndex >= currentSlides.length - 1;
+
   function goNext() {
     if (session.deaconOverride) {
       pushSession({ deaconOverride: null });
@@ -223,6 +231,8 @@ export default function LiturgyControl() {
     }
     if (session.slideIndex < currentSlides.length - 1) {
       pushSession({ slideIndex: session.slideIndex + 1, deaconOverride: null });
+    } else if (nextSection) {
+      pushSession({ sectionKey: nextSection.sectionKey, slideIndex: 0, deaconOverride: null });
     }
   }
 
@@ -536,12 +546,14 @@ export default function LiturgyControl() {
               <Button
                 size="lg"
                 onClick={goNext}
-                disabled={!session.deaconOverride && session.slideIndex >= currentSlides.length - 1}
-                className="bg-amber-600 hover:bg-amber-700 text-white flex-1"
+                disabled={isLastSlide && !nextSection}
+                className={`text-white flex-1 ${isLastSlide && nextSection ? 'bg-blue-700 hover:bg-blue-800' : 'bg-amber-600 hover:bg-amber-700'}`}
                 data-testid="ctrl-next"
               >
-                التالي
-                <ChevronLeft className="w-5 h-5 mr-1" />
+                {isLastSlide && nextSection ? (
+                  <span className="truncate text-sm">{nextSection.icon} {nextSection.label}</span>
+                ) : 'التالي'}
+                <ChevronLeft className="w-5 h-5 mr-1 flex-shrink-0" />
               </Button>
             </div>
           </Card>
