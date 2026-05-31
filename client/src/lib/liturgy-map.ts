@@ -276,6 +276,7 @@ function getOccasionInserts(
 // ── الهيتينيات الموسمية (مياه / زروع / أهوية) — تُقحَم حسب الشهر القبطي ────────
 export interface SeasonalLitanyInsert {
   anchorSectionKey: string;
+  replaceContent?: boolean; // إذا true تستبدل الشرائح الموسمية محتوى kholagy-data بدلاً من إضافته
   slides: Record<SeasonalLitanyType, LiturgySlide[]>;
 }
 
@@ -285,6 +286,11 @@ function getSeasonalLitanySlides(
 ): LiturgySlide[] {
   const insert = seasonalLitanyInserts.find(s => s.anchorSectionKey === sectionKey);
   return insert ? (insert.slides[seasonalLitany] ?? []) : [];
+}
+
+function shouldReplaceContentWithSeasonal(sectionKey: string): boolean {
+  const insert = seasonalLitanyInserts.find(s => s.anchorSectionKey === sectionKey);
+  return insert?.replaceContent === true;
 }
 
 // ── واجهة القراءات اليومية الديناميكية
@@ -488,11 +494,14 @@ export function getSplitSlidesForSection(
   const occAfter   = getOccasionInserts(sectionKey, occasion, 'after');
   const seasonal   = getSeasonalLitanySlides(sectionKey, seasonalLitany);
   // يُحذف الإقحام الافتراضي (DEACON_PRELUDE) فقط عند وجود prelude خاص بالمناسبة
-  // (مثل أجيوس البصخة). لا يُحذف عند وجود 'before' فقط (مثل مزمور القداس).
   const prelude = occPrelude.length > 0
     ? []
     : (SECTION_DEACON_PRELUDE[sectionKey] ?? []);
-  return [...occBefore, ...occPrelude, ...seasonal, ...prelude, ...result, ...occAfter];
+  // إذا كان الإدراج الموسمي يستبدل المحتوى، لا نضم شرائح kholagy-data الثابتة
+  const contentSlides = (seasonal.length > 0 && shouldReplaceContentWithSeasonal(sectionKey))
+    ? []
+    : result;
+  return [...occBefore, ...occPrelude, ...seasonal, ...prelude, ...contentSlides, ...occAfter];
 }
 
 // ── شرائح ما قبل القراءة (تقديسات، مردات الشماس، إقحامات المناسبة قبل المحتوى)

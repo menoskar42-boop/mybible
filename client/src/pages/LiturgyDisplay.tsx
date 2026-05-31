@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'wouter';
+import { detectOccasion, detectSeasonalLitany } from '@/lib/liturgy-occasion';
 import {
   getSectionsForLiturgy,
   getSplitSlidesForSection,
@@ -90,7 +91,13 @@ export default function LiturgyDisplay() {
         const url = slot ? `/api/liturgy-session/${slot}` : '/api/liturgy-session';
         const res = await fetch(url);
         if (!res.ok || cancelled) return;
-        const data: LiturgySession = await res.json();
+        const raw: LiturgySession = await res.json();
+        // اكتشاف المناسبة من التاريخ إذا كانت الجلسة على القيمة الافتراضية 'ordinary'
+        const effectiveOccasion = (raw.occasion && raw.occasion !== 'ordinary')
+          ? raw.occasion
+          : detectOccasion(new Date());
+        const effectiveLitany = raw.seasonalLitany ?? detectSeasonalLitany(new Date());
+        const data = { ...raw, occasion: effectiveOccasion, seasonalLitany: effectiveLitany };
         setSession(data);
         if (data.deaconOverride) {
           setDeaconSlide(data.deaconOverride as DeaconResponse);

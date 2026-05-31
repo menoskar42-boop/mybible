@@ -142,8 +142,12 @@ export default function LiturgyControl() {
         navigate(`/liturgy-control/${data.slot}`, { replace: true });
       }
       setSlot(data.slot ?? null);
-      // مناسبة اليوم: تُكتشف تلقائياً من التاريخ ما لم تكن مُخزّنة في الجلسة
-      const occasion: OccasionTag = (data.occasion as OccasionTag) ?? detectOccasion(new Date());
+      // مناسبة اليوم: تُكتشف دائماً من التاريخ إلا إذا اختار المشغّل مناسبة بعينها
+      // 'ordinary' الافتراضية لا تُعدّ اختياراً مقصوداً فتُكتشف من جديد
+      const storedOccasion = data.occasion as OccasionTag | null;
+      const occasion: OccasionTag = (storedOccasion && storedOccasion !== 'ordinary')
+        ? storedOccasion
+        : detectOccasion(new Date());
       const seasonalLitany: SeasonalLitanyType = (data.seasonalLitany as SeasonalLitanyType) ?? detectSeasonalLitany(new Date());
       const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, occasion, seasonalLitany);
       const safeIdx = Math.min(Math.max(0, data.slideIndex), Math.max(0, slides.length - 1));
@@ -255,16 +259,27 @@ export default function LiturgyControl() {
     excerpt: string;
   }
 
+  function normalizeArabic(s: string) {
+    return s
+      .replace(/[ؐ-ًؚ-ٰٟ]/g, '')
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/[ؤئ]/g, 'و')
+      .replace(/ة/g, 'ه')
+      .replace(/وا(?=\s|$)/g, 'و')         // الألف الفارقة: أنصتوا = أنصتو
+      .replace(/[،,.:;؛!?؟\-\s]+/g, ' ')
+      .trim();
+  }
+
   function buildSearchResults(q: string): SearchHit[] {
     if (q.trim().length < 2) return [];
-    const lower = q.toLowerCase();
+    const lower = normalizeArabic(q).toLowerCase();
     const sections = getSectionsForLiturgy(session.liturgyType);
     const hits: SearchHit[] = [];
     for (const sec of sections) {
       const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion, session.seasonalLitany);
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
-        const haystack = (s.text + ' ' + (s.copticText ?? '') + ' ' + (s.copticArabicText ?? '') + ' ' + s.title).toLowerCase();
+        const haystack = normalizeArabic(s.text + ' ' + (s.copticText ?? '') + ' ' + (s.copticArabicText ?? '') + ' ' + s.title).toLowerCase();
         if (!haystack.includes(lower)) continue;
         // مقتطف من موضع الكلمة — من النص العربي، أو من النطق القبطي بالعربية عند التطابق فيه
         const inArabic = s.text.toLowerCase().includes(lower);
