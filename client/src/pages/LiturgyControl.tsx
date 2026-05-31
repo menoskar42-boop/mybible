@@ -88,24 +88,20 @@ export default function LiturgyControl() {
     });
   }
 
-  // ── بناء الشرائح: للأقسام القرائية = مقدمة + مزمور (للإنجيل) + قراءة اليوم + خاتمة
+  // ── بناء الشرائح: للأقسام القرائية = مقدمة + قراءة اليوم + خاتمة
+  // مزمور القداس يأتي من إقحامات المناسبة (occasionInserts position:'before') لا من الإكتاتيروس
   const _readingType = READINGS_SECTION_KEYS.has(session.sectionKey) ? getReadingType(session.sectionKey) : null;
   const _activeReadings = session.readingsOverride as Record<string, { title: string; slides: string[] }> | null;
   const currentSlides: LiturgySlide[] = (() => {
     if (_readingType && _activeReadings) {
       const prelude = getPreludeSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);
       const postlude = getPostludeSlidesForSection(session.sectionKey, session.occasion);
-      const isGospel = session.sectionKey.includes('gospel');
-      const psalmData = isGospel ? _activeReadings['psalm'] : null;
-      const psalmSlides: LiturgySlide[] = psalmData?.slides?.length
-        ? psalmData.slides.map((text, i) => ({ id: `reading-psalm-${i}`, title: psalmData.title, role: 'deacon' as const, text }))
-        : [];
       const readingData = _activeReadings[_readingType];
       const readingSlides: LiturgySlide[] = readingData?.slides?.length
         ? readingData.slides.map((text, i) => ({ id: `reading-${_readingType}-${i}`, title: readingData.title, role: 'deacon' as const, text }))
         : [];
-      if (psalmSlides.length || readingSlides.length) {
-        return [...prelude, ...psalmSlides, ...readingSlides, ...postlude];
+      if (readingSlides.length) {
+        return [...prelude, ...readingSlides, ...postlude];
       }
     }
     return getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany);

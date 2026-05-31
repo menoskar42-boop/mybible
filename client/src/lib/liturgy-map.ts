@@ -487,8 +487,9 @@ export function getSplitSlidesForSection(
   const occPrelude = getOccasionInserts(sectionKey, occasion, 'prelude');
   const occAfter   = getOccasionInserts(sectionKey, occasion, 'after');
   const seasonal   = getSeasonalLitanySlides(sectionKey, seasonalLitany);
-  // الإقحام الافتراضي — يُحذف إذا كانت المناسبة تُقدم إقحام خاص لهذا القسم
-  const prelude = (occBefore.length > 0 || occPrelude.length > 0)
+  // يُحذف الإقحام الافتراضي (DEACON_PRELUDE) فقط عند وجود prelude خاص بالمناسبة
+  // (مثل أجيوس البصخة). لا يُحذف عند وجود 'before' فقط (مثل مزمور القداس).
+  const prelude = occPrelude.length > 0
     ? []
     : (SECTION_DEACON_PRELUDE[sectionKey] ?? []);
   return [...occBefore, ...occPrelude, ...seasonal, ...prelude, ...result, ...occAfter];
@@ -505,7 +506,7 @@ export function getPreludeSlidesForSection(
   const occBefore  = getOccasionInserts(sectionKey, occasion, 'before');
   const occPrelude = getOccasionInserts(sectionKey, occasion, 'prelude');
   const seasonal   = getSeasonalLitanySlides(sectionKey, seasonalLitany);
-  const prelude = (occBefore.length > 0 || occPrelude.length > 0)
+  const prelude = occPrelude.length > 0
     ? []
     : (SECTION_DEACON_PRELUDE[sectionKey] ?? []);
   return [...occBefore, ...occPrelude, ...seasonal, ...prelude];
