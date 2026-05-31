@@ -82,6 +82,11 @@ export function detectOccasion(date: Date): OccasionTag {
   if (diff === 39) return 'ascension';
   if (diff === 49) return 'pentecost';
   if (diff >= 7 && diff <= 48) return 'pentecostal';                 // الخماسين
+  if (diff >= 50) {                                                   // ما بعد العنصرة
+    const { day: cd, month: cm } = gregorianToCoptic(date);
+    // صوم الرسل: من اليوم التالي للعنصرة حتى ما قبل عيد الرسل (5 أبيب)
+    if (!(cm === 11 && cd >= 5)) return 'apostles-fast';
+  }
   if (diff === -7 || diff === -8) return 'lazarus-palm';             // الشعانين / سبت لعازر
   if (diff >= -6 && diff <= -1) return 'holy-week';                  // البصخة
   if (diff >= -55 && diff <= -9) return 'great-lent';                // الصوم الكبير
