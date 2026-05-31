@@ -195,6 +195,35 @@ const SECTION_DEACON_PRELUDE: Partial<Record<string, LiturgySlide[]>> = {
     },
   ],
 
+  // ── الثلاثة تقديسات (أجيوس) قبل الإنجيل ────────────────────────────
+  'basil-gospel': [
+    {
+      id: 'basil-trisagion',
+      role: 'people',
+      title: 'الثلاثة تقديسات — قبل الإنجيل',
+      text: 'قدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.\nقدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.\nقدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.',
+      copticText: 'أجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.\nأجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.\nأجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.',
+    },
+  ],
+  'greg-gospel': [
+    {
+      id: 'greg-trisagion',
+      role: 'people',
+      title: 'الثلاثة تقديسات — قبل الإنجيل',
+      text: 'قدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.\nقدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.\nقدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.',
+      copticText: 'أجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.\nأجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.\nأجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.',
+    },
+  ],
+  'cyril-gospel': [
+    {
+      id: 'cyril-trisagion',
+      role: 'people',
+      title: 'الثلاثة تقديسات — قبل الإنجيل',
+      text: 'قدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.\nقدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.\nقدُّوسٌ اللهُ، قدُّوسٌ القوِيّ،\nقدُّوسٌ الحيُّ الذي لا يموتُ، ارحمنا.',
+      copticText: 'أجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.\nأجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.\nأجيوس أو ثيؤس، أجيوس إيسخيروس،\nأجيوس أثاناتوس، إليئيسون إيماس.',
+    },
+  ],
+
   // ── الاعتراف — مرد الشماس قبل التناول ──────────────────────────────
   'basil-confession': [
     {
@@ -453,14 +482,41 @@ export function getSplitSlidesForSection(
     });
   }
 
-  // أقحم مردات الشماس في مقدمة الشرائح ← تظهر تلقائياً بالضغط على "التالي"
-  const prelude = SECTION_DEACON_PRELUDE[sectionKey] ?? [];
   // إقحامات المناسبة في موضعها الطقسي الصحيح (قبل/مطلع/بعد)
   const occBefore  = getOccasionInserts(sectionKey, occasion, 'before');
   const occPrelude = getOccasionInserts(sectionKey, occasion, 'prelude');
   const occAfter   = getOccasionInserts(sectionKey, occasion, 'after');
   const seasonal   = getSeasonalLitanySlides(sectionKey, seasonalLitany);
+  // الإقحام الافتراضي — يُحذف إذا كانت المناسبة تُقدم إقحام خاص لهذا القسم
+  const prelude = (occBefore.length > 0 || occPrelude.length > 0)
+    ? []
+    : (SECTION_DEACON_PRELUDE[sectionKey] ?? []);
   return [...occBefore, ...occPrelude, ...seasonal, ...prelude, ...result, ...occAfter];
+}
+
+// ── شرائح ما قبل القراءة (تقديسات، مردات الشماس، إقحامات المناسبة قبل المحتوى)
+// تُستخدم عند بناء الشرائح لأقسام القراءات اليومية لتأتي الإقحامات قبل النص
+export function getPreludeSlidesForSection(
+  liturgyType: LiturgyType,
+  sectionKey: string,
+  occasion: OccasionTag = 'ordinary',
+  seasonalLitany: SeasonalLitanyType = 'weather',
+): LiturgySlide[] {
+  const occBefore  = getOccasionInserts(sectionKey, occasion, 'before');
+  const occPrelude = getOccasionInserts(sectionKey, occasion, 'prelude');
+  const seasonal   = getSeasonalLitanySlides(sectionKey, seasonalLitany);
+  const prelude = (occBefore.length > 0 || occPrelude.length > 0)
+    ? []
+    : (SECTION_DEACON_PRELUDE[sectionKey] ?? []);
+  return [...occBefore, ...occPrelude, ...seasonal, ...prelude];
+}
+
+// ── شرائح ما بعد القراءة (مرد الإنجيل / إقحامات المناسبة بعد المحتوى)
+export function getPostludeSlidesForSection(
+  sectionKey: string,
+  occasion: OccasionTag = 'ordinary',
+): LiturgySlide[] {
+  return getOccasionInserts(sectionKey, occasion, 'after');
 }
 
 // ── مجموعات الأقسام المتكافئة بين القداسات الثلاثة

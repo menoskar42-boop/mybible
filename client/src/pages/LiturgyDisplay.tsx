@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'wouter';
 import {
   getSectionsForLiturgy,
   getSplitSlidesForSection,
+  getPreludeSlidesForSection,
+  getPostludeSlidesForSection,
   getRoleColor,
   getRoleLabel,
   getLiturgyLabel,
@@ -12,8 +14,41 @@ import {
   type LiturgySession,
   type LiturgySlide,
   type DeaconResponse,
+  type DailyReadingSlides,
   defaultSession,
 } from '@/lib/liturgy-map';
+
+type ReadingsMap = Record<string, { title: string; slides: string[] }>;
+
+function buildSlides(
+  data: LiturgySession,
+  readingType: keyof DailyReadingSlides | null,
+  activeReadings: ReadingsMap | null,
+): import('@/lib/liturgy-map').LiturgySlide[] {
+  if (readingType && activeReadings) {
+    const prelude = getPreludeSlidesForSection(data.liturgyType, data.sectionKey, data.occasion, data.seasonalLitany);
+    const postlude = getPostludeSlidesForSection(data.sectionKey, data.occasion);
+    const isGospel = data.sectionKey.includes('gospel');
+    const psalmData = isGospel ? activeReadings['psalm'] : null;
+    const psalmSlides = psalmData?.slides?.length
+      ? psalmData.slides.map((text, i) => ({
+          id: `reading-psalm-${i}`, title: psalmData.title,
+          role: 'deacon' as import('@/lib/liturgy-map').LiturgySlide['role'], text,
+        }))
+      : [];
+    const readingData = activeReadings[readingType];
+    const readingSlides = readingData?.slides?.length
+      ? readingData.slides.map((text, i) => ({
+          id: `reading-${readingType}-${i}`, title: readingData.title,
+          role: 'deacon' as import('@/lib/liturgy-map').LiturgySlide['role'], text,
+        }))
+      : [];
+    if (psalmSlides.length || readingSlides.length) {
+      return [...prelude, ...psalmSlides, ...readingSlides, ...postlude];
+    }
+  }
+  return getSplitSlidesForSection(data.liturgyType, data.sectionKey, data.occasion, data.seasonalLitany);
+}
 
 export default function LiturgyDisplay() {
   const params = useParams<{ slot?: string }>();
@@ -21,8 +56,8 @@ export default function LiturgyDisplay() {
   const [session, setSession] = useState<LiturgySession>(defaultSession as LiturgySession);
   const [currentSlide, setCurrentSlide] = useState<LiturgySlide | null>(null);
   const [deaconSlide, setDeaconSlide] = useState<DeaconResponse | null>(null);
-  // قراءات اليوم — مستقلة عن الجلسة لضمان التحميل حتى بعد إعادة تشغيل السيرفر
-  const [localReadings, setLocalReadings] = useState<Record<string, { title: string; slides: string[] }> | null>(null);
+  // قراءات اليوم — ref لتجنب stale closure في polling interval
+  const localReadingsRef = useRef<Record<string, { title: string; slides: string[] }> | null>(null);
 
   // copticMode قد يأتي undefined من sessions قديمة — نضع fallback صريح
   const copticMode: 'script' | 'arabic' =
@@ -47,7 +82,7 @@ export default function LiturgyDisplay() {
       .then(data => {
         if (!data) return;
         const { copticDate: _cd, ...readings } = data;
-        setLocalReadings(readings as Record<string, { title: string; slides: string[] }>);
+        localReadingsRef.current = readings as Record<string, { title: string; slides: string[] }>;
       })
       .catch(() => {});
     return () => {
@@ -70,21 +105,10 @@ export default function LiturgyDisplay() {
           setCurrentSlide(null);
         } else {
           setDeaconSlide(null);
-          // الشرائح الطقسية + القراءة اليومية: الطقس أولاً (مع القبطي) ثم القراءة
           const sessionOverride = (data as LiturgySession & { readingsOverride?: Record<string, { title: string; slides: string[] }> }).readingsOverride;
           const readingType = READINGS_SECTION_KEYS.has(data.sectionKey) ? getReadingType(data.sectionKey) : null;
-          const activeReadings = sessionOverride ?? localReadings;
-          const staticSlides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, data.occasion, data.seasonalLitany);
-          const readingData = readingType ? activeReadings?.[readingType] : null;
-          const extraSlides: LiturgySlide[] = readingData?.slides?.length
-            ? readingData.slides.map((text, i) => ({
-                id: `reading-${readingType}-${i}`,
-                title: readingData.title,
-                role: 'deacon' as LiturgySlide['role'],
-                text,
-              }))
-            : [];
-          const allSlides = extraSlides.length ? [...staticSlides, ...extraSlides] : staticSlides;
+          const activeReadings = sessionOverride ?? localReadingsRef.current;
+          const allSlides = buildSlides(data, readingType, activeReadings);
           setCurrentSlide(allSlides[data.slideIndex] ?? null);
         }
       } catch {
@@ -216,9 +240,9 @@ export default function LiturgyDisplay() {
       {/* شريط سفلي */}
       <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
         {(() => {
-          const ov = (session as LiturgySession & { readingsOverride?: Record<string, { slides: string[] }> }).readingsOverride;
+          const ov = (session as LiturgySession & { readingsOverride?: ReadingsMap }).readingsOverride;
           const rt = READINGS_SECTION_KEYS.has(session.sectionKey) ? getReadingType(session.sectionKey) : null;
-          const count = (ov && rt && ov[rt]) ? ov[rt].slides.length : getSplitSlidesForSection(session.liturgyType, session.sectionKey, session.occasion, session.seasonalLitany).length;
+          const count = buildSlides(session as LiturgySession, rt, ov ?? localReadingsRef.current).length;
           return Array.from({ length: count }).map((_, i) => (
             <div
               key={i}
