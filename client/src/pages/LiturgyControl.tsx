@@ -142,8 +142,12 @@ export default function LiturgyControl() {
         navigate(`/liturgy-control/${data.slot}`, { replace: true });
       }
       setSlot(data.slot ?? null);
-      // مناسبة اليوم: تُكتشف تلقائياً من التاريخ ما لم تكن مُخزّنة في الجلسة
-      const occasion: OccasionTag = (data.occasion as OccasionTag) ?? detectOccasion(new Date());
+      // مناسبة اليوم: تُكتشف دائماً من التاريخ إلا إذا اختار المشغّل مناسبة بعينها
+      // 'ordinary' الافتراضية لا تُعدّ اختياراً مقصوداً فتُكتشف من جديد
+      const storedOccasion = data.occasion as OccasionTag | null;
+      const occasion: OccasionTag = (storedOccasion && storedOccasion !== 'ordinary')
+        ? storedOccasion
+        : detectOccasion(new Date());
       const seasonalLitany: SeasonalLitanyType = (data.seasonalLitany as SeasonalLitanyType) ?? detectSeasonalLitany(new Date());
       const slides = getSplitSlidesForSection(data.liturgyType, data.sectionKey, occasion, seasonalLitany);
       const safeIdx = Math.min(Math.max(0, data.slideIndex), Math.max(0, slides.length - 1));
