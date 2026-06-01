@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { ensureSessionUser, getCurrentUser, checkPremiumStatus, checkAiUsageLimit } from "./auth";
 import { processAiQuery, enhanceSearchWithGroq } from "./ai-service";
 import { insertHighlightedVerseSchema, insertUserReadingProgressSchema } from "@shared/schema";
-import { seedRelationsIfNeeded, startBackgroundImport, getImportJobStatus, reseedEmotionsAndTopics, importAiEmotionVersesFromCsv, importAiEmotionExamplesFromCsv, appendAiEmotionExamples100k, seedCalendarDailyVerses } from "./auto-seed";
+import { seedRelationsIfNeeded, startBackgroundImport, getImportJobStatus, reseedEmotionsAndTopics, importAiEmotionVersesFromCsv, importAiEmotionExamplesFromCsv, appendAiEmotionExamples100k, seedCalendarDailyVerses, refreshCalendarVerseTexts } from "./auto-seed";
 import { getBookIntro, getChapterTafsir, getVerseTafsir, listAvailableBooks } from "./tafsir-service";
 import { fetchDaoudLameiRss, clearDaoudLameiCache } from "./daoud-lamei-service";
 import { isTopicWorthy, extractKeywords, toSlug, buildTopicTitle } from "./seo-topics";
@@ -394,6 +394,16 @@ export async function registerRoutes(
     } catch (error) {
       console.error('[API] Error appending AI examples:', error);
       res.status(500).json({ status: 'error', message: 'Import failed' });
+    }
+  });
+
+  // Refresh calendar_daily_verses texts from Bible DB
+  app.get('/api/seed/refresh-calendar-texts', async (_req, res) => {
+    try {
+      const result = await refreshCalendarVerseTexts();
+      res.json({ status: 'ok', ...result });
+    } catch (error) {
+      res.status(500).json({ status: 'error', message: String(error) });
     }
   });
 
@@ -1045,17 +1055,20 @@ ${excludedStr}
       
       if (calendarVerse) {
         const refParts = calendarVerse.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
-        const bookName = refParts ? refParts[1] : calendarVerse.verseReference;
+        const bookName = refParts ? refParts[1].trim() : calendarVerse.verseReference;
         const chapter = refParts ? parseInt(refParts[2]) : 1;
         const verseNum = refParts ? parseInt(refParts[3]) : 1;
-        
+
+        const dbVerse = await storage.getVerseByReference(bookName, chapter, verseNum);
+        const verseText = dbVerse?.text ?? calendarVerse.verseText;
+
         return res.json({
           id: calendarVerse.id,
           verseId: calendarVerse.id,
           date: today.toISOString().split('T')[0],
           verse: {
-            id: calendarVerse.id,
-            text: calendarVerse.verseText,
+            id: dbVerse?.id ?? calendarVerse.id,
+            text: verseText,
             chapter: chapter,
             verse: verseNum,
           },

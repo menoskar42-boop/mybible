@@ -85,8 +85,14 @@ export async function sendDailyVerseNotification() {
       console.warn(`[push] No calendar verse for ${month}/${day} — notification skipped. Run seed to populate calendar_daily_verses.`);
       return;
     }
-    const verseText = calVerse.verseText;
-    const verseRef  = calVerse.verseReference;
+    const refParts = calVerse.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
+    const bookName = refParts ? refParts[1].trim() : calVerse.verseReference;
+    const chapter  = refParts ? parseInt(refParts[2]) : 1;
+    const verseNum = refParts ? parseInt(refParts[3]) : 1;
+    const dbVerse  = await storage.getVerseByReference(bookName, chapter, verseNum);
+    const verseText = dbVerse?.text ?? calVerse.verseText;
+    // LTR marks around chapter:verse to prevent RTL reversal
+    const verseRef  = `${bookName} ‎${chapter}:‎${verseNum}`;
 
     const subscriptions = await storage.getAllPushSubscriptions();
     if (subscriptions.length === 0) {
