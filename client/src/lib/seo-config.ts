@@ -89,13 +89,15 @@ export const pageSEOConfig: Record<string, PageSEO> = {
     keywords: ['آيات تعزية', 'آيات للحزن', 'آيات للخوف', 'آيات الأمل', 'دعم روحي', 'تغذية روحية'],
     schema: {
       '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: 'التغذية الروحية من الكتاب المقدس',
+      '@type': 'WebPage',
+      name: 'التغذية الروحية من الكتاب المقدس',
       description: 'آيات الكتاب المقدس مصنفة حسب المشاعر والاحتياجات الروحية',
       inLanguage: 'ar',
-      author: {
+      url: 'https://mybible.oscardevs.com/emotions',
+      publisher: {
         '@type': 'Organization',
-        name: 'الكتاب المقدس رفيقي'
+        name: 'الكتاب المقدس رفيقي',
+        url: 'https://mybible.oscardevs.com'
       }
     }
   },
