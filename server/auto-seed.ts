@@ -1382,11 +1382,20 @@ async function seedCalendarDailyVersesHardcoded() {
     await db.execute(sql`TRUNCATE TABLE calendar_daily_verses RESTART IDENTITY`);
     let inserted = 0;
     for (const v of DAILY_VERSES_366) {
+      const refParts = v.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
+      let verseText: string = v.verseText;
+      if (refParts) {
+        const bookName = refParts[1].trim();
+        const chapter  = parseInt(refParts[2]);
+        const verseNum = parseInt(refParts[3]);
+        const dbVerse  = await storage.getVerseByReference(bookName, chapter, verseNum);
+        if (dbVerse?.text) verseText = dbVerse.text;
+      }
       await db.insert(schema.calendarDailyVerses).values({
         dayIndex: v.dayIndex,
         month: v.month,
         day: v.day,
-        verseText: v.verseText,
+        verseText: verseText as any,
         verseReference: v.verseReference,
         theme: v.theme,
       }).onConflictDoNothing();
@@ -1396,6 +1405,29 @@ async function seedCalendarDailyVersesHardcoded() {
   } catch (error) {
     console.error('[auto-seed] Error seeding calendar daily verses:', error);
   }
+}
+
+export async function refreshCalendarVerseTexts(): Promise<{ updated: number; notFound: number }> {
+  console.log('[refresh] Refreshing calendar_daily_verses texts from Bible DB...');
+  const db = getDb();
+  const rows = await db.select().from(schema.calendarDailyVerses);
+  let updated = 0, notFound = 0;
+  for (const row of rows) {
+    const refParts = row.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
+    if (!refParts) { notFound++; continue; }
+    const bookName = refParts[1].trim();
+    const chapter  = parseInt(refParts[2]);
+    const verseNum = parseInt(refParts[3]);
+    const dbVerse  = await storage.getVerseByReference(bookName, chapter, verseNum);
+    if (!dbVerse?.text) { notFound++; continue; }
+    if (dbVerse.text === row.verseText) continue;
+    await db.update(schema.calendarDailyVerses)
+      .set({ verseText: dbVerse.text })
+      .where(sql`id = ${row.id}`);
+    updated++;
+  }
+  console.log(`[refresh] Done: updated=${updated} notFound=${notFound}`);
+  return { updated, notFound };
 }
 
 // Seed calendar daily verses from CSV (used by auto-seed)

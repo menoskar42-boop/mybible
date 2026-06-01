@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { ensureSessionUser, getCurrentUser, checkPremiumStatus, checkAiUsageLimit } from "./auth";
 import { processAiQuery, enhanceSearchWithGroq } from "./ai-service";
 import { insertHighlightedVerseSchema, insertUserReadingProgressSchema } from "@shared/schema";
-import { seedRelationsIfNeeded, startBackgroundImport, getImportJobStatus, reseedEmotionsAndTopics, importAiEmotionVersesFromCsv, importAiEmotionExamplesFromCsv, appendAiEmotionExamples100k, seedCalendarDailyVerses } from "./auto-seed";
+import { seedRelationsIfNeeded, startBackgroundImport, getImportJobStatus, reseedEmotionsAndTopics, importAiEmotionVersesFromCsv, importAiEmotionExamplesFromCsv, appendAiEmotionExamples100k, seedCalendarDailyVerses, refreshCalendarVerseTexts } from "./auto-seed";
 import { getBookIntro, getChapterTafsir, getVerseTafsir, listAvailableBooks } from "./tafsir-service";
 import { fetchDaoudLameiRss, clearDaoudLameiCache } from "./daoud-lamei-service";
 import { isTopicWorthy, extractKeywords, toSlug, buildTopicTitle } from "./seo-topics";
@@ -394,6 +394,16 @@ export async function registerRoutes(
     } catch (error) {
       console.error('[API] Error appending AI examples:', error);
       res.status(500).json({ status: 'error', message: 'Import failed' });
+    }
+  });
+
+  // Refresh calendar_daily_verses texts from Bible DB
+  app.get('/api/seed/refresh-calendar-texts', async (_req, res) => {
+    try {
+      const result = await refreshCalendarVerseTexts();
+      res.json({ status: 'ok', ...result });
+    } catch (error) {
+      res.status(500).json({ status: 'error', message: String(error) });
     }
   });
 
