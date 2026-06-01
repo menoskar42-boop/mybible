@@ -519,7 +519,7 @@ export default function Service() {
                     <motion.div key={`${v.id}-${i}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }}>
                       <div className="p-3 border border-border rounded-lg hover:border-primary/40 transition-colors">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <Badge variant="secondary" className="text-xs">{v.bookName} {'‎'}{v.chapter}:{'‎'}{v.verse}</Badge>
+                          <Badge variant="secondary" className="text-xs">{v.bookName} <span dir="ltr" style={{unicodeBidi:'bidi-override'}}>{v.chapter}:{v.verse}</span></Badge>
                           {v.matchType === 'semantic' && <Badge variant="outline" className="text-xs gap-1"><Sparkles className="w-3 h-3" />مقترح بالذكاء</Badge>}
                         </div>
                         <p className="font-display text-xl leading-loose text-foreground mb-2">{v.text}</p>
@@ -544,7 +544,7 @@ export default function Service() {
                     <motion.div key={`more-${i}`} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
                       <div className="p-3 border border-border rounded-lg hover:border-primary/40 transition-colors">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <Badge variant="secondary" className="text-xs">{v.book} {'‎'}{v.chapter}:{'‎'}{v.verse}</Badge>
+                          <Badge variant="secondary" className="text-xs">{v.book} <span dir="ltr" style={{unicodeBidi:'bidi-override'}}>{v.chapter}:{v.verse}</span></Badge>
                           <Badge variant="outline" className="text-xs gap-1"><Sparkles className="w-3 h-3" />مقترح بالذكاء</Badge>
                         </div>
                         <p className="font-display text-xl leading-loose text-foreground mb-2">{v.text}</p>
@@ -618,7 +618,7 @@ export default function Service() {
                 {draft.map((v, i) => (
                   <div key={v.id} className="p-2 bg-muted/40 rounded-lg text-xs">
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-semibold text-primary shrink-0">{i + 1}. {v.bookName} {'‎'}{v.chapter}:{'‎'}{v.verse}</span>
+                      <span className="font-semibold text-primary shrink-0">{i + 1}. {v.bookName} <span dir="ltr" style={{unicodeBidi:'bidi-override'}}>{v.chapter}:{v.verse}</span></span>
                       <button onClick={() => removeFromDraft(v.id)} className="text-muted-foreground hover:text-red-500"><X className="w-3 h-3" /></button>
                     </div>
                     <p className="mt-1 leading-relaxed text-foreground/80">{v.text}</p>
