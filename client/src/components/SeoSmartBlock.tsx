@@ -72,29 +72,18 @@ export function SeoSmartBlock({ query, verses = [], className = '' }: Props) {
         ))}
       </div>
 
-      {/* Hidden semantic text for crawlers — not intrusive visually */}
-      <div
-        className="sr-only"
-        aria-hidden="true"
-        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
-      >
-        <h2>مواضيع ذات صلة بـ {query}</h2>
-        <nav>
-          {ctx.links.map(link => (
-            <a key={link.href} href={link.href}>{link.anchor}</a>
-          ))}
-        </nav>
-        {verses.length > 0 && (
-          <section>
-            <h3>آيات الكتاب المقدس عن {query}</h3>
-            {verses.slice(0, 5).map((v, i) => (
-              <p key={i}>
-                <strong>{v.bookName} <bdo dir="ltr">{v.verse}:{v.chapter}</bdo></strong> — {v.text}
+      {verses.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-border/40 text-right">
+          <p className="text-xs text-muted-foreground/60 mb-2">آيات الكتاب المقدس عن {query}</p>
+          <div className="space-y-1">
+            {verses.slice(0, 3).map((v, i) => (
+              <p key={i} className="text-xs text-muted-foreground/70 leading-relaxed">
+                <span className="font-semibold">{v.bookName} <bdo dir="ltr">{v.verse}:{v.chapter}</bdo></span> — {v.text.slice(0, 80)}{v.text.length > 80 ? '...' : ''}
               </p>
             ))}
-          </section>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

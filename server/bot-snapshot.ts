@@ -479,7 +479,7 @@ function buildStaticPageSnapshot(path: string, noindex?: boolean): string | null
     "/emotions": {
       title: "آيات حسب المشاعر | التغذية الروحية | الكتاب المقدس رفيقي",
       desc: "اعثر على آيات الكتاب المقدس المناسبة لمشاعرك: الفرح، الحزن، القلق، الخوف، الأمل، والمزيد.",
-      schema: { "@context": "https://schema.org", "@type": "Article", "headline": "التغذية الروحية من الكتاب المقدس", "inLanguage": "ar" }
+      schema: { "@context": "https://schema.org", "@type": "WebPage", "name": "التغذية الروحية من الكتاب المقدس", "description": "آيات الكتاب المقدس مصنفة حسب المشاعر والاحتياجات الروحية", "inLanguage": "ar", "url": `${SITE}/emotions`, "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE } }
     },
     "/kids": {
       title: "قصص الكتاب المقدس للأطفال | فيديوهات وقصص مسيحية",
