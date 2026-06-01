@@ -89,7 +89,7 @@ export function SeoSmartBlock({ query, verses = [], className = '' }: Props) {
             <h3>آيات الكتاب المقدس عن {query}</h3>
             {verses.slice(0, 5).map((v, i) => (
               <p key={i}>
-                <strong>{v.bookName} <span dir="ltr" style={{unicodeBidi:'bidi-override'}}>{v.chapter}:{v.verse}</span></strong> — {v.text}
+                <strong>{v.bookName} <bdo dir="ltr">{v.verse}:{v.chapter}</bdo></strong> — {v.text}
               </p>
             ))}
           </section>
