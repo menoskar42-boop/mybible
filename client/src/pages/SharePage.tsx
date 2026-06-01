@@ -171,7 +171,7 @@ export default function SharePage() {
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-sm font-bold px-3 py-1 rounded-full">
                   <BookOpen className="w-3.5 h-3.5" />
-                  {verse.bookName} <span dir="ltr">{verse.chapter}:{verse.verse}</span>
+                  {verse.bookName} {'‎'}{verse.chapter}:{'‎'}{verse.verse}
                 </span>
                 <span className="text-xs text-muted-foreground">الكتاب المقدس</span>
               </div>
