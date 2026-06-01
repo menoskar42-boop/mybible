@@ -37,7 +37,7 @@ function VerseCard({ v, index }: { v: TopicData['verses'][0]; index: number }) {
     >
       <Card className="p-4 hover:shadow-md transition-shadow" data-testid={`verse-card-${index}`}>
         <p className="text-xs font-semibold text-primary mb-2">
-          {v.bookName} <span dir="ltr">{v.chapter}:{v.verse}</span>
+          {v.bookName} {'‎'}{v.chapter}:{'‎'}{v.verse}
         </p>
         <p className="font-display text-xl leading-loose text-foreground">{v.text}</p>
         <div className="mt-2 flex gap-2">
