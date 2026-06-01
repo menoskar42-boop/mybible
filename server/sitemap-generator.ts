@@ -91,6 +91,7 @@ export async function sitemapIndexHandler(_req: Request, res: Response) {
     "sitemap-orthodox.xml",
     "sitemap-kholagy.xml",
     "sitemap-topics.xml",
+    "sitemap-search.xml",
     "sitemap-videos.xml",
     "sitemap-listen.xml",
     "sitemap-churches.xml",
@@ -111,6 +112,7 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
   const cached = getCache(cacheKey);
   if (cached) return sendXml(res, cached);
 
+  try {
   const today = new Date().toISOString().split("T")[0];
   const urls: string[] = [];
 
@@ -235,6 +237,10 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
   const xml = wrapUrlset(urls);
   setCache(cacheKey, xml);
   sendXml(res, xml);
+  } catch (err) {
+    console.error("[sitemap-pages] Error:", err);
+    sendXml(res, wrapUrlset([]));
+  }
 }
 
 // ── sitemap-bible.xml: books + chapters ──────────────────────────────────────
@@ -326,10 +332,51 @@ export async function sitemapTopicsHandler(_req: Request, res: Response) {
 
   const urls: string[] = [];
   try {
+    const today = new Date().toISOString().split("T")[0];
     const topics = await storage.getAllSeoTopicSlugs();
     for (const t of topics) {
-      const lastmod = t.updatedAt.toISOString().split("T")[0];
-      urls.push(buildUrl(`${SITE}/topics/${t.slug}`, "weekly", "0.8", lastmod));
+      if (!t.slug) continue;
+      const lastmod = t.updatedAt ? t.updatedAt.toISOString().split("T")[0] : today;
+      urls.push(buildUrl(`${SITE}/topics/${encodeURIComponent(t.slug)}`, "weekly", "0.8", lastmod));
+    }
+  } catch (err) {
+    console.error("[sitemap-topics] Error:", err);
+  }
+
+  const xml = wrapUrlset(urls);
+  setCache(cacheKey, xml);
+  sendXml(res, xml);
+}
+
+// ── sitemap-search.xml: top search queries as indexable /search?q= URLs ──────
+export async function sitemapSearchHandler(_req: Request, res: Response) {
+  const cacheKey = "search";
+  const cached = getCache(cacheKey);
+  if (cached) return sendXml(res, cached);
+
+  const today = new Date().toISOString().split("T")[0];
+  const urls: string[] = [];
+
+  // Static high-value Arabic search topics
+  const staticQueries = [
+    "المحبة", "الصبر", "السلام", "الإيمان", "الرجاء", "الفرح",
+    "الصلاة", "الغفران", "الخلاص", "الحكمة", "التعزية", "القوة",
+    "الشفاء", "الأمل", "البركة", "الحياة الأبدية", "يسوع المسيح",
+    "الروح القدس", "الله محبة", "لا تخف", "ثق بالرب",
+  ];
+
+  for (const q of staticQueries) {
+    urls.push(buildUrl(`${SITE}/search?q=${encodeURIComponent(q)}`, "weekly", "0.6", today));
+  }
+
+  // Boost with top queries from DB (page metrics)
+  try {
+    const topScores = await storage.getTopPageScores(30);
+    for (const ps of topScores) {
+      if (!ps.pageUrl.startsWith('/search?q=')) continue;
+      const raw = ps.pageUrl.replace('/search?q=', '').trim();
+      if (!raw) continue;
+      urls.push(buildUrl(`${SITE}/search?q=${encodeURIComponent(decodeURIComponent(raw))}`, "weekly", "0.7", today));
     }
   } catch (_) { /* table may not exist */ }
 
