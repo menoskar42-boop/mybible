@@ -236,7 +236,7 @@ export function DailyVerse() {
 
           <div className="flex items-center justify-between pt-4 border-t border-border/50">
             <p className="text-sm font-medium text-primary" data-testid="text-verse-reference">
-              {dailyVerse.book.name} {dailyVerse.verse.chapter}:{dailyVerse.verse.verse}
+              {dailyVerse.book.name} <span dir="ltr">{dailyVerse.verse.chapter}:{dailyVerse.verse.verse}</span>
             </p>
             <div className="flex items-center gap-2">
               <Button

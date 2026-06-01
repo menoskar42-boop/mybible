@@ -57,7 +57,7 @@ function VerseCard({ result, index, type }: { result: SearchResult; index: numbe
             <p className={`text-sm font-semibold mb-1 ${
               type === 'exact' ? 'text-primary' : 'text-purple-600 dark:text-purple-400'
             }`}>
-              {bookLabel} {result.chapter}:{result.verse}
+              {bookLabel} <span dir="ltr">{result.chapter}:{result.verse}</span>
             </p>
             <p className="font-display text-xl md:text-2xl leading-loose text-foreground">
               {result.text}

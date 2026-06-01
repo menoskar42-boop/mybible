@@ -1045,17 +1045,20 @@ ${excludedStr}
       
       if (calendarVerse) {
         const refParts = calendarVerse.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
-        const bookName = refParts ? refParts[1] : calendarVerse.verseReference;
+        const bookName = refParts ? refParts[1].trim() : calendarVerse.verseReference;
         const chapter = refParts ? parseInt(refParts[2]) : 1;
         const verseNum = refParts ? parseInt(refParts[3]) : 1;
-        
+
+        const dbVerse = await storage.getVerseByReference(bookName, chapter, verseNum);
+        const verseText = dbVerse?.text ?? calendarVerse.verseText;
+
         return res.json({
           id: calendarVerse.id,
           verseId: calendarVerse.id,
           date: today.toISOString().split('T')[0],
           verse: {
-            id: calendarVerse.id,
-            text: calendarVerse.verseText,
+            id: dbVerse?.id ?? calendarVerse.id,
+            text: verseText,
             chapter: chapter,
             verse: verseNum,
           },
