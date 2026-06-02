@@ -68,6 +68,7 @@ function Router() {
       <Route path="/bible/:book" component={Bible} />
       <Route path="/bible" component={Bible} />
       <Route path="/plans" component={Plans} />
+      <Route path="/emotions/:type" component={Emotions} />
       <Route path="/emotions" component={Emotions} />
       <Route path="/kids/hymns" component={Kids} />
       <Route path="/kids/videos" component={Kids} />

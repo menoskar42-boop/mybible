@@ -101,7 +101,6 @@ export async function sitemapIndexHandler(_req: Request, res: Response) {
     "sitemap-topics.xml",
     "sitemap-search.xml",
     "sitemap-videos.xml",
-    "sitemap-listen.xml",
     "sitemap-churches.xml",
     "sitemap-news.xml",
   ];
@@ -502,7 +501,6 @@ Allow: /privacy
 Allow: /contact
 Allow: /topics/
 Allow: /video/
-Allow: /listen/
 Allow: /daily-verse
 Allow: /daily-verse/
 Allow: /orthodox
