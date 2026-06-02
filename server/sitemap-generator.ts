@@ -18,8 +18,16 @@ const EMOTION_TYPES = [
   "وحدة", "إيمان", "صبر", "حكمة", "محبة", "شفاء",
 ];
 
+// Reading plans (string IDs matching the app — no numeric /plans/N routes)
+const READING_PLANS = [
+  { id: 'plan-30',  name: 'خطة ٣٠ يوم',    days: 30  },
+  { id: 'plan-60',  name: 'خطة ٦٠ يوم',    days: 60  },
+  { id: 'plan-90',  name: 'خطة ٩٠ يوم',    days: 90  },
+  { id: 'plan-180', name: 'خطة ٦ شهور',   days: 180 },
+  { id: 'plan-365', name: 'خطة سنة كاملة', days: 365 },
+];
+
 const KIDS_STORY_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-const PLAN_IDS = [1, 2, 3, 4, 5, 6];
 
 // ── Cache store ───────────────────────────────────────────────────────────────
 const caches = new Map<string, { xml: string; ts: number }>();
@@ -93,7 +101,6 @@ export async function sitemapIndexHandler(_req: Request, res: Response) {
     "sitemap-topics.xml",
     "sitemap-search.xml",
     "sitemap-videos.xml",
-    "sitemap-listen.xml",
     "sitemap-churches.xml",
     "sitemap-news.xml",
   ];
@@ -162,8 +169,8 @@ export async function sitemapPagesHandler(_req: Request, res: Response) {
   for (const emotion of EMOTION_TYPES) {
     urls.push(buildUrl(`${SITE}/emotions/${encodeURIComponent(emotion)}`, "weekly", "0.8", today));
   }
-  for (const planId of PLAN_IDS) {
-    urls.push(buildUrl(`${SITE}/plans/${planId}`, "weekly", "0.7", today));
+  for (const plan of READING_PLANS) {
+    urls.push(buildUrl(`${SITE}/plans?plan=${encodeURIComponent(plan.id)}`, "weekly", "0.7", today));
   }
   for (const storyId of KIDS_STORY_IDS) {
     urls.push(buildUrl(`${SITE}/kids/story/${storyId}`, "weekly", "0.7", today));
@@ -494,7 +501,6 @@ Allow: /privacy
 Allow: /contact
 Allow: /topics/
 Allow: /video/
-Allow: /listen/
 Allow: /daily-verse
 Allow: /daily-verse/
 Allow: /orthodox

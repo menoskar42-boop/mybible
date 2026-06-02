@@ -1862,6 +1862,51 @@ ${bookLink}
     return cacheAndServe(res, cacheKey, html);
   }
 
+  // ── Plans with query param: /plans?plan=plan-30 etc. ─────────────────────
+  if (path === "/plans" && req.query.plan) {
+    const planId = String(req.query.plan);
+    const PLANS: Record<string, { name: string; days: number; desc: string }> = {
+      'plan-30':  { name: 'خطة القراءة ٣٠ يوم',        days: 30,  desc: 'اقرأ أهم قصص الكتاب المقدس في ثلاثين يوماً' },
+      'plan-60':  { name: 'خطة القراءة ٦٠ يوم',        days: 60,  desc: 'رحلة عبر العهد الجديد كاملاً في ستين يوماً' },
+      'plan-90':  { name: 'خطة القراءة ٩٠ يوم',        days: 90,  desc: 'دراسة معمقة للإنجيل والرسائل في تسعين يوماً' },
+      'plan-180': { name: 'خطة القراءة ٦ شهور',        days: 180, desc: 'قراءة شاملة للكتاب المقدس في ستة أشهر' },
+      'plan-365': { name: 'خطة القراءة سنة كاملة',     days: 365, desc: 'اقرأ الكتاب المقدس بالكامل في سنة' },
+    };
+    const plan = PLANS[planId];
+    if (plan) {
+      const cacheKey = `plan:${planId}`;
+      if (serveCached(res, cacheKey)) return;
+      const canonical = `${SITE}/plans?plan=${encodeURIComponent(planId)}`;
+      const title = `${plan.name} | خطط قراءة الكتاب المقدس | رفيقي`;
+      const description = `${plan.desc}. خطة قراءة يومية منظمة تساعدك على الاستمرار في القراءة الروحية للكتاب المقدس باللغة العربية.`;
+      const schema = {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        "name": plan.name,
+        "description": description,
+        "totalTime": `P${plan.days}D`,
+        "inLanguage": "ar",
+        "url": canonical,
+        "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+      };
+      const body = `
+<nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/plans">خطط القراءة</a> &rsaquo; ${esc(plan.name)}</nav>
+<h1>${esc(title)}</h1>
+<p>${esc(description)}</p>
+<p>المدة: <strong>${plan.days} يوم</strong> — قراءة يومية منتظمة من الكتاب المقدس.</p>
+<section>
+  <h2>خطط قراءة أخرى</h2>
+  <ul>
+    ${Object.entries(PLANS).filter(([id]) => id !== planId).map(([id, p]) =>
+      `<li><a href="${SITE}/plans?plan=${encodeURIComponent(id)}">${esc(p.name)} (${p.days} يوم)</a></li>`
+    ).join('\n    ')}
+  </ul>
+</section>
+<p><a href="${SITE}/bible">ابدأ القراءة من الكتاب المقدس</a> | <a href="${SITE}/plans">كل خطط القراءة</a></p>`;
+      return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
+    }
+  }
+
   // ── Daily verse pages: /daily-verse and /daily-verse/:date ───────────────
   if (path === "/daily-verse" || path.match(/^\/daily-verse\/\d{4}-\d{2}-\d{2}$/)) {
     const cacheKey = `dv:${path}`;
@@ -1870,30 +1915,62 @@ ${bookLink}
     const isArchive = path !== "/daily-verse";
     const dateStr = isArchive ? path.split("/").pop()! : new Date().toISOString().split("T")[0];
     const canonical = `${SITE}${path}`;
-    const title = `آية اليوم ${isArchive ? dateStr : ""} | الكتاب المقدس رفيقي`.trim();
-    const description = `آية يومية من الكتاب المقدس${isArchive ? ` بتاريخ ${dateStr}` : ""}. تأمل يومي روحي مع الكتاب المقدس رفيقي.`;
 
-    const schema = {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": title,
-      "description": description,
-      "url": canonical,
-      "inLanguage": "ar",
-      "datePublished": dateStr,
-      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
-    };
+    // Try to fetch the actual verse for this date from calendar DB
+    let verseText = "";
+    let verseRef = "";
+    try {
+      const d = new Date(dateStr);
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const dv = await storage.getCalendarDailyVerse(month, day);
+      if (dv?.verseText) {
+        verseText = dv.verseText;
+        verseRef = dv.verseReference ?? "";
+      }
+    } catch (_) {}
+
+    const title = `آية اليوم ${isArchive ? dateStr : ""} | الكتاب المقدس رفيقي`.trim();
+    const description = verseText
+      ? `"${verseText.slice(0, 120)}" — ${verseRef}. تأمل يومي روحي من الكتاب المقدس.`
+      : `آية يومية من الكتاب المقدس${isArchive ? ` بتاريخ ${dateStr}` : ""}. تأمل يومي روحي مع الكتاب المقدس رفيقي.`;
+
+    const schema: object[] = [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": title,
+        "description": description,
+        "url": canonical,
+        "inLanguage": "ar",
+        "datePublished": dateStr,
+        "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+      }
+    ];
+    if (verseText) {
+      schema.push({
+        "@context": "https://schema.org",
+        "@type": "Quotation",
+        "text": verseText,
+        "citation": verseRef,
+        "inLanguage": "ar",
+        "isPartOf": { "@type": "Book", "name": "الكتاب المقدس" }
+      });
+    }
 
     const body = `
 <h1>${esc(title)}</h1>
-<p><em>${esc(description)}</em></p>
-<nav>
+${verseText ? `<blockquote dir="rtl"><p>${esc(verseText)}</p><footer>— ${esc(verseRef)}</footer></blockquote>` : ""}
+<p>${esc(description)}</p>
+<section>
+  <h2>أقرأ أيضاً</h2>
   <ul>
     <li><a href="${SITE}/daily-verse">آية اليوم</a></li>
-    <li><a href="${SITE}/bible">قراءة الكتاب المقدس</a></li>
-    <li><a href="${SITE}/emotions">التغذية الروحية</a></li>
+    <li><a href="${SITE}/bible">قراءة الكتاب المقدس كاملاً</a></li>
+    <li><a href="${SITE}/emotions">آيات حسب مشاعرك</a></li>
+    <li><a href="${SITE}/plans">خطط القراءة اليومية</a></li>
   </ul>
-</nav>`;
+</section>`;
 
     const html = wrapHtml(title, description, canonical, body, schema);
     return cacheAndServe(res, cacheKey, html);
