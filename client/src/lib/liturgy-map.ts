@@ -17,6 +17,105 @@ export interface LiturgySlide {
   copticArabicText?: string; // نطق القبطي بالحروف العربية — للبحث
 }
 
+// ── تنظيف نص القداس: يحذف الإرشادات الطقسية (rubrics) والنصوص الزائدة
+// ويُبقي فقط الكلام المنطوق (الكاهن / الشماس / الشعب)
+function cleanRubricText(text: string, seasonalLitany: SeasonalLitanyType = 'weather'): string {
+  const RUBRIC = [
+    /يرفع الكاهن|يأخذ الكاهن|يضع الكاهن|يرشم الكاهن|يقبل الكاهن|يبخر الكاهن/,
+    /^(ثم|و)?\s*(يرفع|يأخذ|يضع|يرشم|يقبل|يبخر|يتجه|ينحني|يستدير)/,
+    /ويرفع اللفافة|ويرفع نظره|ويضعها\s*علي\s*يده|ويقبلها\s*بفيه|ويتركها\s*علي/,
+    /اللفافة الحرير|في الصينية|علي المذبح وهو|المجمرة بالبخور/,
+    /وهو يقول:?\s*$|ويقول:?\s*$|قائلاً?:?\s*$|قائلين:?\s*$|وهو متجه/,
+    /بأصبعه.*رشوم|يجاوبه الشعب|يرشم.*رشم/,
+    /^(في|وفي)\s+(أول|ثاني|ثالث)\s+رشم/,
+    /^و(ثاني|ثالث)\s+رشم/,
+    /ويرشم\s+بها|ويرشم\s+الكاهن/,
+    /بيده اليمن[يى].*ويرشم/,
+    /^يضع الكاهن|^يرفع الكاهن|^يأخذ الكاهن/,
+    /^ثم يأخذ|^ثم يرفع|^ثم يضع|^ثم يرشم|^ثم يبخر/,
+    /^\s*[ً-ٰ]+\s*$/, // سطر مليء بعلامات التشكيل فقط
+  ];
+
+  const ROLE_LABEL = /^(الكاهن|الشعب|الشماس|الكهنة|رئيس الكهنة)\s*:?\s*$/;
+
+  const GARBAGE = [
+    /[a-zA-Z]{3,}/,        // نص إنجليزي مختلط (OCR)
+    /^[وييأ]{4,}$/,        // تكرار حروف بلا معنى
+    /sss|EEEE|ppp/,
+    /^\d+\/\d+\s*[؀-ۿ]/, // تواريخ مثل "19/20 أكتوبر"
+  ];
+
+  // حالة الكتلة الموسمية: none | instruction | water | crops | weather
+  type SeasonState = 'none' | 'instruction' | 'water' | 'crops' | 'weather';
+  let season: SeasonState = 'none';
+
+  const lines = text.split('\n');
+  const out: string[] = [];
+
+  for (const line of lines) {
+    const t = line.trim();
+
+    if (!t) {
+      if (season === 'none') out.push('');
+      // سطر فارغ بعد كتلة موسمية → نهاية الكتلة
+      else season = 'none';
+      continue;
+    }
+
+    // ── الكتلة الموسمية ──────────────────────────────────────────────
+    if (/^(تقال الجمل|في مكان الجملة|الأوقات المبينة)/.test(t)) {
+      season = 'instruction'; continue;
+    }
+    if (/^من\s+\d*\s*بؤون/.test(t) || /^من بؤون/.test(t)) {
+      season = 'water'; continue;
+    }
+    if (/^ومن\s+\d*\s*بابة/.test(t) || /^ومن بابة/.test(t)) {
+      season = 'crops'; continue;
+    }
+    // بداية قسم الأهوية (غالباً يبدأ بنص OCR مكسور)
+    if (season === 'crops' && (/^يي+يي/.test(t) || /sss|EEEE/.test(t))) {
+      season = 'weather'; continue;
+    }
+    if (season !== 'none') {
+      // نص "بارك ..." — نُبقي فقط المناسب للموسم الحالي
+      if (/^بارك مياه النهر/.test(t)) {
+        if (seasonalLitany === 'water') out.push(t);
+        continue;
+      }
+      if (/^بارك الزروع والعشب/.test(t)) {
+        if (seasonalLitany === 'crops') out.push(t);
+        continue;
+      }
+      if (/^بارك أهوية السماء/.test(t)) {
+        if (seasonalLitany === 'weather') out.push(t);
+        continue;
+      }
+      // باقي سطور الكتلة الموسمية (تواريخ، شرح) → تُحذف
+      if (season !== 'none') continue;
+    }
+
+    // ── تسميات الأدوار المستقلة (الكاهن: / الشعب:) ─────────────────
+    if (ROLE_LABEL.test(t)) continue;
+
+    // ── إرشادات طقسية ────────────────────────────────────────────────
+    if (RUBRIC.some(p => p.test(t))) continue;
+
+    // ── نص OCR مكسور ─────────────────────────────────────────────────
+    if (GARBAGE.some(p => p.test(t))) {
+      // سطر إنجليزي-عربي مختلط: احذف الجزء الإنجليزي
+      if (/[a-zA-Z]{3,}/.test(t) && /[؀-ۿ]/.test(t)) {
+        const ar = t.replace(/[a-zA-Z][a-zA-Z\s,.']*[a-zA-Z]/g, '').trim();
+        if (ar) out.push(ar);
+      }
+      continue;
+    }
+
+    out.push(line);
+  }
+
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 export interface SectionMeta {
   sectionKey: string;
   label: string;
@@ -349,7 +448,11 @@ export const defaultSession: LiturgySession = {
 };
 
 // ── دوال مساعدة
-export function getSlidesForSection(liturgyType: LiturgyType, sectionKey: string): LiturgySlide[] {
+export function getSlidesForSection(
+  liturgyType: LiturgyType,
+  sectionKey: string,
+  seasonalLitany: SeasonalLitanyType = 'weather',
+): LiturgySlide[] {
   const liturgy = kholagyLiturgies.find(l => l.id === liturgyType);
   if (!liturgy) return [];
   const section = liturgy.sections.find(s => s.id === sectionKey);
@@ -358,7 +461,7 @@ export function getSlidesForSection(liturgyType: LiturgyType, sectionKey: string
     id: section.id,
     role: normalizeRole(section.role),
     title: section.title,
-    text: section.text,
+    text: cleanRubricText(section.text, seasonalLitany),
     ...(section.copticText ? { copticText: section.copticText } : COPTIC_TEXT_MAP[section.id] ? { copticText: COPTIC_TEXT_MAP[section.id] } : {}),
     ...(section.copticArabicText ? { copticArabicText: section.copticArabicText } : {}),
   }];
@@ -447,7 +550,7 @@ export function getSplitSlidesForSection(
   const occReplace = getOccasionInserts(sectionKey, occasion, 'replace');
   if (occReplace.length > 0) return occReplace;
 
-  const slides = getSlidesForSection(liturgyType, sectionKey);
+  const slides = getSlidesForSection(liturgyType, sectionKey, seasonalLitany);
   const result: LiturgySlide[] = [];
 
   for (const slide of slides) {
