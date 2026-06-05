@@ -357,39 +357,46 @@ export async function sitemapTopicsHandler(_req: Request, res: Response) {
 
 // ── sitemap-search.xml: top search queries as indexable /search?q= URLs ──────
 export async function sitemapSearchHandler(_req: Request, res: Response) {
-  const cacheKey = "search";
-  const cached = getCache(cacheKey);
-  if (cached) return sendXml(res, cached);
-
-  const today = new Date().toISOString().split("T")[0];
-  const urls: string[] = [];
-
-  // Static high-value Arabic search topics
-  const staticQueries = [
-    "المحبة", "الصبر", "السلام", "الإيمان", "الرجاء", "الفرح",
-    "الصلاة", "الغفران", "الخلاص", "الحكمة", "التعزية", "القوة",
-    "الشفاء", "الأمل", "البركة", "الحياة الأبدية", "يسوع المسيح",
-    "الروح القدس", "الله محبة", "لا تخف", "ثق بالرب",
-  ];
-
-  for (const q of staticQueries) {
-    urls.push(buildUrl(`${SITE}/search?q=${encodeURIComponent(q)}`, "weekly", "0.6", today));
-  }
-
-  // Boost with top queries from DB (page metrics)
   try {
-    const topScores = await storage.getTopPageScores(30);
-    for (const ps of topScores) {
-      if (!ps.pageUrl.startsWith('/search?q=')) continue;
-      const raw = ps.pageUrl.replace('/search?q=', '').trim();
-      if (!raw) continue;
-      urls.push(buildUrl(`${SITE}/search?q=${encodeURIComponent(decodeURIComponent(raw))}`, "weekly", "0.7", today));
-    }
-  } catch (_) { /* table may not exist */ }
+    const cacheKey = "search";
+    const cached = getCache(cacheKey);
+    if (cached) return sendXml(res, cached);
 
-  const xml = wrapUrlset(urls);
-  setCache(cacheKey, xml);
-  sendXml(res, xml);
+    const today = new Date().toISOString().split("T")[0];
+    const urls: string[] = [];
+
+    // Static high-value Arabic search topics
+    const staticQueries = [
+      "المحبة", "الصبر", "السلام", "الإيمان", "الرجاء", "الفرح",
+      "الصلاة", "الغفران", "الخلاص", "الحكمة", "التعزية", "القوة",
+      "الشفاء", "الأمل", "البركة", "الحياة الأبدية", "يسوع المسيح",
+      "الروح القدس", "الله محبة", "لا تخف", "ثق بالرب",
+    ];
+
+    for (const q of staticQueries) {
+      urls.push(buildUrl(`${SITE}/search?q=${encodeURIComponent(q)}`, "weekly", "0.6", today));
+    }
+
+    // Boost with top queries from DB (page metrics)
+    try {
+      const topScores = await storage.getTopPageScores(30);
+      for (const ps of topScores) {
+        if (!ps.pageUrl.startsWith('/search?q=')) continue;
+        const raw = ps.pageUrl.replace('/search?q=', '').trim();
+        if (!raw) continue;
+        try {
+          urls.push(buildUrl(`${SITE}/search?q=${encodeURIComponent(decodeURIComponent(raw))}`, "weekly", "0.7", today));
+        } catch (_) { /* skip malformed URL */ }
+      }
+    } catch (_) { /* table may not exist */ }
+
+    const xml = wrapUrlset(urls);
+    setCache(cacheKey, xml);
+    sendXml(res, xml);
+  } catch (err) {
+    // Fallback: always return a valid (possibly empty) sitemap rather than hanging
+    sendXml(res, wrapUrlset([]));
+  }
 }
 
 // ── sitemap-videos.xml: all video pages (Bible, Kids, Agpeya, Pope QA) ────────
