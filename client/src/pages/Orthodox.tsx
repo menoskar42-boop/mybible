@@ -20,6 +20,7 @@ import { agpeyaHoursFull, type AgpeyaHourFull } from '@/lib/agpeya-content';
 import { commentaryFathers, type CommentaryFather, type CommentaryBook, type CommentarySection } from '@/lib/commentary-content';
 import { saintsData, saintCategories, type Saint } from '@/lib/saints-content';
 import { katameroSeasons, type KatamerosSeason, type KatamerosDay } from '@/lib/katameros-content';
+import { getLectionaryForDate, type ReadingRef } from '@/lib/coptic-lectionary';
 import { hymnsCategoriesData, type HymnsCategory, type Hymn } from '@/lib/hymns-content';
 import {
   saintsVideos,
@@ -931,6 +932,125 @@ function HymnsSection() {
           </motion.div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DailyLectionarySection() {
+  const [date, setDate] = useState(() => new Date());
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [readingTexts, setReadingTexts] = useState<Record<string, { chapter: number; verse: number; text: string }[]>>({});
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+
+  const { reading, copticDate } = getLectionaryForDate(date);
+
+  const readingCards: { key: string; label: string; icon: string; ref: ReadingRef }[] = [
+    { key: 'pauline',  label: 'رسالة بولس',   icon: '✉️', ref: reading.pauline },
+    { key: 'catholic', label: 'الكاثوليكون',   icon: '📖', ref: reading.catholic },
+    { key: 'praxis',   label: 'الإبركسيس',    icon: '📜', ref: reading.praxis },
+    { key: 'psalm',    label: 'المزمور',       icon: '🎵', ref: reading.psalm },
+    { key: 'gospel',   label: 'الإنجيل',      icon: '✝️', ref: reading.gospel },
+  ];
+
+  const formatDateAr = (d: Date) =>
+    d.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  async function loadText(key: string, ref: ReadingRef) {
+    if (readingTexts[key]) {
+      setExpandedKey(prev => (prev === key ? null : key));
+      return;
+    }
+    setLoadingKey(key);
+    setExpandedKey(key);
+    try {
+      const params = new URLSearchParams({
+        bookName: ref.book,
+        fromCh: String(ref.fromCh),
+        fromVs: String(ref.fromVs),
+        toCh: String(ref.toCh),
+        toVs: String(ref.toVs),
+      });
+      const res = await fetch(`/api/reading-text?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReadingTexts(prev => ({ ...prev, [key]: data.verses ?? [] }));
+      }
+    } finally {
+      setLoadingKey(null);
+    }
+  }
+
+  function prevDay() {
+    setDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() - 1); return nd; });
+    setExpandedKey(null);
+    setReadingTexts({});
+  }
+  function nextDay() {
+    setDate(d => { const nd = new Date(d); nd.setDate(nd.getDate() + 1); return nd; });
+    setExpandedKey(null);
+    setReadingTexts({});
+  }
+
+  return (
+    <div className="space-y-4" dir="rtl">
+      {/* Date header */}
+      <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl p-3">
+        <Button variant="ghost" size="sm" onClick={prevDay} className="text-amber-700">
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+        <div className="text-center">
+          <div className="text-lg font-bold text-amber-900">{copticDate}</div>
+          <div className="text-xs text-amber-600">{formatDateAr(date)}</div>
+        </div>
+        <Button variant="ghost" size="sm" onClick={nextDay} className="text-amber-700">
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Reading cards */}
+      {readingCards.map(({ key, label, icon, ref }) => {
+        const isExpanded = expandedKey === key;
+        const isLoading = loadingKey === key;
+        const verses = readingTexts[key] ?? [];
+
+        return (
+          <Card
+            key={key}
+            className="overflow-hidden border border-amber-100 shadow-sm cursor-pointer"
+            onClick={() => loadText(key, ref)}
+          >
+            <div className="flex items-center justify-between p-3 bg-white">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{icon}</span>
+                <div>
+                  <div className="text-xs text-amber-600 font-medium">{label}</div>
+                  <div className="text-sm font-semibold text-gray-800">{ref.label}</div>
+                </div>
+              </div>
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+              ) : (
+                isExpanded ? <ChevronUp className="w-4 h-4 text-amber-500" /> : <ChevronDown className="w-4 h-4 text-amber-400" />
+              )}
+            </div>
+            {isExpanded && verses.length > 0 && (
+              <div className="px-4 pb-4 pt-1 bg-amber-50 border-t border-amber-100 space-y-1 max-h-72 overflow-y-auto">
+                {verses.map((v, i) => (
+                  <p key={i} className="text-sm text-gray-700 leading-relaxed">
+                    <span className="text-amber-600 font-bold ml-1 text-xs">{v.chapter}:{v.verse}</span>
+                    {v.text}
+                  </p>
+                ))}
+              </div>
+            )}
+            {isExpanded && !isLoading && verses.length === 0 && (
+              <div className="px-4 pb-3 pt-1 bg-amber-50 border-t border-amber-100 text-xs text-gray-400 text-center">
+                النص غير متاح
+              </div>
+            )}
+          </Card>
+        );
+      })}
     </div>
   );
 }
@@ -3413,7 +3533,13 @@ export default function Orthodox() {
             </TabsContent>
 
             <TabsContent value="katameros">
-              <KatamarosSection />
+              <div className="space-y-6">
+                <DailyLectionarySection />
+                <div className="border-t border-amber-200 pt-4">
+                  <h3 className="text-sm font-semibold text-amber-700 mb-3 text-right" dir="rtl">الكتامارس — قراءات المواسم</h3>
+                  <KatamarosSection />
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="saints">
