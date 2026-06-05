@@ -300,9 +300,9 @@ export default function LiturgyControl() {
         const haystack = normalizeArabic(s.text + ' ' + (s.copticText ?? '') + ' ' + (s.copticArabicText ?? '') + ' ' + s.title).toLowerCase();
         if (!haystack.includes(lower)) continue;
         // مقتطف من موضع الكلمة — من النص العربي، أو من النطق القبطي بالعربية عند التطابق فيه
-        const inArabic = s.text.toLowerCase().includes(lower);
+        const inArabic = normalizeArabic(s.text).toLowerCase().includes(lower);
         const excerptSource = inArabic ? s.text : (s.copticArabicText ?? s.text);
-        const pos = Math.max(0, excerptSource.toLowerCase().indexOf(lower));
+        const pos = Math.max(0, normalizeArabic(excerptSource).toLowerCase().indexOf(lower));
         const start = Math.max(0, pos - 30);
         const raw = excerptSource.slice(start, start + 100).replace(/\n/g, ' ');
         const excerpt = (start > 0 ? '...' : '') + raw + (raw.length >= 100 ? '...' : '');
