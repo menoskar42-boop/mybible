@@ -1463,7 +1463,10 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
       const view = bibleChapterViewPath[3];
       const books = await ensureBooks();
       const book = books.find(b => b.name === bookName);
-      if (!book || isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) return next();
+      if (!book || isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) {
+        res.status(404).send('Not Found');
+        return;
+      }
 
       const cacheKey = `ch:${bookName}:${chapter}:${view}`;
       if (serveCached(res, cacheKey)) return;
@@ -1505,7 +1508,10 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
       const chapter = parseInt(bibleChapterPath[2], 10);
       const books = await ensureBooks();
       const book = books.find(b => b.name === bookName);
-      if (!book || isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) return next();
+      if (!book || isNaN(chapter) || chapter < 1 || chapter > book.chaptersCount) {
+        res.status(404).send('Not Found');
+        return;
+      }
 
       const cacheKey = `ch:${bookName}:${chapter}`;
       if (serveCached(res, cacheKey)) return;
