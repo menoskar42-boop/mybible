@@ -117,6 +117,7 @@ function Router() {
       <Route path="/admin/exit" component={ExitIntelligence} />
       <Route path="/share/:type/:id" component={SharePage} />
       <Route path="/sitemap" component={Sitemap} />
+      <Route path="/daily-verse/:date" component={DailyVersePage} />
       <Route path="/daily-verse" component={DailyVersePage} />
       <Route component={NotFound} />
     </Switch>

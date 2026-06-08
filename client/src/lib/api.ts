@@ -171,6 +171,7 @@ export const api = {
   },
   dailyVerse: {
     get: () => fetchApi<DailyVerse | null>('/daily-verse'),
+    getByDate: (date: string) => fetchApi<DailyVerse | null>(`/daily-verse/${date}`),
   },
 
   readingPlans: {
