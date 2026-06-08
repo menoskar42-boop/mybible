@@ -103,7 +103,7 @@ export default function Bible() {
   useEffect(() => {
     if (initialLoadDone.current) return;
     
-    const booksLoaded = oldTestamentBooks !== undefined || newTestamentBooks !== undefined;
+    const booksLoaded = oldTestamentBooks !== undefined && newTestamentBooks !== undefined;
     if (!booksLoaded) return;
     
     if (!urlBook) {
