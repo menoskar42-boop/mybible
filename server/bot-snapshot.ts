@@ -654,7 +654,7 @@ function buildStaticPageSnapshot(path: string, noindex?: boolean): string | null
       schema: { "@context": "https://schema.org", "@type": "WebPage", "name": "العقيدة القبطية الأرثوذكسية", "inLanguage": "ar" }
     },
     "/orthodox/history": {
-      title: "تاريخ الكنيسة القبطية الأرثوذكسية | البطاركة والمجامع المسكونية | أرثوذوكسيات",
+      title: "تاريخ الكنيسة القبطية | البطاركة والمجامع المسكونية",
       desc: "تاريخ الكنيسة القبطية الأرثوذكسية: قائمة البطاركة، المجامع المسكونية الثلاثة الأولى، تأسيس الكرازة المرقسية، وأهم محطات تاريخ الأقباط.",
       schema: { "@context": "https://schema.org", "@type": "WebPage", "name": "تاريخ الكنيسة القبطية", "inLanguage": "ar" }
     },
