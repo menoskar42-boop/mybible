@@ -10,7 +10,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { autoSeedIfNeeded } from "./auto-seed";
 import { botSnapshotMiddleware } from "./bot-snapshot";
-import { sitemapHandler, robotsHandler, sitemapBibleHandler, sitemapOrthodoxHandler, sitemapPagesHandler, sitemapTopicsHandler, sitemapSearchHandler, sitemapVideosHandler, sitemapListenHandler, sitemapChurchesHandler, sitemapKholagyHandler, sitemapNewsHandler } from "./sitemap-generator";
+import { sitemapHandler, robotsHandler, llmsHandler, sitemapBibleHandler, sitemapOrthodoxHandler, sitemapPagesHandler, sitemapTopicsHandler, sitemapSearchHandler, sitemapVideosHandler, sitemapListenHandler, sitemapChurchesHandler, sitemapKholagyHandler, sitemapNewsHandler } from "./sitemap-generator";
 import { ogImageHandler } from "./og-image";
 import { setupVapid, scheduleDailyNotification } from "./push-notifications";
 
@@ -136,6 +136,7 @@ app.use((req, res, next) => {
   app.get("/sitemap-news.xml", sitemapNewsHandler);
   app.get("/api/og-image", ogImageHandler);
   app.get("/robots.txt", robotsHandler);
+  app.get("/llms.txt", llmsHandler);
 
   setupVapid();
   scheduleDailyNotification();
