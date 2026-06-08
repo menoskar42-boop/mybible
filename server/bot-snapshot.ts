@@ -450,7 +450,7 @@ function buildStaticPageSnapshot(path: string, noindex?: boolean): string | null
       title: "الكتاب المقدس كاملاً بالعربية | العهد القديم والجديد مع التفسير",
       desc: "اقرأ الكتاب المقدس كاملاً باللغة العربية مع تفسير لكل آية. 66 سفراً من العهد القديم والجديد.",
       schema: [
-        { "@context": "https://schema.org", "@type": "Book", "name": "الكتاب المقدس", "inLanguage": "ar", "bookFormat": "https://schema.org/EBook", "numberOfPages": 1189, "genre": "Religious text" },
+        { "@context": "https://schema.org", "@type": "Book", "name": "الكتاب المقدس", "inLanguage": "ar", "bookFormat": "https://schema.org/EBook", "numberOfPages": 1189, "genre": "Religious text", "author": { "@type": "Organization", "name": "الكنيسة القبطية الأرثوذكسية" }, "publisher": { "@type": "Organization", "name": "رفيقي", "url": "https://mybible.oscardevs.com" } },
         buildFaqSchema([
           { q: "كم عدد أسفار الكتاب المقدس؟", a: "يتكون الكتاب المقدس من 66 سفراً: 39 سفراً في العهد القديم و27 سفراً في العهد الجديد. تضيف الكنيسة القبطية الأرثوذكسية 7 أسفار ديوتيروكانونية." },
           { q: "ما هي الترجمة العربية المعتمدة للكتاب المقدس؟", a: "تعتمد الكنيسة القبطية الأرثوذكسية الترجمة العربية الكاثوليكية المشتركة وكذلك ترجمة فانديك الكلاسيكية." },
@@ -1409,7 +1409,8 @@ ${kidsBibleVideos.filter(v => v.category === "قصص وأناشيد متنوعة
 
   const body = richBodies[path] || `<h1>${page.title.split('|')[0].trim()}</h1>\n<p>${page.desc}</p>`;
 
-  return wrapHtml(page.title, page.desc, canonical, body, page.schema, undefined, noindex);
+  const pageOgImage = path === '/orthodox' ? buildOrthodoxOgUrl('أرثوذوكسيات') : undefined;
+  return wrapHtml(page.title, page.desc, canonical, body, page.schema, pageOgImage, noindex);
 }
 
 let cachedBooks: Array<{ id: number; name: string; chaptersCount: number }> | null = null;

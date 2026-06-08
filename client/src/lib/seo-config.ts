@@ -141,7 +141,16 @@ export const pageSEOConfig: Record<string, PageSEO> = {
       inLanguage: 'ar',
       bookFormat: 'https://schema.org/EBook',
       numberOfPages: 1189,
-      genre: 'Religious text'
+      genre: 'Religious text',
+      author: {
+        '@type': 'Organization',
+        name: 'الكنيسة القبطية الأرثوذكسية'
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'رفيقي',
+        url: 'https://mybible.oscardevs.com'
+      }
     }
   },
   '/search': {
