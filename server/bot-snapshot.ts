@@ -2117,7 +2117,7 @@ ${prayersHtml}
     const cacheKey = "sx:index";
     if (serveCached(res, cacheKey)) return;
     const canonical = `${SITE}/orthodox/synaxarium`;
-    const title = "السنكسار القبطي الأرثوذكسي — سير القديسين والشهداء | الكتاب المقدس رفيقي";
+    const title = "السنكسار القبطي | سير القديسين والشهداء الأقباط";
     const description = "السنكسار كتاب سير القديسين والشهداء والأعياد في الكنيسة القبطية الأرثوذكسية، مرتّباً حسب التقويم القبطي (13 شهراً).";
     const monthsHtml = synaxariumMonths.map(m =>
       `<li><a href="${SITE}/orthodox/synaxarium/${m.id}/1">${esc(m.arabicName)} (${esc(m.copticName)}) — ${esc(m.gregStart)}</a></li>`
