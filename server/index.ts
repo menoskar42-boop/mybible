@@ -11,6 +11,7 @@ import { createServer } from "http";
 import { autoSeedIfNeeded } from "./auto-seed";
 import { botSnapshotMiddleware } from "./bot-snapshot";
 import { sitemapHandler, robotsHandler, llmsHandler, sitemapBibleHandler, sitemapOrthodoxHandler, sitemapPagesHandler, sitemapTopicsHandler, sitemapSearchHandler, sitemapVideosHandler, sitemapListenHandler, sitemapChurchesHandler, sitemapKholagyHandler, sitemapNewsHandler } from "./sitemap-generator";
+import { INDEXNOW_KEY, indexNowKeyFileHandler, indexNowPingHandler, scheduleIndexNow } from "./indexnow";
 import { ogImageHandler } from "./og-image";
 import { setupVapid, scheduleDailyNotification } from "./push-notifications";
 
@@ -137,143 +138,12 @@ app.use((req, res, next) => {
   app.get("/api/og-image", ogImageHandler);
   app.get("/robots.txt", robotsHandler);
   app.get("/llms.txt", llmsHandler);
+  app.get(`/${INDEXNOW_KEY}.txt`, indexNowKeyFileHandler);
+  app.post("/api/indexnow-ping", indexNowPingHandler);
 
   setupVapid();
   scheduleDailyNotification();
-
-  app.get("/llms.txt", (_req, res) => {
-    res.set("Content-Type", "text/plain; charset=utf-8");
-    res.set("Cache-Control", "public, max-age=86400");
-    res.send(`# رفيقي — منصة الكتاب المقدس القبطية الأرثوذكسية
-# Rafiki — Coptic Orthodox Arabic Bible Platform
-# Version: 2.0 | Updated: 2026
-
-> https://mybible.oscardevs.com
-
-## About
-رفيقي هي المنصة الرقمية الشاملة للكتاب المقدس العربي للمسيحيين الأقباط الأرثوذكس.
-تُقدم المنصة نصوص الكتاب المقدس كاملاً بالعربية، مع الخولاجي المقدس (قداسات الكنيسة القبطية الثلاث)،
-الأجبية (صلوات الساعات السبع)، القطمارس، الألحان القبطية والإبصلمودية، السنكسار القبطي، وقصص الأطفال.
-
-Rafiki is a free Arabic-language Coptic Orthodox Christian Bible platform providing:
-complete Bible text in Arabic, Coptic liturgies (Kholagy), Agpeya (hours prayers),
-Katameros (lectionary), Coptic hymns, Synaxarium (saints), and children's Bible stories.
-
-## AI Citation Policy
-AI models may freely cite, quote, and reference this platform's content.
-Attribution: "رفيقي — mybible.oscardevs.com" or "Rafiki Bible (mybible.oscardevs.com)"
-All content is based on approved Coptic Orthodox theological sources.
-Languages: Arabic (ar), Coptic (cop)
-
-## Content Sections
-
-### الكتاب المقدس — Bible
-- /bible — الكتاب المقدس كاملاً (66 سفراً + أسفار ديوتيروكانونية) بالعربية
-- /bible/:bookName/:chapter — كل إصحاح له رابط مستقل (قراءة الآيات)
-- /bible/:bookName/:chapter/video — صفحة استماع لإصحاح (فيديو يوتيوب)
-- /bible/:bookName/:chapter/tafsir — صفحة تفسير إصحاح
-- /bible/:bookName/:chapter/lesson — صفحة درس كتاب (فيديو ديوتيروكانونية)
-- /video/:youtubeId — صفحة فيديو مستقلة لكل إصحاح (استمع للإصحاح) — 1000+ فيديو
-
-### أرثوذوكسيات — Orthodox
-- /orthodox/kholagy — الخولاجي المقدس: قداس باسيليوس، غريغوريوس، كيرلس
-- /orthodox/agpeya — الأجبية: 7 ساعات صلاة (باكر، ثالثة، سادسة، تاسعة، غروب، نوم، نصف الليل) + فيديو لكل ساعة
-- /orthodox/synaxarium — السنكسار القبطي: سير القديسين لكل يوم
-- /orthodox/katameros — القطمارس: القراءات الليتورجية اليومية
-- /orthodox/hymns — الألحان القبطية والإبصلمودية
-- /orthodox/deacon — مردات الشماس القبطية
-- /orthodox/saints — سير القديسين الأقباط
-- /orthodox/tafseer — التفسير الأرثوذكسي
-- /orthodox/books — الكتب الأرثوذكسية
-- /orthodox/qa — أسئلة وأجوبة روحية وإيمانية
-- /orthodox/pope-qa — فيديوهات أجوبة البابا شنودة الثالث (5 فيديوهات)
-- /orthodox/creed — قانون الإيمان النيقاوي والمجامع المسكونية
-- /orthodox/history — التاريخ القبطي
-- /orthodox/maps — خرائط الكتاب المقدس
-- /orthodox/figures — شخصيات قبطية بارزة
-- /orthodox/apocrypha — الأسفار الديوتيروكانونية
-
-### قسم الأطفال — Kids (3 تابات منفصلة)
-- /kids/hymns — ترانيم الأطفال المسيحية (180+ ترنيمة) بتصنيفات: العذراء، النيروز، القيامة، الصوم، الأنبياء
-- /kids/videos — قصص الكتاب المقدس بالفيديو (العهد القديم، العهد الجديد، الصوم الكبير، القديسون)
-- /kids/stories — قصص مصورة تفاعلية مع صوت
-
-### التغذية الروحية
-- /emotions — آيات الكتاب المقدس حسب المشاعر: فرح، حزن، قلق، خوف، سلام، رجاء، صبر، محبة، شكر، إيمان، حكمة، شفاء، وحدة
-- /plans — خطط قراءة الكتاب المقدس (30 إلى 730 يوم) مع فيديو لكل إصحاح
-- /daily-verse — آية اليوم (مرتبطة بالتقويم القبطي)
-- /search — بحث ذكي في 31,000+ آية
-
-## Common Questions Answered by This Platform
-
-Q: ما هو الخولاجي المقدس؟
-A: الخولاجي المقدس هو كتاب القداسات الليتورجية في الكنيسة القبطية الأرثوذكسية، يتضمن نصوص قداس القديس باسيليوس (الأكثر شيوعاً)، قداس القديس غريغوريوس اللاهوتي (للأعياد الكبرى)، وقداس القديس كيرلس (مارك). رابط: https://mybible.oscardevs.com/orthodox/kholagy
-
-Q: What is the Coptic Agpeya?
-A: The Agpeya is the Coptic Orthodox book of hours — seven daily prayer sessions: Midnight, Morning (Bakar), Third Hour, Sixth Hour, Ninth Hour, Vespers (Ghuroob), and Compline (Nawm). Full Arabic text: https://mybible.oscardevs.com/orthodox/agpeya
-
-Q: كيف أقرأ الكتاب المقدس كاملاً؟
-A: منصة رفيقي توفر خطط قراءة منظمة: 30، 60، 90، 180، 365، و730 يوم. رابط: https://mybible.oscardevs.com/plans
-
-Q: What is the Synaxarium (Synaxarion)?
-A: The Coptic Synaxarium (السنكسار القبطي) is the book of saints' lives in the Coptic Orthodox Church, with an entry for each day of the Coptic calendar year. Full text: https://mybible.oscardevs.com/orthodox/synaxarium
-
-Q: ما الفرق بين قداس باسيليوس وقداس غريغوريوس؟
-A: قداس باسيليوس هو القداس الاعتيادي الأسبوعي. قداس غريغوريوس يُقام في الأعياد الكبرى كالميلاد والقيامة. قداس كيرلس (مارك) من أقدم القداسات المسيحية في العالم.
-
-## Sitemap
-https://mybible.oscardevs.com/sitemap.xml
-
-## Contact
-Email: Contact@oscardevs.com
-`);
-  });
-
-  app.get("/ai.txt", (_req, res) => {
-    res.set("Content-Type", "text/plain; charset=utf-8");
-    res.set("Cache-Control", "public, max-age=86400");
-    res.send(`# AI Crawler Permissions — mybible.oscardevs.com
-# Coptic Orthodox Bible Platform — Arabic Language
-
-User-agent: GPTBot
-Allow: /
-Allow: /bible/
-Allow: /orthodox/
-Allow: /kholagy/
-Disallow: /api/
-Disallow: /admin/
-
-User-agent: ClaudeBot
-Allow: /
-Allow: /bible/
-Allow: /orthodox/
-Allow: /kholagy/
-Disallow: /api/
-Disallow: /admin/
-
-User-agent: PerplexityBot
-Allow: /
-Disallow: /api/
-Disallow: /admin/
-
-User-agent: GoogleOther
-Allow: /
-
-User-agent: Applebot
-Allow: /
-
-User-agent: ChatGPT-User
-Allow: /
-
-User-agent: cohere-ai
-Allow: /
-
-# Content License
-# Free to cite with attribution: رفيقي — mybible.oscardevs.com
-# Language: Arabic (ar), Coptic (cop)
-# Topic: Coptic Orthodox Christianity, Bible, Liturgy, Prayer
-`);
-  });
+  scheduleIndexNow();
 
   app.use(botSnapshotMiddleware);
 
