@@ -1302,20 +1302,20 @@ ${kidsBibleVideos.filter(v => v.category === "قصص وأناشيد متنوعة
 <p>${page.desc}</p>
 <h2>اختر مشاعرك واعثر على الآيات المناسبة</h2>
 <ul>
-<li><a href="${SITE}/emotions/فرح">آيات عن الفرح والبهجة</a></li>
-<li><a href="${SITE}/emotions/حزن">آيات عن الحزن والعزاء</a></li>
-<li><a href="${SITE}/emotions/قلق">آيات عن القلق والاطمئنان</a></li>
-<li><a href="${SITE}/emotions/خوف">آيات عن الخوف والشجاعة</a></li>
-<li><a href="${SITE}/emotions/سلام">آيات عن السلام والراحة</a></li>
-<li><a href="${SITE}/emotions/رجاء">آيات عن الرجاء والأمل</a></li>
-<li><a href="${SITE}/emotions/شكر">آيات عن الشكر والامتنان</a></li>
-<li><a href="${SITE}/emotions/محبة">آيات عن المحبة</a></li>
-<li><a href="${SITE}/emotions/إيمان">آيات عن الإيمان</a></li>
-<li><a href="${SITE}/emotions/صبر">آيات عن الصبر والثبات</a></li>
-<li><a href="${SITE}/emotions/وحدة">آيات عن الوحدة والأنيس الروحي</a></li>
-<li><a href="${SITE}/emotions/حكمة">آيات عن الحكمة والتمييز</a></li>
-<li><a href="${SITE}/emotions/شفاء">آيات عن الشفاء والبرء</a></li>
-<li><a href="${SITE}/emotions/غضب">آيات عن الغضب وضبط النفس</a></li>
+<li><a href="${SITE}/emotions/فرح">آيات الكتاب المقدس عن الفرح والبهجة</a></li>
+<li><a href="${SITE}/emotions/حزن">آيات الكتاب المقدس عن الحزن والعزاء</a></li>
+<li><a href="${SITE}/emotions/قلق">آيات الكتاب المقدس عن القلق والاطمئنان</a></li>
+<li><a href="${SITE}/emotions/خوف">آيات الكتاب المقدس عن الخوف والشجاعة</a></li>
+<li><a href="${SITE}/emotions/سلام">آيات الكتاب المقدس عن السلام والراحة</a></li>
+<li><a href="${SITE}/emotions/رجاء">آيات الكتاب المقدس عن الرجاء والأمل</a></li>
+<li><a href="${SITE}/emotions/شكر">آيات الكتاب المقدس عن الشكر والامتنان</a></li>
+<li><a href="${SITE}/emotions/محبة">آيات الكتاب المقدس عن المحبة</a></li>
+<li><a href="${SITE}/emotions/إيمان">آيات الكتاب المقدس عن الإيمان</a></li>
+<li><a href="${SITE}/emotions/صبر">آيات الكتاب المقدس عن الصبر والثبات</a></li>
+<li><a href="${SITE}/emotions/وحدة">آيات الكتاب المقدس عن الوحدة والأنيس الروحي</a></li>
+<li><a href="${SITE}/emotions/حكمة">آيات الكتاب المقدس عن الحكمة والتمييز</a></li>
+<li><a href="${SITE}/emotions/شفاء">آيات الكتاب المقدس عن الشفاء والبرء</a></li>
+<li><a href="${SITE}/emotions/غضب">آيات الكتاب المقدس عن الغضب وضبط النفس</a></li>
 </ul>
 <h2>لماذا تبحث عن آيات حسب مشاعرك؟</h2>
 <p>الكتاب المقدس يخاطب كل حالة إنسانية. سواء كنت تمر بضيقة، فرح، أو قلق، ستجد في صفحات الكتاب المقدس كلمات تُعزيك وتُقويك. اختر ما يناسب حالتك الآن.</p>`,
@@ -2189,16 +2189,35 @@ ${bookLink}
     const title = `آيات الكتاب المقدس عن ${emotionType} | تغذية روحية | الكتاب المقدس رفيقي`;
     const description = `اعثر على آيات الكتاب المقدس التي تتحدث عن ${emotionType}. آيات مختارة تمنحك الدعم والتشجيع الروحي.`;
 
-    const schema = {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": title,
-      "description": description,
-      "url": canonical,
-      "inLanguage": "ar",
-      "about": { "@type": "Thing", "name": emotionType },
-      "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
-    };
+    const verses = await storage.smartSearchVerses(emotionType, 12).catch(() => []);
+    const versesHtml = verses.slice(0, 10).map(v =>
+      `<li><strong>${esc((v as any).bookName || '')} ${v.chapter}:${v.verse}</strong> — ${esc(v.text.substring(0, 200))}</li>`
+    ).join('\n');
+
+    const schema = [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": title,
+        "description": description,
+        "url": canonical,
+        "inLanguage": "ar",
+        "about": { "@type": "Thing", "name": emotionType },
+        "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE }
+      },
+      ...(verses.length > 0 ? [{
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": `آيات الكتاب المقدس عن ${emotionType}`,
+        "numberOfItems": verses.length,
+        "itemListElement": verses.slice(0, 8).map((v, i) => ({
+          "@type": "ListItem",
+          "position": i + 1,
+          "name": `${(v as any).bookName || ''} ${v.chapter}:${v.verse}`,
+          "description": v.text.substring(0, 150),
+        })),
+      }] : []),
+    ];
 
     const body = `
 <nav aria-label="breadcrumb">
@@ -2206,7 +2225,7 @@ ${bookLink}
 </nav>
 <h1>آيات الكتاب المقدس عن ${esc(emotionType)}</h1>
 <p><em>${esc(description)}</em></p>
-<p>يساعدك موقع الكتاب المقدس رفيقي على إيجاد الآيات المناسبة لمشاعرك. اكتشف ما يقوله الكتاب المقدس عن ${esc(emotionType)}.</p>
+${versesHtml ? `<article><h2>آيات عن ${esc(emotionType)} (${verses.length})</h2><ol>${versesHtml}</ol></article>` : ''}
 <nav>
   <h2>استكشف المزيد</h2>
   <ul>
