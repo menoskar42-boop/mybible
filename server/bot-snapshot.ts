@@ -728,6 +728,72 @@ const BOOK_SEO_OVERRIDES: Record<string, BookSeoOverride> = {
   },
 };
 
+interface HourSeoOverride {
+  title: string;       // ≤70 chars
+  description: string; // ≤160 chars
+  faq: { q: string; a: string }[];
+}
+
+const HOUR_SEO_OVERRIDES: Record<string, HourSeoOverride> = {
+  prime: {
+    title: 'صلاة باكر من الأجبية القبطية | قيامة المسيح ونور النهار',
+    description: 'صلاة باكر: أولى ساعات الأجبية القبطية. تُذكّر بقيامة المسيح في الصباح الباكر. مزامير: 1، 2، 3، 4، 5. إنجيل: يوحنا 1: 1-17.',
+    faq: [
+      { q: 'ما هي صلاة باكر في الأجبية القبطية؟', a: 'صلاة باكر هي أولى الساعات السبع في الأجبية القبطية، تُقام عند الفجر وتُذكّر بقيامة السيد المسيح في الصباح الباكر ونور اليوم الجديد.' },
+      { q: 'ما هي مزامير صلاة باكر؟', a: 'تشمل صلاة باكر مزامير: 1، 2، 3، 4، 5، 6، 8، 11، 12، 14، 15، 18، 24، 26، 62، 66، 69، 112، 142، مع إنجيل يوحنا 1: 1-17.' },
+    ],
+  },
+  terce: {
+    title: 'صلاة الساعة الثالثة — حلول الروح القدس | الأجبية القبطية',
+    description: 'صلاة الساعة الثالثة من الأجبية القبطية تُحيي ذكرى حلول الروح القدس على الرسل يوم الخمسين. مزامير: 19، 22، 23. إنجيل: يوحنا 14.',
+    faq: [
+      { q: 'ما هي صلاة الساعة الثالثة في الأجبية القبطية؟', a: 'صلاة الساعة الثالثة هي إحدى ساعات الأجبية السبع، تُقام في الساعة التاسعة صباحاً، وتُحيي ذكرى حلول الروح القدس على الرسل يوم الخمسين المقدس.' },
+      { q: 'ما هي مزامير صلاة الساعة الثالثة؟', a: 'تشمل صلاة الساعة الثالثة مزامير: 19، 22، 23، 25، 28، 29، 33، 40، 42، 44، 45، 46، مع إنجيل يوحنا 14: 26-15: 3.' },
+      { q: 'لماذا تُقام صلاة الساعة الثالثة؟', a: 'تُقام صلاة الساعة الثالثة إحياءً لذكرى نزول الروح القدس على الرسل في غرفة العلّية يوم الخمسين، وهي الساعة التي سار فيها المسيح أيضاً نحو القلجثة.' },
+    ],
+  },
+  sext: {
+    title: 'صلاة الساعة السادسة — صلب المسيح وفداء العالم | الأجبية',
+    description: 'صلاة الساعة السادسة من الأجبية القبطية تُذكّر بصلب المسيح وظلمة نصف النهار. مزامير: 53، 56، 60. إنجيل: متى 5.',
+    faq: [
+      { q: 'ما هي صلاة الساعة السادسة في الأجبية القبطية؟', a: 'صلاة الساعة السادسة تُقام عند الظهيرة وتُذكّر بصلب السيد المسيح في الساعة السادسة وظلمة نصف النهار التي خيّمت على الأرض ثلاث ساعات.' },
+      { q: 'ما هي مزامير صلاة الساعة السادسة؟', a: 'تشمل مزامير: 53، 56، 60، 62، 66، 69، 83، 84، 85، 86، 90، 92، مع إنجيل متى 5: 1-16.' },
+    ],
+  },
+  none: {
+    title: 'صلاة الساعة التاسعة — وفاة المسيح وتسليم الروح | الأجبية',
+    description: 'صلاة الساعة التاسعة من الأجبية القبطية تُحيي ذكرى وفاة المسيح وتسليمه الروح للآب. مزامير: 95، 96، 97. إنجيل: لوقا 9.',
+    faq: [
+      { q: 'ما هي صلاة الساعة التاسعة في الأجبية القبطية؟', a: 'صلاة الساعة التاسعة تُقام في الساعة الثالثة مساءً وتُحيي ذكرى وفاة السيد المسيح على الصليب وتسليمه الروح للآب الحي.' },
+      { q: 'ما هي مزامير صلاة الساعة التاسعة؟', a: 'تشمل مزامير: 95، 96، 97، 98، 99، 100، 109، 110، 111، 112، 114، 115، مع إنجيل لوقا 9: 10-17.' },
+    ],
+  },
+  vespers: {
+    title: 'صلاة الغروب من الأجبية القبطية | شكر الله على نعم اليوم',
+    description: 'صلاة الغروب من الأجبية القبطية تُذكّر بنزول المسيح من الصليب ودفنه وتشكر الله على نعم اليوم. مزامير: 116، 117. إنجيل: لوقا 4.',
+    faq: [
+      { q: 'ما هي صلاة الغروب في الأجبية القبطية؟', a: 'صلاة الغروب تُقام عند غروب الشمس وتُذكّر بنزول السيد المسيح من الصليب ودفنه، كما تشكر الله على نعم اليوم الذي انقضى.' },
+      { q: 'ما هي مزامير صلاة الغروب؟', a: 'تشمل مزامير: 116، 117، 119، 120، 121، 122، 123، 124، 125، 126، 127، 128، مع إنجيل لوقا 4: 38-41.' },
+    ],
+  },
+  compline: {
+    title: 'صلاة النوم من الأجبية القبطية | توديع اليوم وتسليم النفس',
+    description: 'صلاة النوم من الأجبية القبطية نختم بها يومنا ونسلّم أنفسنا لله. النوم صورة للموت. مزامير: 129، 130، 131. إنجيل: لوقا 2: 25-32.',
+    faq: [
+      { q: 'ما هي صلاة النوم في الأجبية القبطية؟', a: 'صلاة النوم تُقام قبل النوم لتوديع اليوم وتسليم النفس لله. النوم في المفهوم القبطي صورة للموت، فيُودَّع فيها اليوم بالحمد والشكر والتوبة.' },
+      { q: 'ما هي مزامير صلاة النوم؟', a: 'تشمل مزامير: 129، 130، 131، 132، 133، 136، 137، 140، 141، 145، 146، 147، مع إنجيل لوقا 2: 25-32.' },
+    ],
+  },
+  midnight: {
+    title: 'صلاة نصف الليل من الأجبية القبطية | انتظار مجيء العريس',
+    description: 'صلاة نصف الليل من الأجبية القبطية تُذكّر بمجيء العريس وانتظار قيامة المسيح. مزامير: 3، 6، 12. إنجيل: متى 25: 1-13.',
+    faq: [
+      { q: 'ما هي صلاة نصف الليل في الأجبية القبطية؟', a: 'صلاة نصف الليل تُقام في منتصف الليل وتُذكّر بمجيء العريس في نصف الليل وانتظار قيامة المسيح المجيدة. يقوم لها القديسون ورهبان الكنيسة القبطية منذ القدم.' },
+      { q: 'ما هي مزامير صلاة نصف الليل؟', a: 'تشمل مزامير: 3، 6، 12، 69، 85، 90، 116، 117، 118، مع إنجيل متى 25: 1-13 (مثل العذارى العشر).' },
+    ],
+  },
+};
+
 function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Array<{ name: string; chaptersCount: number }>): string {
   const ov = BOOK_SEO_OVERRIDES[bookName];
   const title = ov ? ov.title : generateBibleBookTitle(bookName, chaptersCount);
@@ -2460,25 +2526,32 @@ ${verseText ? `<blockquote dir="rtl"><p>${esc(verseText)}</p><footer>— ${esc(v
     const cacheKey = `ag:${hourId}`;
     if (serveCached(res, cacheKey)) return;
     const canonical = `${SITE}/orthodox/agpeya/${hourId}`;
-    const title = `${hour.name} — الأجبية القبطية | الكتاب المقدس رفيقي`;
-    const description = `${hour.name}: ${hour.description} مزامير: ${hour.psalms}. إنجيل: ${hour.gospel}.`;
+    const ov = HOUR_SEO_OVERRIDES[hourId];
+    const title = ov ? ov.title : `${hour.name} — الأجبية القبطية | الكتاب المقدس رفيقي`;
+    const rawDesc = `${hour.name}: ${hour.description} مزامير: ${hour.psalms}. إنجيل: ${hour.gospel}.`;
+    const description = ov ? ov.description : (rawDesc.length > 160 ? `${rawDesc.slice(0, 157).trim()}...` : rawDesc);
     const allPrayers = [...commonOpeningPrayers, ...hour.prayers];
     const prayersHtml = allPrayers.map(p =>
       `<section><h2>${esc(p.title)}${p.role ? ` (${esc(p.role)})` : ""}</h2><p>${esc(p.text.substring(0, 500))}${p.text.length > 500 ? "..." : ""}</p></section>`
     ).join("\n");
-    const schema = {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": title,
-      "description": description,
-      "inLanguage": "ar",
-      "url": canonical,
-      "isPartOf": { "@type": "Book", "name": "الأجبية", "url": `${SITE}/orthodox/agpeya` }
-    };
+    const schema = [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": title,
+        "description": description,
+        "inLanguage": "ar",
+        "url": canonical,
+        "isPartOf": { "@type": "Book", "name": "الأجبية", "url": `${SITE}/orthodox/agpeya` }
+      },
+      ...(ov?.faq ? [buildFaqSchema(ov.faq)] : [])
+    ];
+    const memoryHtml = hour.memory ? `<p><strong>ذكرى:</strong> ${esc(hour.memory)}</p>` : '';
     const body = `
 <nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; <a href="${SITE}/orthodox/agpeya">الأجبية</a> &rsaquo; ${esc(hour.name)}</nav>
 <h1>${esc(hour.name)}</h1>
 <p>${esc(description)}</p>
+${memoryHtml}
 ${prayersHtml}
 <nav><a href="${SITE}/orthodox/agpeya">← جميع ساعات الأجبية</a></nav>`;
     return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema, buildOrthodoxOgUrl(hour.name, hour.arabicTime)));
