@@ -1937,7 +1937,9 @@ ${bookLink}
       }
     } catch (_) {}
 
-    const title = `آية اليوم ${isArchive ? dateStr : ""} | الكتاب المقدس رفيقي`.trim();
+    const title = isArchive
+      ? `آية اليوم ${dateStr} من الكتاب المقدس | رفيقي`
+      : `آية اليوم من الكتاب المقدس — تأمل روحي يومي | رفيقي`;
     const description = verseText
       ? `"${verseText.slice(0, 120)}" — ${verseRef}. تأمل يومي روحي من الكتاب المقدس.`
       : `آية يومية من الكتاب المقدس${isArchive ? ` بتاريخ ${dateStr}` : ""}. تأمل يومي روحي مع الكتاب المقدس رفيقي.`;
