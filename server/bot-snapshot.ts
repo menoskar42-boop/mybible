@@ -2030,7 +2030,11 @@ export async function botSnapshotMiddleware(req: Request, res: Response, next: N
         .slice(0, 15);
 
       const canonical = `${SITE}/topics/${slug}`;
-      const title = `آيات الكتاب المقدس عن ${topic.title} | الكتاب المقدس رفيقي`;
+      const topicTitleFull = `آيات الكتاب المقدس عن ${topic.title} | الكتاب المقدس رفيقي`;
+      const topicTitleShort = `آيات عن ${topic.title} | الكتاب المقدس رفيقي`;
+      const title = topicTitleFull.length <= 70 ? topicTitleFull
+        : topicTitleShort.length <= 70 ? topicTitleShort
+        : `${topic.title} | الكتاب المقدس رفيقي`;
       const description = `مجموعة آيات من الكتاب المقدس عن ${topic.title}. ${verses.length} آية مختارة تتحدث عن ${topic.keywords.slice(0, 3).join('، ')}.`;
 
       const versesHtml = verses.map((v, i) =>
