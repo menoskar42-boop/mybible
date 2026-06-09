@@ -2404,9 +2404,10 @@ ${versesHtml ? `<article><h2>آيات عن ${esc(emotionType)} (${verses.length}
     const title = isArchive
       ? `آية اليوم ${dateStr} من الكتاب المقدس | رفيقي`
       : `آية اليوم من الكتاب المقدس — تأمل روحي يومي | رفيقي`;
-    const description = verseText
-      ? `"${verseText.slice(0, 120)}" — ${verseRef}. تأمل يومي روحي من الكتاب المقدس.`
+    const rawDvDesc = verseText
+      ? `"${verseText.slice(0, 100)}" — ${verseRef}. تأمل يومي روحي من الكتاب المقدس.`
       : `آية يومية من الكتاب المقدس${isArchive ? ` بتاريخ ${dateStr}` : ""}. تأمل يومي روحي مع الكتاب المقدس رفيقي.`;
+    const description = rawDvDesc.length > 160 ? `${rawDvDesc.slice(0, 157).trim()}...` : rawDvDesc;
 
     const schema: object[] = [
       {
