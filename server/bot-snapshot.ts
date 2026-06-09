@@ -867,19 +867,19 @@ function buildStaticPageSnapshot(path: string, noindex?: boolean): string | null
       title: "الكتاب المقدس رفيقي | قراءة يومية، تفسير، خطط روحية",
       desc: "موقع الكتاب المقدس العربي للقراءة اليومية مع التفسير، خطط القراءة، آيات حسب المشاعر، وقسم قصص الأطفال. رفيقك الروحي اليومي.",
       schema: [
-        { "@context": "https://schema.org", "@type": "WebApplication", "name": "الكتاب المقدس رفيقي", "applicationCategory": "ReligiousApplication", "operatingSystem": "Web", "inLanguage": "ar", "url": SITE },
-        { "@context": "https://schema.org", "@type": "WebSite", "name": "الكتاب المقدس رفيقي", "url": SITE, "potentialAction": { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${SITE}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" } }
+        { "@context": "https://schema.org", "@type": "WebApplication", "name": "الكتاب المقدس رفيقي", "alternateName": "Coptic Arabic Bible — Rafiki", "applicationCategory": "ReligiousApplication", "operatingSystem": "Web", "inLanguage": "ar", "url": SITE },
+        { "@context": "https://schema.org", "@type": "WebSite", "name": "الكتاب المقدس رفيقي", "alternateName": "Coptic Arabic Bible", "url": SITE, "potentialAction": { "@type": "SearchAction", "target": { "@type": "EntryPoint", "urlTemplate": `${SITE}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" } }
       ]
     },
     "/bible": {
       title: "الكتاب المقدس كاملاً بالعربية | العهد القديم والجديد مع التفسير",
       desc: "اقرأ الكتاب المقدس كاملاً باللغة العربية مع تفسير لكل آية. 66 سفراً من العهد القديم والجديد.",
       schema: [
-        { "@context": "https://schema.org", "@type": "Book", "name": "الكتاب المقدس", "inLanguage": "ar", "bookFormat": "https://schema.org/EBook", "numberOfPages": 1189, "genre": "Religious text", "author": { "@type": "Organization", "name": "الكنيسة القبطية الأرثوذكسية" }, "publisher": { "@type": "Organization", "name": "رفيقي", "url": "https://mybible.oscardevs.com" } },
+        { "@context": "https://schema.org", "@type": "Book", "name": "الكتاب المقدس", "alternateName": "Coptic Bible (Arabic)", "inLanguage": "ar", "bookFormat": "https://schema.org/EBook", "numberOfPages": 1189, "genre": "Religious text", "author": { "@type": "Organization", "name": "الكنيسة القبطية الأرثوذكسية" }, "publisher": { "@type": "Organization", "name": "رفيقي", "url": "https://mybible.oscardevs.com" } },
         buildFaqSchema([
           { q: "كم عدد أسفار الكتاب المقدس؟", a: "يتكون الكتاب المقدس من 66 سفراً: 39 سفراً في العهد القديم و27 سفراً في العهد الجديد. تضيف الكنيسة القبطية الأرثوذكسية 7 أسفار ديوتيروكانونية." },
           { q: "ما هي الترجمة العربية المعتمدة للكتاب المقدس؟", a: "تعتمد الكنيسة القبطية الأرثوذكسية الترجمة العربية الكاثوليكية المشتركة وكذلك ترجمة فانديك الكلاسيكية." },
-          { q: "كيف أقرأ الكتاب المقدس يومياً؟", a: "يمكنك متابعة خطط القراءة اليومية على منصة رفيقي: 30، 60، 90، 180، 365، أو 730 يوماً لقراءة الكتاب المقدس كاملاً." },
+          { q: "كيف أقرأ الكتاب المقدس يومياً؟", a: "يمكنك متابعة خطط القراءة اليومية على منصة رفيقي: 30، 60، 90، 180، أو 365 يوماً لقراءة الكتاب المقدس كاملاً." },
           { q: "ما الفرق بين العهد القديم والجديد؟", a: "العهد القديم يتناول تاريخ شعب إسرائيل والنبوءات، أما العهد الجديد فيتحدث عن حياة يسوع المسيح وتعاليمه ورسائل الرسل." }
         ])
       ]
@@ -896,7 +896,7 @@ function buildStaticPageSnapshot(path: string, noindex?: boolean): string | null
           ]
         },
         buildFaqSchema([
-          { q: "كم يستغرق قراءة الكتاب المقدس كاملاً؟", a: "يمكن قراءة الكتاب المقدس كاملاً في سنة إذا قرأت 3-4 إصحاحات يومياً. منصة رفيقي توفر خططاً من 30 يوم حتى 730 يوم حسب سرعتك." },
+          { q: "كم يستغرق قراءة الكتاب المقدس كاملاً؟", a: "يمكن قراءة الكتاب المقدس كاملاً في سنة إذا قرأت 3-4 إصحاحات يومياً. منصة رفيقي توفر خططاً من 30 يوم حتى 365 يوم (سنة كاملة) حسب سرعتك." },
           { q: "من أين أبدأ قراءة الكتاب المقدس؟", a: "يُنصح المبتدئون بالبدء بإنجيل يوحنا، ثم العهد الجديد كاملاً، ثم العودة للعهد القديم. أو يمكن البدء من سفر التكوين بالترتيب." }
         ])
       ]
@@ -1153,6 +1153,7 @@ function buildStaticPageSnapshot(path: string, noindex?: boolean): string | null
   const richBodies: Record<string, string> = {
     "/": `<h1>الكتاب المقدس رفيقي — رفيقك الروحي اليومي</h1>
 <p>${page.desc}</p>
+<p lang="en" dir="ltr" style="font-size:0.85em;color:#666">Coptic Arabic Bible — Read, search, and explore the Holy Bible in Arabic with Coptic Orthodox resources. Free daily reading plans, verse search, and the Agpeya (Coptic prayer book).</p>
 <nav><ul>
 <li><a href="${SITE}/bible">قراءة الكتاب المقدس كاملاً — العهد القديم والجديد</a></li>
 <li><a href="${SITE}/plans">خطط قراءة الكتاب المقدس اليومية</a></li>
@@ -1372,7 +1373,7 @@ ${kidsBibleVideos.filter(v => v.category === "قصص وأناشيد متنوعة
 <h2>ما يقدمه الموقع</h2>
 <ul>
 <li><a href="${SITE}/bible">قراءة الكتاب المقدس</a>: 66 سفراً كاملاً بالعربية مع تفسير لكل آية من آباء الكنيسة.</li>
-<li><a href="${SITE}/plans">خطط القراءة اليومية</a>: خطط من 30 إلى 730 يوماً لقراءة الكتاب المقدس كاملاً.</li>
+<li><a href="${SITE}/plans">خطط القراءة اليومية</a>: خطط من 30 إلى 365 يوماً لقراءة الكتاب المقدس كاملاً.</li>
 <li><a href="${SITE}/emotions">آيات حسب مشاعرك</a>: آيات منتقاة للفرح، الحزن، القلق، الخوف، الشكر، والرجاء.</li>
 <li><a href="${SITE}/orthodox">الأرثوذوكسيات</a>: الأجبية، السنكسار، الخولاجي المقدس، الألحان القبطية، القطمارس.</li>
 <li><a href="${SITE}/kids">قصص الأطفال</a>: قصص مصورة وفيديوهات وترانيم للأطفال المسيحيين.</li>
@@ -1636,7 +1637,7 @@ ${kidsBibleVideos.filter(v => v.category === "قصص وأناشيد متنوعة
 <li><a href="${SITE}/bible/التكوين/1">سفر التكوين — الإصحاح الأول</a></li>
 <li><a href="${SITE}/bible/يوحنا/3">إنجيل يوحنا — الإصحاح الثالث</a></li>
 <li><a href="${SITE}/bible/المزامير/23">مزمور 23 — الرب راعيَّ</a></li>
-<li><a href="${SITE}/plans">خطط القراءة اليومية (30-730 يوم)</a></li>
+<li><a href="${SITE}/plans">خطط القراءة اليومية (30-365 يوم)</a></li>
 <li><a href="${SITE}/search">البحث في الكتاب المقدس</a></li>
 <li><a href="${SITE}/highlights">آياتي المظللة</a></li>
 </ul>
