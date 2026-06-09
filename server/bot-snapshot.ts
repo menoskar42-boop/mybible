@@ -2252,8 +2252,8 @@ ${partsHtml}
     const cacheKey = "kh:index";
     if (serveCached(res, cacheKey)) return;
     const canonical = `${SITE}/orthodox/kholagy`;
-    const title = "الخولاجي المقدس — القداسات القبطية الأرثوذكسية | الكتاب المقدس رفيقي";
-    const description = "اقرأ نصوص القداسات القبطية الأرثوذكسية الثلاثة: قداس القديس باسيليوس وغريغوريوس وكيرلس، بالعربية والقبطية.";
+    const title = "الخولاجي القبطي — قداس باسيليوس وغريغوريوس وكيرلس | رفيقي";
+    const description = "الخولاجي القبطي كاملاً: نصوص القداسات القبطية الأرثوذكسية الثلاثة بالعربية — قداس القديس باسيليوس، غريغوريوس، وكيرلس. مجاناً بدون تحميل.";
     const liturgiesHtml = liturgies.map(lit =>
       `<li><a href="${SITE}/orthodox/kholagy/${lit.id}">${esc(lit.name)}</a> — ${esc(lit.occasion)}</li>`
     ).join("\n");
