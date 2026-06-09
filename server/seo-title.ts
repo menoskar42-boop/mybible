@@ -108,7 +108,10 @@ export function generateBibleChapterTitle(bookName: string, chapter: number, ver
   if (famous) {
     return `${famous} - ${SITE_SUFFIX}`;
   }
-  return `تفسير ${bookName} الإصحاح ${chapter} | قراءة ${verseCount} آية كاملة - ${SITE_SUFFIX}`;
+  const fullTitle = `تفسير ${bookName} الإصحاح ${chapter} | قراءة ${verseCount} آية كاملة - ${SITE_SUFFIX}`;
+  if (fullTitle.length <= 70) return fullTitle;
+  const shortTitle = `تفسير ${bookName} ${chapter} | الكتاب المقدس رفيقي`;
+  return shortTitle.length <= 70 ? shortTitle : `${bookName} ${chapter} | الكتاب المقدس رفيقي`;
 }
 
 export function generateBibleBookTitle(bookName: string, chaptersCount: number): string {
