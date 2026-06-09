@@ -2622,10 +2622,12 @@ ${prayersHtml}
     if (serveCached(res, cacheKey)) return;
     const canonical = `${SITE}/orthodox/synaxarium/${monthId}/${day}`;
     const entries = getDayEntries(monthId, day);
-    const title = `سنكسار ${month.arabicName} ${day} — ${entries.map(e => e.name).slice(0, 2).join("، ")} | الكتاب المقدس رفيقي`;
-    const description = entries.length > 0
+    const rawSxTitle = `سنكسار ${month.arabicName} ${day} — ${entries.map(e => e.name).slice(0, 2).join("، ")} | الكتاب المقدس رفيقي`;
+    const title = rawSxTitle.length <= 70 ? rawSxTitle : `سنكسار ${month.arabicName} ${day} | الكتاب المقدس رفيقي`;
+    const rawDesc = entries.length > 0
       ? `سنكسار ${month.arabicName} ${day}: ${entries.map(e => `${e.name} — ${e.description.substring(0, 80)}`).join(". ")}.`
       : `سنكسار ${month.arabicName} ${day} — ${month.copticName} ${day}.`;
+    const description = rawDesc.length > 160 ? `${rawDesc.slice(0, 157).trim()}...` : rawDesc;
     const entriesHtml = entries.map(e =>
       `<article><h2>${entryTypeIcon[e.type]} ${esc(e.name)} <span>(${esc(e.type)})</span></h2><p>${esc(e.description)}</p></article>`
     ).join("\n");
@@ -2671,7 +2673,8 @@ ${entriesHtml}
     const cacheKey = `okh:${liturgyId}:${chapterId}`;
     if (serveCached(res, cacheKey)) return;
     const canonical = `${SITE}/orthodox/kholagy/${liturgyId}/${chapterId}`;
-    const title = `${chapter.title} — ${liturgy.name} — الخولاجي | الكتاب المقدس رفيقي`;
+    const fullChTitle = `${chapter.title} | ${liturgy.name} | رفيقي`;
+    const title = fullChTitle.length <= 70 ? fullChTitle : `${chapter.title} | الخولاجي | رفيقي`;
     const description = chapter.description ?? `${chapter.title} من ${liturgy.name} — نص القداس القبطي بالعربية والقبطية`;
     const partsHtml = chapter.parts.map(p =>
       `<section><h3>${esc(p.title)}${p.role ? ` <span>(${esc(p.role)})</span>` : ""}</h3><p>${esc(p.text.substring(0, 600))}${p.text.length > 600 ? "..." : ""}</p></section>`
@@ -2784,7 +2787,8 @@ ${partsHtml}
     const cacheKey = `kh:${liturgyId}:${chapterId}`;
     if (serveCached(res, cacheKey)) return;
     const canonical = `${SITE}/orthodox/kholagy/${liturgyId}/${chapterId}`;
-    const title = `${chapter.title} — ${liturgy.name} — الخولاجي | الكتاب المقدس رفيقي`;
+    const fullKhTitle = `${chapter.title} | ${liturgy.name} | رفيقي`;
+    const title = fullKhTitle.length <= 70 ? fullKhTitle : `${chapter.title} | الخولاجي | رفيقي`;
     const description = chapter.description ?? `${chapter.title} من ${liturgy.name} — نص القداس القبطي بالعربية والقبطية`;
     const partsHtml = chapter.parts.map(p =>
       `<section>
