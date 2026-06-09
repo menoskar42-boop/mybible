@@ -27,7 +27,7 @@ function esc(str: string): string {
 const SITE = "https://mybible.oscardevs.com";
 const OG_IMAGE = `${SITE}/opengraph.jpg`;
 const MAX_CACHE = 400;
-const snapshotCache = new Map<string, { html: string; ts: number }>();
+const snapshotCache = new Map<string, { html: string; ts: number; noindex?: boolean }>();
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
 function evictOldest() {
@@ -1871,19 +1871,19 @@ function serveCached(res: Response, cacheKey: string): boolean {
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     res.set("Content-Type", "text/html; charset=utf-8");
     res.set("X-Bot-Snapshot", "cached");
-    res.set("X-Robots-Tag", "index, follow");
+    res.set("X-Robots-Tag", cached.noindex ? "noindex, follow" : "index, follow");
     res.send(cached.html);
     return true;
   }
   return false;
 }
 
-function cacheAndServe(res: Response, cacheKey: string, html: string) {
-  snapshotCache.set(cacheKey, { html, ts: Date.now() });
+function cacheAndServe(res: Response, cacheKey: string, html: string, noindex?: boolean) {
+  snapshotCache.set(cacheKey, { html, ts: Date.now(), noindex });
   evictOldest();
   res.set("Content-Type", "text/html; charset=utf-8");
   res.set("X-Bot-Snapshot", "fresh");
-  res.set("X-Robots-Tag", "index, follow");
+  res.set("X-Robots-Tag", noindex ? "noindex, follow" : "index, follow");
   res.send(html);
 }
 
@@ -2668,7 +2668,7 @@ ${entriesHtml}
   if (staticSnapshot) {
     const cacheKey = hasSearchQuery ? `st:${path}?q` : `st:${path}`;
     if (serveCached(res, cacheKey)) return;
-    return cacheAndServe(res, cacheKey, staticSnapshot);
+    return cacheAndServe(res, cacheKey, staticSnapshot, hasSearchQuery);
   }
 
   // ── Orthodox/kholagy paths (canonical: /orthodox/kholagy/...) ─────────────
@@ -2858,7 +2858,10 @@ ${partsHtml}
       undefined,
       true // noindex
     );
-    return res.set("Content-Type", "text/html; charset=utf-8").send(html);
+    return res
+      .set("Content-Type", "text/html; charset=utf-8")
+      .set("X-Robots-Tag", "noindex, follow")
+      .send(html);
   }
 
   next();
