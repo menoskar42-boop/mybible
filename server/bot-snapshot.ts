@@ -2187,7 +2187,8 @@ ${bookLink}
     if (serveCached(res, cacheKey)) return;
 
     const canonical = `${SITE}/emotions/${encodeURIComponent(emotionType)}`;
-    const title = `آيات الكتاب المقدس عن ${emotionType} | تغذية روحية | الكتاب المقدس رفيقي`;
+    const emotionTitleFull = `آيات الكتاب المقدس عن ${emotionType} | تغذية روحية | الكتاب المقدس رفيقي`;
+    const title = emotionTitleFull.length <= 70 ? emotionTitleFull : `آيات الكتاب المقدس عن ${emotionType} | رفيقي`;
     const description = `اعثر على آيات الكتاب المقدس التي تتحدث عن ${emotionType}. آيات مختارة تمنحك الدعم والتشجيع الروحي.`;
 
     const verses = await storage.smartSearchVerses(emotionType, 12).catch(() => []);
@@ -2453,7 +2454,8 @@ ${verseText ? `<blockquote dir="rtl"><p>${esc(verseText)}</p><footer>— ${esc(v
       if (!church || church.status !== 'approved') return next();
 
       const canonical = `${SITE}/church/${churchId}`;
-      const title = `${church.name} | كنيسة قبطية أرثوذكسية — الكتاب المقدس رفيقي`;
+      const churchTitleFull = `${church.name} | كنيسة قبطية أرثوذكسية — رفيقي`;
+      const title = churchTitleFull.length <= 70 ? churchTitleFull : `${church.name} | كنيسة قبطية | رفيقي`;
       const description = `${church.name} — كنيسة قبطية أرثوذكسية في ${church.governorate}. تابع قراءة الكتاب المقدس مع مجتمع كنيستك.`;
 
       const schema = [
