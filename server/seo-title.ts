@@ -60,7 +60,20 @@ export function generateSearchTitle(query: string): string {
   return `${template(displayQuery)} | ${SITE_SUFFIX}`;
 }
 
+const FAMOUS_PSALMS: Record<number, string> = {
+  1:   'مزمور 1 — طريق البار',
+  23:  'مزمور 23 — الرب راعيَّ فلا يعوزني شيء',
+  51:  'مزمور 51 — صلاة التوبة والاعتراف',
+  91:  'مزمور 91 — الساكن في ستر العلي',
+  103: 'مزمور 103 — باركي يا نفسي الرب',
+  121: 'مزمور 121 — رافع عينيَّ إلى الجبال',
+  150: 'مزمور 150 — سبّحوا الله في قدسه',
+};
+
 export function generateBibleChapterTitle(bookName: string, chapter: number, verseCount: number): string {
+  if (bookName === 'المزامير' && FAMOUS_PSALMS[chapter]) {
+    return `${FAMOUS_PSALMS[chapter]} | الكتاب المقدس بالعربية - ${SITE_SUFFIX}`;
+  }
   return `تفسير ${bookName} الإصحاح ${chapter} | قراءة ${verseCount} آية كاملة - ${SITE_SUFFIX}`;
 }
 

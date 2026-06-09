@@ -384,14 +384,33 @@ ${navLinks.length > 0 ? `<nav><h2>إصحاحات ذات صلة</h2><ul>${navLink
   return wrapHtml(title, description, canonical, body, schema, buildChapterOgUrl(bookName, chapter));
 }
 
+const PSALMS_NAMES: Record<number, string> = {
+  1: 'مزمور 1 — طريق البار والأشرار',
+  23: 'مزمور 23 — الرب راعيَّ',
+  46: 'مزمور 46 — الله ملجأنا',
+  51: 'مزمور 51 — الاعتراف والتوبة',
+  91: 'مزمور 91 — في حماية الله',
+  103: 'مزمور 103 — باركي يا نفسي الرب',
+  121: 'مزمور 121 — المعونة من الرب',
+  150: 'مزمور 150 — تسبيح الختام',
+};
+
 function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Array<{ name: string; chaptersCount: number }>): string {
-  const title = generateBibleBookTitle(bookName, chaptersCount);
-  const description = `تفسير ${bookName} كامل مع مقدمة عن السفر، قراءة مباشرة، واستماع صوتي لكل إصحاح. يحتوي على ${chaptersCount} إصحاح.`;
+  const isPsalms = bookName === 'المزامير';
+  const title = isPsalms
+    ? 'مزامير داود كاملة — 150 مزموراً للصلاة والتأمل | الكتاب المقدس رفيقي'
+    : generateBibleBookTitle(bookName, chaptersCount);
+  const description = isPsalms
+    ? 'اقرأ مزامير داود كاملة بالعربية: 150 مزموراً تشمل مزمور 23 الرب راعيَّ، مزمور 91 في حماية الله، مزمور 51 التوبة، ومزمور 103. تسابيح وصلوات من الكتاب المقدس.'
+    : `تفسير ${bookName} كامل مع مقدمة عن السفر، قراءة مباشرة، واستماع صوتي لكل إصحاح. يحتوي على ${chaptersCount} إصحاح.`;
   const canonical = `${SITE}/bible/${encodeURIComponent(bookName)}`;
 
   const chapterLinks = [];
   for (let ch = 1; ch <= chaptersCount; ch++) {
-    chapterLinks.push(`<li><a href="/bible/${encodeURIComponent(bookName)}/${ch}">تفسير ${esc(bookName)} الإصحاح ${ch}</a></li>`);
+    const label = isPsalms && PSALMS_NAMES[ch]
+      ? PSALMS_NAMES[ch]
+      : `تفسير ${bookName} الإصحاح ${ch}`;
+    chapterLinks.push(`<li><a href="/bible/${encodeURIComponent(bookName)}/${ch}">${esc(label)}</a></li>`);
   }
 
   const adjacentLinks: string[] = [];
@@ -401,11 +420,17 @@ function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Ar
   if (bookIdx < allBooks.length - 1)
     adjacentLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)} كامل</a>`);
 
-  const schema = [
+  const psalmsFaqSchema = isPsalms ? buildFaqSchema([
+    { q: 'كم عدد مزامير داود في الكتاب المقدس؟', a: 'يتكون سفر المزامير من 150 مزموراً، معظمها منسوب إلى داود النبي. تغطي موضوعات التسبيح والصلاة والاعتراف والتوبة والثقة بالله.' },
+    { q: 'ما هو مزمور 23؟', a: 'مزمور 23 "الرب راعيَّ فلا يعوزني شيء" هو أشهر المزامير وأكثرها تلاوةً. يصف ثقة المؤمن بالله الراعي الصالح الذي يرشد ويحمي ويُعزّي.' },
+    { q: 'ما هو مزمور 91؟', a: 'مزمور 91 "الساكن في ستر العلي" يتحدث عن حماية الله الإلهية لمن يثق به، ويُتلى كثيراً في أوقات الخوف والضيقة.' },
+  ]) : null;
+
+  const schemaArr: object[] = [
     {
       "@context": "https://schema.org",
       "@type": "Book",
-      "name": bookName,
+      "name": isPsalms ? 'مزامير داود' : bookName,
       "inLanguage": "ar",
       "about": "الكتاب المقدس",
       "numberOfPages": chaptersCount,
@@ -422,18 +447,32 @@ function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Ar
       ]
     }
   ];
+  if (psalmsFaqSchema) schemaArr.push(psalmsFaqSchema);
 
-  const body = `<h1>تفسير ${esc(bookName)} كامل</h1>
+  const psalmsFeatured = isPsalms ? `
+<section>
+<h2>أشهر المزامير</h2>
+<ul>
+<li><a href="/bible/${encodeURIComponent(bookName)}/23">مزمور 23 — الرب راعيَّ فلا يعوزني شيء</a></li>
+<li><a href="/bible/${encodeURIComponent(bookName)}/91">مزمور 91 — الساكن في ستر العلي</a></li>
+<li><a href="/bible/${encodeURIComponent(bookName)}/51">مزمور 51 — توبة داود واعترافه</a></li>
+<li><a href="/bible/${encodeURIComponent(bookName)}/103">مزمور 103 — باركي يا نفسي الرب</a></li>
+<li><a href="/bible/${encodeURIComponent(bookName)}/121">مزمور 121 — رافع عينيَّ إلى الجبال</a></li>
+</ul>
+</section>` : '';
+
+  const body = `<h1>${isPsalms ? 'مزامير داود كاملة — 150 مزموراً' : `تفسير ${esc(bookName)} كامل`}</h1>
 <section>
 <p><em>${esc(description)}</em></p>
 </section>
+${psalmsFeatured}
 <nav>
-<h2>الإصحاحات</h2>
+<h2>${isPsalms ? 'جميع المزامير' : 'الإصحاحات'}</h2>
 <ul>${chapterLinks.join("\n")}</ul>
 </nav>
 ${adjacentLinks.length > 0 ? `<nav><h2>أسفار ذات صلة</h2><ul>${adjacentLinks.map(l => `<li>${l}</li>`).join("")}</ul></nav>` : ""}`;
 
-  return wrapHtml(title, description, canonical, body, schema, buildBookOgUrl(bookName, chaptersCount));
+  return wrapHtml(title, description, canonical, body, schemaArr, buildBookOgUrl(bookName, chaptersCount));
 }
 
 function buildStaticPageSnapshot(path: string, noindex?: boolean): string | null {
