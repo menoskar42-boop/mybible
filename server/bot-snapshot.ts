@@ -236,10 +236,14 @@ function buildTafsirSnapshot(
   const currentBook = allBooks.find(b => b.name === bookName);
   const chaptersCount = currentBook?.chaptersCount ?? 1;
 
-  const title = `تفسير ${bookName} الإصحاح ${chapter} | تفسير الكتاب المقدس بالعربية`;
-  const description = tafsirText
-    ? `${tafsirText.slice(0, 160).trim()}...`
-    : `تفسير ${bookName} الإصحاح ${chapter} من الكتاب المقدس بالعربية — شرح وافٍ لكل آية مع السياق اللاهوتي.`;
+  const title = `تفسير ${bookName} ${chapter} — القمص تادرس يعقوب ملطي | رفيقي`;
+  const rawDescription = tafsirText
+    ? `تفسير ${bookName} الإصحاح ${chapter} للقمص تادرس يعقوب ملطي: ${tafsirText.trim()}`
+    : `تفسير ${bookName} الإصحاح ${chapter} من الكتاب المقدس بالعربية، للقمص تادرس يعقوب ملطي — شرح وافٍ لكل آية مع السياق اللاهوتي.`;
+  // Clamp to 160 chars (Bing/Google meta-description limit) regardless of book name length
+  const description = rawDescription.length > 160
+    ? `${rawDescription.slice(0, 157).trim()}...`
+    : rawDescription;
 
   const seoLinks = getInternalLinks(`تفسير ${bookName}`, 4);
   const seoLinksHtml = buildInternalLinksHtml(seoLinks);
@@ -252,7 +256,7 @@ function buildTafsirSnapshot(
   navLinks.push(`<a href="/bible/${encodeURIComponent(bookName)}/${chapter}">قراءة آيات ${esc(bookName)} ${chapter}</a>`);
   navLinks.push(`<a href="/bible/${encodeURIComponent(bookName)}">سفر ${esc(bookName)} كامل</a>`);
 
-  const schema = [
+  const schema: object[] = [
     {
       "@context": "https://schema.org",
       "@type": "Article",
@@ -261,7 +265,7 @@ function buildTafsirSnapshot(
       "url": canonical,
       "inLanguage": "ar",
       "articleSection": "تفسير الكتاب المقدس",
-      "author": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE },
+      "author": { "@type": "Person", "name": "القمص تادرس يعقوب ملطي" },
       "publisher": { "@type": "Organization", "name": "الكتاب المقدس رفيقي", "url": SITE },
       "about": { "@type": "Book", "name": bookName, "inLanguage": "ar" }
     },
@@ -277,16 +281,22 @@ function buildTafsirSnapshot(
       ]
     }
   ];
+  const tafsirFaq = buildFaqSchema([
+    { q: `من صاحب تفسير ${bookName}؟`, a: `تفسير ${bookName} المعروض هنا هو للقمص تادرس يعقوب ملطي، أحد أشهر مفسري الكتاب المقدس في الكنيسة القبطية الأرثوذكسية.` },
+    { q: `أين أقرأ تفسير الكتاب المقدس بالعربية كاملاً؟`, a: `يوفر موقع الكتاب المقدس رفيقي تفسير القمص تادرس يعقوب ملطي لأسفار الكتاب المقدس إصحاحاً بإصحاح بالعربية مجاناً.` },
+  ]);
+  if (tafsirFaq) schema.push(tafsirFaq);
 
   const introSection = bookIntro
     ? `<section>\n<h2>مقدمة عن سفر ${esc(bookName)}</h2>\n<p>${esc(bookIntro.slice(0, 500))}...</p>\n</section>`
     : "";
 
   const tafsirSection = tafsirText
-    ? `<article>\n<h2>تفسير ${esc(bookName)} الإصحاح ${chapter}</h2>\n<p>${esc(tafsirText)}</p>\n</article>`
+    ? `<article>\n<h2>تفسير ${esc(bookName)} الإصحاح ${chapter} — للقمص تادرس يعقوب ملطي</h2>\n<p>${esc(tafsirText)}</p>\n</article>`
     : `<article>\n<h2>تفسير ${esc(bookName)} الإصحاح ${chapter}</h2>\n<p>يتضمن هذا الإصحاح ${chapter === 1 ? "افتتاحية" : "تكملة"} أحداث سفر ${esc(bookName)}. اقرأ الآيات للتأمل الروحي.</p>\n</article>`;
 
   const body = `<h1>${esc(title)}</h1>
+<p><em>تفسير الكتاب المقدس بالعربية للقمص تادرس يعقوب ملطي.</em></p>
 ${introSection}
 ${tafsirSection}
 ${navLinks.length > 0 ? `<nav><h2>إصحاحات ذات صلة</h2><ul>${navLinks.map(l => `<li>${l}</li>`).join("")}</ul></nav>` : ""}
