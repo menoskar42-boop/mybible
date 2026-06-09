@@ -56,7 +56,7 @@ function buildFaqSchema(faqs: { q: string; a: string }[]): object {
   };
 }
 
-function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[], ogImage?: string, noindex?: boolean): string {
+function wrapHtml(title: string, description: string, canonical: string, bodyContent: string, schemaJson: object | object[], ogImage?: string, noindex?: boolean, ogType?: string): string {
   const today = new Date().toISOString().split('T')[0];
   const rawSchemas = Array.isArray(schemaJson) ? schemaJson : [schemaJson];
   const schemas = rawSchemas.map((s: Record<string, unknown>) =>
@@ -66,6 +66,7 @@ function wrapHtml(title: string, description: string, canonical: string, bodyCon
     .map(s => `<script type="application/ld+json">\n${JSON.stringify(s)}\n</script>`)
     .join('\n');
   const img = ogImage || OG_IMAGE;
+  const resolvedOgType = ogType || (canonical === SITE || canonical === `${SITE}/` ? 'website' : 'article');
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -79,7 +80,7 @@ function wrapHtml(title: string, description: string, canonical: string, bodyCon
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
-<meta property="og:type" content="article">
+<meta property="og:type" content="${resolvedOgType}">
 <meta property="og:site_name" content="الكتاب المقدس رفيقي">
 <meta property="og:image" content="${img}">
 <meta property="og:image:width" content="1200">
@@ -2846,8 +2847,15 @@ ${partsHtml}
     return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema));
   }
 
-  // ── noindex for admin and utility pages ───────────────────────────────────
-  const noindexPaths = ['/admin', '/admin/exit', '/ministry-auth', '/liturgy-control', '/liturgy-display', '/groups/create', '/groups/join', '/church-request'];
+  // ── noindex for admin, utility, and user-specific pages ──────────────────
+  // Mirrors Disallow entries in robots.txt for defense-in-depth (bots that ignore robots.txt)
+  const noindexPaths = [
+    '/admin', '/admin/exit', '/ministry-auth',
+    '/liturgy-control', '/liturgy-display',
+    '/groups', '/group',
+    '/groups/create', '/groups/join', '/church-request',
+    '/highlights', '/share',
+  ];
   if (noindexPaths.some(p => path === p || path.startsWith(p + '/'))) {
     const html = wrapHtml(
       'رفيقي',
