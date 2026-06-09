@@ -2050,8 +2050,8 @@ ${verseText ? `<blockquote dir="rtl"><p>${esc(verseText)}</p><footer>— ${esc(v
     const cacheKey = "ag:index";
     if (serveCached(res, cacheKey)) return;
     const canonical = `${SITE}/orthodox/agpeya`;
-    const title = "كتاب الأجبية القبطي — ساعات الصلاة السبع | الكتاب المقدس رفيقي";
-    const description = "الأجبية كتاب الصلوات اليومية القبطي الأرثوذكسي، يحتوي على سبع ساعات صلاة يرتلها المؤمنون منذ القرن الرابع الميلادي.";
+    const title = "الأجبية القبطية — ساعات الصلاة السبع الأرثوذكسية | رفيقي";
+    const description = "الأجبية القبطية: كتاب الصلوات اليومية للمسيحي الأرثوذكسي. سبع ساعات صلاة: باكر، الثالثة، السادسة، التاسعة، الغروب، النوم، نصف الليل. مجاناً بالكامل.";
     const hoursHtml = agpeyaHoursFull.map(h =>
       `<li><a href="${SITE}/orthodox/agpeya/${h.id}">${esc(h.name)} — ${esc(h.arabicTime)}</a></li>`
     ).join("\n");
@@ -2073,7 +2073,7 @@ ${verseText ? `<blockquote dir="rtl"><p>${esc(verseText)}</p><footer>— ${esc(v
     ];
     const body = `
 <nav aria-label="breadcrumb"><a href="${SITE}">الرئيسية</a> &rsaquo; <a href="${SITE}/orthodox">أرثوذوكسيات</a> &rsaquo; الأجبية</nav>
-<h1>كتاب الأجبية — ساعات الصلاة السبع</h1>
+<h1>الأجبية القبطية — ساعات الصلاة السبع الأرثوذكسية</h1>
 <p>${esc(description)}</p>
 <nav><h2>الساعات السبع</h2><ul>${hoursHtml}</ul></nav>`;
     return cacheAndServe(res, cacheKey, wrapHtml(title, description, canonical, body, schema, buildOrthodoxOgUrl("الأجبية القبطية")));
