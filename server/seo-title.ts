@@ -72,7 +72,7 @@ const FAMOUS_PSALMS: Record<number, string> = {
 
 export function generateBibleChapterTitle(bookName: string, chapter: number, verseCount: number): string {
   if (bookName === 'المزامير' && FAMOUS_PSALMS[chapter]) {
-    return `${FAMOUS_PSALMS[chapter]} | الكتاب المقدس بالعربية - ${SITE_SUFFIX}`;
+    return `${FAMOUS_PSALMS[chapter]} - ${SITE_SUFFIX}`;
   }
   return `تفسير ${bookName} الإصحاح ${chapter} | قراءة ${verseCount} آية كاملة - ${SITE_SUFFIX}`;
 }

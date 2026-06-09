@@ -384,32 +384,88 @@ ${navLinks.length > 0 ? `<nav><h2>إصحاحات ذات صلة</h2><ul>${navLink
   return wrapHtml(title, description, canonical, body, schema, buildChapterOgUrl(bookName, chapter));
 }
 
-const PSALMS_NAMES: Record<number, string> = {
-  1: 'مزمور 1 — طريق البار والأشرار',
-  23: 'مزمور 23 — الرب راعيَّ',
-  46: 'مزمور 46 — الله ملجأنا',
-  51: 'مزمور 51 — الاعتراف والتوبة',
-  91: 'مزمور 91 — في حماية الله',
-  103: 'مزمور 103 — باركي يا نفسي الرب',
-  121: 'مزمور 121 — المعونة من الرب',
-  150: 'مزمور 150 — تسبيح الختام',
+// Per-book SEO overrides for high-value books (keyword research driven).
+interface BookSeoOverride {
+  title: string;
+  description: string;
+  h1: string;
+  chaptersHeading: string;
+  chapterLabels?: Record<number, string>;
+  featured?: { ch: number; label: string }[];
+  faq?: { q: string; a: string }[];
+  schemaName?: string;
+}
+
+const BOOK_SEO_OVERRIDES: Record<string, BookSeoOverride> = {
+  'المزامير': {
+    title: 'مزامير داود كاملة — 150 مزموراً للتأمل | الكتاب المقدس رفيقي',
+    description: 'اقرأ مزامير داود كاملة بالعربية: 150 مزموراً تشمل مزمور 23 الرب راعيَّ، مزمور 91 في حماية الله، مزمور 51 التوبة، ومزمور 103. تسابيح وصلوات من الكتاب المقدس.',
+    h1: 'مزامير داود كاملة — 150 مزموراً',
+    chaptersHeading: 'جميع المزامير',
+    schemaName: 'مزامير داود',
+    chapterLabels: {
+      1: 'مزمور 1 — طريق البار والأشرار',
+      23: 'مزمور 23 — الرب راعيَّ',
+      46: 'مزمور 46 — الله ملجأنا',
+      51: 'مزمور 51 — الاعتراف والتوبة',
+      91: 'مزمور 91 — في حماية الله',
+      103: 'مزمور 103 — باركي يا نفسي الرب',
+      121: 'مزمور 121 — المعونة من الرب',
+      150: 'مزمور 150 — تسبيح الختام',
+    },
+    featured: [
+      { ch: 23, label: 'مزمور 23 — الرب راعيَّ فلا يعوزني شيء' },
+      { ch: 91, label: 'مزمور 91 — الساكن في ستر العلي' },
+      { ch: 51, label: 'مزمور 51 — توبة داود واعترافه' },
+      { ch: 103, label: 'مزمور 103 — باركي يا نفسي الرب' },
+      { ch: 121, label: 'مزمور 121 — رافع عينيَّ إلى الجبال' },
+    ],
+    faq: [
+      { q: 'كم عدد مزامير داود في الكتاب المقدس؟', a: 'يتكون سفر المزامير من 150 مزموراً، معظمها منسوب إلى داود النبي. تغطي موضوعات التسبيح والصلاة والاعتراف والتوبة والثقة بالله.' },
+      { q: 'ما هو مزمور 23؟', a: 'مزمور 23 "الرب راعيَّ فلا يعوزني شيء" هو أشهر المزامير وأكثرها تلاوةً. يصف ثقة المؤمن بالله الراعي الصالح الذي يرشد ويحمي ويُعزّي.' },
+      { q: 'ما هو مزمور 91؟', a: 'مزمور 91 "الساكن في ستر العلي" يتحدث عن حماية الله الإلهية لمن يثق به، ويُتلى كثيراً في أوقات الخوف والضيقة.' },
+    ],
+  },
+  'رؤيا يوحنا': {
+    title: 'سفر الرؤيا كاملاً بالعربية — رؤيا يوحنا اللاهوتي | رفيقي',
+    description: 'اقرأ سفر الرؤيا (رؤيا يوحنا اللاهوتي) كاملاً بالعربية: 22 إصحاحاً عن نهاية الزمان، الكنائس السبع، الدينونة، وأورشليم الجديدة. آخر أسفار العهد الجديد مع تفسير.',
+    h1: 'سفر الرؤيا — رؤيا يوحنا اللاهوتي',
+    chaptersHeading: 'إصحاحات سفر الرؤيا',
+    schemaName: 'سفر الرؤيا',
+    chapterLabels: {
+      1: 'الرؤيا 1 — رؤيا ابن الإنسان',
+      2: 'الرؤيا 2 — رسائل الكنائس السبع',
+      3: 'الرؤيا 3 — رسائل ساردس وفيلادلفيا ولاودكية',
+      4: 'الرؤيا 4 — العرش في السماء',
+      12: 'الرؤيا 12 — المرأة والتنين',
+      20: 'الرؤيا 20 — الملك الألفي والدينونة',
+      21: 'الرؤيا 21 — أورشليم الجديدة',
+      22: 'الرؤيا 22 — نهر ماء الحياة',
+    },
+    featured: [
+      { ch: 1, label: 'الرؤيا 1 — رؤيا ابن الإنسان بين المنائر' },
+      { ch: 2, label: 'الرؤيا 2 — رسائل الكنائس السبع' },
+      { ch: 12, label: 'الرؤيا 12 — المرأة المتسربلة بالشمس والتنين' },
+      { ch: 21, label: 'الرؤيا 21 — السماء الجديدة وأورشليم الجديدة' },
+      { ch: 22, label: 'الرؤيا 22 — "أنا آتي سريعاً"' },
+    ],
+    faq: [
+      { q: 'من كتب سفر الرؤيا؟', a: 'كتب سفر الرؤيا يوحنا الرسول (يوحنا اللاهوتي) في جزيرة بطمس نحو نهاية القرن الأول الميلادي، وهو آخر أسفار العهد الجديد والكتاب المقدس.' },
+      { q: 'ما موضوع سفر الرؤيا؟', a: 'يتناول سفر الرؤيا الأحداث الأخيرة ونهاية الزمان: رسائل الكنائس السبع، الدينونة، انتصار المسيح على الشر، وأورشليم الجديدة (السماء الجديدة والأرض الجديدة).' },
+      { q: 'كم عدد إصحاحات سفر الرؤيا؟', a: 'يتكون سفر الرؤيا من 22 إصحاحاً.' },
+    ],
+  },
 };
 
 function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Array<{ name: string; chaptersCount: number }>): string {
-  const isPsalms = bookName === 'المزامير';
-  const title = isPsalms
-    ? 'مزامير داود كاملة — 150 مزموراً للصلاة والتأمل | الكتاب المقدس رفيقي'
-    : generateBibleBookTitle(bookName, chaptersCount);
-  const description = isPsalms
-    ? 'اقرأ مزامير داود كاملة بالعربية: 150 مزموراً تشمل مزمور 23 الرب راعيَّ، مزمور 91 في حماية الله، مزمور 51 التوبة، ومزمور 103. تسابيح وصلوات من الكتاب المقدس.'
-    : `تفسير ${bookName} كامل مع مقدمة عن السفر، قراءة مباشرة، واستماع صوتي لكل إصحاح. يحتوي على ${chaptersCount} إصحاح.`;
+  const ov = BOOK_SEO_OVERRIDES[bookName];
+  const title = ov ? ov.title : generateBibleBookTitle(bookName, chaptersCount);
+  const description = ov ? ov.description : `تفسير ${bookName} كامل مع مقدمة عن السفر، قراءة مباشرة، واستماع صوتي لكل إصحاح. يحتوي على ${chaptersCount} إصحاح.`;
   const canonical = `${SITE}/bible/${encodeURIComponent(bookName)}`;
 
   const chapterLinks = [];
   for (let ch = 1; ch <= chaptersCount; ch++) {
-    const label = isPsalms && PSALMS_NAMES[ch]
-      ? PSALMS_NAMES[ch]
-      : `تفسير ${bookName} الإصحاح ${ch}`;
+    const label = ov?.chapterLabels?.[ch] || `تفسير ${bookName} الإصحاح ${ch}`;
     chapterLinks.push(`<li><a href="/bible/${encodeURIComponent(bookName)}/${ch}">${esc(label)}</a></li>`);
   }
 
@@ -420,17 +476,11 @@ function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Ar
   if (bookIdx < allBooks.length - 1)
     adjacentLinks.push(`<a href="/bible/${encodeURIComponent(allBooks[bookIdx + 1].name)}">تفسير ${esc(allBooks[bookIdx + 1].name)} كامل</a>`);
 
-  const psalmsFaqSchema = isPsalms ? buildFaqSchema([
-    { q: 'كم عدد مزامير داود في الكتاب المقدس؟', a: 'يتكون سفر المزامير من 150 مزموراً، معظمها منسوب إلى داود النبي. تغطي موضوعات التسبيح والصلاة والاعتراف والتوبة والثقة بالله.' },
-    { q: 'ما هو مزمور 23؟', a: 'مزمور 23 "الرب راعيَّ فلا يعوزني شيء" هو أشهر المزامير وأكثرها تلاوةً. يصف ثقة المؤمن بالله الراعي الصالح الذي يرشد ويحمي ويُعزّي.' },
-    { q: 'ما هو مزمور 91؟', a: 'مزمور 91 "الساكن في ستر العلي" يتحدث عن حماية الله الإلهية لمن يثق به، ويُتلى كثيراً في أوقات الخوف والضيقة.' },
-  ]) : null;
-
   const schemaArr: object[] = [
     {
       "@context": "https://schema.org",
       "@type": "Book",
-      "name": isPsalms ? 'مزامير داود' : bookName,
+      "name": ov?.schemaName || bookName,
       "inLanguage": "ar",
       "about": "الكتاب المقدس",
       "numberOfPages": chaptersCount,
@@ -447,27 +497,26 @@ function buildBookSnapshot(bookName: string, chaptersCount: number, allBooks: Ar
       ]
     }
   ];
-  if (psalmsFaqSchema) schemaArr.push(psalmsFaqSchema);
+  if (ov?.faq) {
+    const faqSchema = buildFaqSchema(ov.faq);
+    if (faqSchema) schemaArr.push(faqSchema);
+  }
 
-  const psalmsFeatured = isPsalms ? `
+  const featuredHtml = ov?.featured ? `
 <section>
-<h2>أشهر المزامير</h2>
+<h2>أشهر الإصحاحات</h2>
 <ul>
-<li><a href="/bible/${encodeURIComponent(bookName)}/23">مزمور 23 — الرب راعيَّ فلا يعوزني شيء</a></li>
-<li><a href="/bible/${encodeURIComponent(bookName)}/91">مزمور 91 — الساكن في ستر العلي</a></li>
-<li><a href="/bible/${encodeURIComponent(bookName)}/51">مزمور 51 — توبة داود واعترافه</a></li>
-<li><a href="/bible/${encodeURIComponent(bookName)}/103">مزمور 103 — باركي يا نفسي الرب</a></li>
-<li><a href="/bible/${encodeURIComponent(bookName)}/121">مزمور 121 — رافع عينيَّ إلى الجبال</a></li>
+${ov.featured.map(f => `<li><a href="/bible/${encodeURIComponent(bookName)}/${f.ch}">${esc(f.label)}</a></li>`).join('\n')}
 </ul>
 </section>` : '';
 
-  const body = `<h1>${isPsalms ? 'مزامير داود كاملة — 150 مزموراً' : `تفسير ${esc(bookName)} كامل`}</h1>
+  const body = `<h1>${ov ? esc(ov.h1) : `تفسير ${esc(bookName)} كامل`}</h1>
 <section>
 <p><em>${esc(description)}</em></p>
 </section>
-${psalmsFeatured}
+${featuredHtml}
 <nav>
-<h2>${isPsalms ? 'جميع المزامير' : 'الإصحاحات'}</h2>
+<h2>${ov ? esc(ov.chaptersHeading) : 'الإصحاحات'}</h2>
 <ul>${chapterLinks.join("\n")}</ul>
 </nav>
 ${adjacentLinks.length > 0 ? `<nav><h2>أسفار ذات صلة</h2><ul>${adjacentLinks.map(l => `<li>${l}</li>`).join("")}</ul></nav>` : ""}`;
