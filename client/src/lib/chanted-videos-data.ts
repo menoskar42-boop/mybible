@@ -241,8 +241,8 @@ export const chanteVideos: Record<string, Record<number, ChanteEntry>> = {
   },
   "رؤيا يوحنا": {
     1:  { id: "mGggNOvpVjE", start:    0, end:   253 },
-    2:  { id: "mGggNOvpVjE", start:  254, end:   552 },
-    3:  { id: "mGggNOvpVjE", start:  553, end:   918 },
+    2:  { id: "mGggNOvpVjE", start:  254, end:   541 },
+    3:  { id: "mGggNOvpVjE", start:  542, end:   918 },
     4:  { id: "mGggNOvpVjE", start:  919, end:  1394 },
     5:  { id: "mGggNOvpVjE", start: 1395, end:  1595 },
     6:  { id: "mGggNOvpVjE", start: 1596, end:  1933 },
