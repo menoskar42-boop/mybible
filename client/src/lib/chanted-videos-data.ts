@@ -260,8 +260,8 @@ export const chanteVideos: Record<string, Record<number, ChanteEntry>> = {
     18: { id: "mGggNOvpVjE", start: 6168, end:  6809 },
     19: { id: "mGggNOvpVjE", start: 6810, end:  7369 },
     20: { id: "mGggNOvpVjE", start: 7370, end:  7825 },
-    21: { id: "mGggNOvpVjE", start: 7826, end:  8411 },
-    22: { id: "mGggNOvpVjE", start: 8412, end:  9012 },
+    21: { id: "mGggNOvpVjE", start: 7826, end:  8402 },
+    22: { id: "mGggNOvpVjE", start: 8403, end:  9012 },
   },
 };
 
