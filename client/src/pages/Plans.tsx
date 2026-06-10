@@ -123,6 +123,7 @@ export default function Plans() {
   const [listenChoiceChante, setListenChoiceChante] = useState<{ id: string; start?: number; end?: number } | null>(null);
   const [listenChoiceRegular, setListenChoiceRegular] = useState<string | null>(null);
   const [listenChoiceSource, setListenChoiceSource] = useState<'plan' | 'custom'>('plan');
+  const [isChantedMode, setIsChantedMode] = useState<boolean>(false);
 
   const [chapterSubView, setChapterSubView] = useState<'verses' | 'tafsir' | 'lesson' | 'video'>('verses');
   const [lessonParts, setLessonParts] = useState<{ videoId: string; partNum: number; title: string }[]>([]);
@@ -175,6 +176,7 @@ export default function Plans() {
     setCurrentVideoBookName(bookName);
     setCurrentVideoChapter(chapter);
     setVideoSource(source);
+    setIsChantedMode(false);
     setCurrentVideoId(getVideoId(bookName, chapter));
     if (source === 'plan') setVideoReadingIndex(currentReadingIndex);
     else setVideoReadingIndex(customReadingIndex);
@@ -186,6 +188,41 @@ export default function Plans() {
       return currentDayData?.readings ?? [];
     }
     return customReadings.map(r => ({ book: r.bookName, bookDbName: r.bookName, chapter: r.chapter }));
+  };
+
+  const applyVideoPreferenceForReading = (bookName: string, chapter: number) => {
+    if (isChantedMode) {
+      const chanteId = getChanteVideoId(bookName, chapter);
+      if (chanteId) {
+        setCurrentVideoId(chanteId.id);
+        setCurrentVideoStart(chanteId.start);
+        setCurrentVideoEnd(chanteId.end);
+        setIsChantedMode(true);
+        return;
+      }
+    }
+    const regularId = getVideoId(bookName, chapter);
+    if (regularId) {
+      setCurrentVideoId(regularId);
+      setCurrentVideoStart(undefined);
+      setCurrentVideoEnd(undefined);
+      setIsChantedMode(false);
+      return;
+    }
+    if (!isChantedMode) {
+      const chanteId = getChanteVideoId(bookName, chapter);
+      if (chanteId) {
+        setCurrentVideoId(chanteId.id);
+        setCurrentVideoStart(chanteId.start);
+        setCurrentVideoEnd(chanteId.end);
+        setIsChantedMode(true);
+        return;
+      }
+    }
+    setCurrentVideoId(null);
+    setCurrentVideoStart(undefined);
+    setCurrentVideoEnd(undefined);
+    setIsChantedMode(false);
   };
 
   const goToVideoPrevReading = () => {
@@ -205,7 +242,7 @@ export default function Plans() {
     const bookName = videoSource === 'plan' ? prevReading.bookDbName : prevReading.book;
     setCurrentVideoBookName(bookName);
     setCurrentVideoChapter(prevReading.chapter);
-    setCurrentVideoId(getVideoId(bookName, prevReading.chapter));
+    applyVideoPreferenceForReading(bookName, prevReading.chapter);
   };
 
   const goToVideoNextReading = () => {
@@ -225,7 +262,7 @@ export default function Plans() {
     const bookName = videoSource === 'plan' ? nextReading.bookDbName : nextReading.book;
     setCurrentVideoBookName(bookName);
     setCurrentVideoChapter(nextReading.chapter);
-    setCurrentVideoId(getVideoId(bookName, nextReading.chapter));
+    applyVideoPreferenceForReading(bookName, nextReading.chapter);
   };
 
   const { data: oldBooks } = useQuery({
@@ -944,8 +981,30 @@ export default function Plans() {
           {chapterSubView === 'video' && (
             <div className="mt-2">
               <h3 className="font-display text-lg font-semibold mb-4 text-center">
-                استمع للإصحاح — {currentVideoBookName} {currentVideoChapter}
+                {isChantedMode ? 'استمع مرتلاً' : 'استمع كقراءة'} — {currentVideoBookName} {currentVideoChapter}
               </h3>
+              <div className="mb-4 pb-3 border-b flex justify-center" dir="rtl">
+                {isChantedMode
+                  ? (() => {
+                      const regularId = getVideoId(currentVideoBookName, currentVideoChapter);
+                      if (!regularId) return null;
+                      return (
+                        <Button size="sm" onClick={() => { setIsChantedMode(false); setCurrentVideoId(regularId); setCurrentVideoStart(undefined); setCurrentVideoEnd(undefined); }} style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}>
+                          <Volume2 className="w-4 h-4 ml-1" />استمع كقراءة
+                        </Button>
+                      );
+                    })()
+                  : (() => {
+                      const chanteId = getChanteVideoId(currentVideoBookName, currentVideoChapter);
+                      if (!chanteId) return null;
+                      return (
+                        <Button size="sm" onClick={() => { setIsChantedMode(true); setCurrentVideoId(chanteId.id); setCurrentVideoStart(chanteId.start); setCurrentVideoEnd(chanteId.end); }} style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}>
+                          <Music className="w-4 h-4 ml-1" />استمع مرتلاً
+                        </Button>
+                      );
+                    })()
+                }
+              </div>
               {currentVideoId ? (
                 <YouTubeCard videoId={currentVideoId} start={currentVideoStart} end={currentVideoEnd} />
               ) : (
@@ -1233,8 +1292,30 @@ export default function Plans() {
             {chapterSubView === 'video' && (
               <div className="mt-2">
                 <h3 className="font-display text-lg font-semibold mb-4 text-center">
-                  استمع للإصحاح — {currentVideoBookName} {currentVideoChapter}
+                  {isChantedMode ? 'استمع مرتلاً' : 'استمع كقراءة'} — {currentVideoBookName} {currentVideoChapter}
                 </h3>
+                <div className="mb-4 pb-3 border-b flex justify-center" dir="rtl">
+                  {isChantedMode
+                    ? (() => {
+                        const regularId = getVideoId(currentVideoBookName, currentVideoChapter);
+                        if (!regularId) return null;
+                        return (
+                          <Button size="sm" onClick={() => { setIsChantedMode(false); setCurrentVideoId(regularId); setCurrentVideoStart(undefined); setCurrentVideoEnd(undefined); }} style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}>
+                            <Volume2 className="w-4 h-4 ml-1" />استمع كقراءة
+                          </Button>
+                        );
+                      })()
+                    : (() => {
+                        const chanteId = getChanteVideoId(currentVideoBookName, currentVideoChapter);
+                        if (!chanteId) return null;
+                        return (
+                          <Button size="sm" onClick={() => { setIsChantedMode(true); setCurrentVideoId(chanteId.id); setCurrentVideoStart(chanteId.start); setCurrentVideoEnd(chanteId.end); }} style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}>
+                            <Music className="w-4 h-4 ml-1" />استمع مرتلاً
+                          </Button>
+                        );
+                      })()
+                  }
+                </div>
                 {currentVideoId ? (
                   <YouTubeCard videoId={currentVideoId} start={currentVideoStart} end={currentVideoEnd} />
                 ) : (
@@ -1462,6 +1543,7 @@ export default function Plans() {
                 setCurrentVideoStart(listenChoiceChante.start);
                 setCurrentVideoEnd(listenChoiceChante.end);
               }
+              setIsChantedMode(true);
               if (listenChoiceSource === 'plan') setVideoReadingIndex(currentReadingIndex);
               else setVideoReadingIndex(customReadingIndex);
               setChapterSubView('video');
@@ -1481,6 +1563,7 @@ export default function Plans() {
               setCurrentVideoId(listenChoiceRegular);
               setCurrentVideoStart(undefined);
               setCurrentVideoEnd(undefined);
+              setIsChantedMode(false);
               if (listenChoiceSource === 'plan') setVideoReadingIndex(currentReadingIndex);
               else setVideoReadingIndex(customReadingIndex);
               setChapterSubView('video');
