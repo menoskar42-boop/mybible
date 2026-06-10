@@ -68,6 +68,7 @@ export default function Bible() {
   const [listenChoiceOpen, setListenChoiceOpen] = useState(false);
   const [listenChoiceChante, setListenChoiceChante] = useState<{ id: string; start?: number; end?: number } | null>(null);
   const [listenChoiceRegular, setListenChoiceRegular] = useState<string | null>(null);
+  const [isChantedMode, setIsChantedMode] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
   const changeSubView = useCallback((view: 'verses' | 'tafsir' | 'lesson' | 'video', book?: BibleBook | null, chapter?: number) => {
@@ -228,6 +229,7 @@ export default function Bible() {
       setListenChoiceOpen(true);
       return;
     }
+    setIsChantedMode(false);
     setCurrentVideoId(getVideoId(selectedBook.name, selectedChapter));
     setCurrentVideoStart(undefined);
     setCurrentVideoEnd(undefined);
@@ -311,6 +313,41 @@ export default function Bible() {
     allBooks[allBooks.length - 1].id === selectedBook.id &&
     selectedChapter === selectedBook.chaptersCount;
 
+  const applyVideoPreference = useCallback((bookName: string, chapter: number, preferChanted: boolean) => {
+    if (preferChanted) {
+      const chanteId = getChanteVideoId(bookName, chapter);
+      if (chanteId) {
+        setCurrentVideoId(chanteId.id);
+        setCurrentVideoStart(chanteId.start);
+        setCurrentVideoEnd(chanteId.end);
+        setIsChantedMode(true);
+        return;
+      }
+    }
+    const regularId = getVideoId(bookName, chapter);
+    if (regularId) {
+      setCurrentVideoId(regularId);
+      setCurrentVideoStart(undefined);
+      setCurrentVideoEnd(undefined);
+      setIsChantedMode(false);
+      return;
+    }
+    if (!preferChanted) {
+      const chanteId = getChanteVideoId(bookName, chapter);
+      if (chanteId) {
+        setCurrentVideoId(chanteId.id);
+        setCurrentVideoStart(chanteId.start);
+        setCurrentVideoEnd(chanteId.end);
+        setIsChantedMode(true);
+        return;
+      }
+    }
+    setCurrentVideoId(null);
+    setCurrentVideoStart(undefined);
+    setCurrentVideoEnd(undefined);
+    setIsChantedMode(false);
+  }, []);
+
   const goToVideoNextChapter = useCallback(() => {
     if (!selectedBook || allBooks.length === 0) return;
     let nextBook = selectedBook;
@@ -329,10 +366,8 @@ export default function Bible() {
     setSkipChapterReset(true);
     setSelectedBook(nextBook);
     setSelectedChapter(nextChapter);
-    setCurrentVideoId(getVideoId(nextBook.name, nextChapter));
-    setCurrentVideoStart(undefined);
-    setCurrentVideoEnd(undefined);
-  }, [selectedBook, selectedChapter, allBooks]);
+    applyVideoPreference(nextBook.name, nextChapter, isChantedMode);
+  }, [selectedBook, selectedChapter, allBooks, isChantedMode, applyVideoPreference]);
 
   const goToVideoPrevChapter = useCallback(() => {
     if (!selectedBook || allBooks.length === 0) return;
@@ -352,10 +387,8 @@ export default function Bible() {
     setSkipChapterReset(true);
     setSelectedBook(prevBook);
     setSelectedChapter(prevChapter);
-    setCurrentVideoId(getVideoId(prevBook.name, prevChapter));
-    setCurrentVideoStart(undefined);
-    setCurrentVideoEnd(undefined);
-  }, [selectedBook, selectedChapter, allBooks]);
+    applyVideoPreference(prevBook.name, prevChapter, isChantedMode);
+  }, [selectedBook, selectedChapter, allBooks, isChantedMode, applyVideoPreference]);
 
   useEffect(() => {
     if (selectedBook) {
@@ -777,8 +810,98 @@ export default function Bible() {
             {chapterSubView === 'video' && (
               <div className="mt-2">
                 <h3 className="font-display text-lg font-semibold mb-4 text-center">
-                  استمع للإصحاح — {selectedBook?.name} {selectedChapter}
+                  {isChantedMode ? 'استمع مرتلاً' : 'استمع كقراءة'} — {selectedBook?.name} {selectedChapter}
                 </h3>
+                <div className="mb-4 pb-3 border-b flex flex-wrap justify-center gap-2" dir="rtl">
+                  {/* Smart listen button: switches to the other type */}
+                  {isChantedMode
+                    ? (() => {
+                        const regularId = selectedBook ? getVideoId(selectedBook.name, selectedChapter) : null;
+                        if (!regularId) return null;
+                        return (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setIsChantedMode(false);
+                              setCurrentVideoId(regularId);
+                              setCurrentVideoStart(undefined);
+                              setCurrentVideoEnd(undefined);
+                            }}
+                            style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                          >
+                            <Volume2 className="w-4 h-4 ml-1" />
+                            استمع كقراءة
+                          </Button>
+                        );
+                      })()
+                    : (() => {
+                        const chanteId = selectedBook ? getChanteVideoId(selectedBook.name, selectedChapter) : null;
+                        if (!chanteId) return null;
+                        return (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setIsChantedMode(true);
+                              setCurrentVideoId(chanteId.id);
+                              setCurrentVideoStart(chanteId.start);
+                              setCurrentVideoEnd(chanteId.end);
+                            }}
+                            style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                          >
+                            <Music className="w-4 h-4 ml-1" />
+                            استمع مرتلاً
+                          </Button>
+                        );
+                      })()
+                  }
+                  <Button
+                    size="sm"
+                    onClick={handleLessonClick}
+                    disabled={lessonLoading}
+                    className="bg-gradient-to-r from-amber-600 to-amber-500 text-white"
+                    style={{ background: '#b45309', color: '#ffffff' }}
+                  >
+                    {lessonLoading
+                      ? <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                      : <GraduationCap className="w-4 h-4 ml-1" />
+                    }
+                    درس كتاب
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!selectedBook) return;
+                      setTafsirDialogType('intro');
+                      changeSubView('tafsir');
+                      setTafsirText(null);
+                      setTafsirLoading(true);
+                      fetchBookIntro(selectedBook.name)
+                        .then(text => { setTafsirText(text); setTafsirLoading(false); })
+                        .catch(() => setTafsirLoading(false));
+                    }}
+                    style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                  >
+                    <BookOpen className="w-4 h-4 ml-1" />
+                    مقدمة عن السفر
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!selectedBook) return;
+                      setTafsirDialogType('chapter');
+                      changeSubView('tafsir');
+                      setTafsirText(null);
+                      setTafsirLoading(true);
+                      fetchChapterTafsir(selectedBook.name, selectedChapter)
+                        .then(text => { setTafsirText(text); setTafsirLoading(false); })
+                        .catch(() => setTafsirLoading(false));
+                    }}
+                    style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                  >
+                    <BookText className="w-4 h-4 ml-1" />
+                    تفسير الإصحاح
+                  </Button>
+                </div>
                 {currentVideoId ? (
                   <YouTubeCard videoId={currentVideoId} start={currentVideoStart} end={currentVideoEnd} />
                 ) : (
@@ -849,6 +972,7 @@ export default function Bible() {
                 setCurrentVideoStart(listenChoiceChante.start);
                 setCurrentVideoEnd(listenChoiceChante.end);
               }
+              setIsChantedMode(true);
               changeSubView('video');
               setListenChoiceOpen(false);
             }}
@@ -863,6 +987,7 @@ export default function Bible() {
               setCurrentVideoId(listenChoiceRegular);
               setCurrentVideoStart(undefined);
               setCurrentVideoEnd(undefined);
+              setIsChantedMode(false);
               changeSubView('video');
               setListenChoiceOpen(false);
             }}
