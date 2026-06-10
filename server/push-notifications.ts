@@ -1,31 +1,19 @@
 import webpush from "web-push";
 import cron from "node-cron";
 import { storage } from "./storage";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import { join } from "path";
 
-// ── استمرارية التاريخ بين إعادة تشغيل السيرفر ──────────────────────────────
-const DATA_DIR = join(process.cwd(), "data");
-const NOTIF_DATE_FILE = join(DATA_DIR, "last-daily-notif.txt");
+const NOTIF_DATE_KEY = "last_daily_notif_date";
 
-function loadLastNotifDate(): string {
-  try {
-    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-    if (!existsSync(NOTIF_DATE_FILE)) return "";
-    return readFileSync(NOTIF_DATE_FILE, "utf8").trim();
-  } catch { return ""; }
+// Returns today's date in Cairo timezone as "YYYY-MM-DD"
+function getCairoDateString(): string {
+  const now = new Date();
+  // Intl.DateTimeFormat gives Cairo calendar date correctly
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(now);
+  // en-CA locale returns "YYYY-MM-DD" directly
+  return parts;
 }
 
-function saveLastNotifDate(date: string): void {
-  try {
-    if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-    writeFileSync(NOTIF_DATE_FILE, date, "utf8");
-  } catch (err) {
-    console.error("[push] Failed to save notif date:", err);
-  }
-}
-
-// ── helper: إرسال إشعار واحد مع تسجيل النتيجة
+// ── helper: send one push notification ───────────────────────────────────────
 async function sendOne(
   sub: { endpoint: string; p256dh: string; auth: string },
   payload: string,
@@ -55,7 +43,6 @@ export function setupVapid() {
     return;
   }
 
-  // Strip whitespace, newlines, padding — keep only valid Base64url chars
   const safePublicKey = publicKey.trim().replace(/\s+/g, "").replace(/=+$/, "");
   const safePrivateKey = privateKey.trim().replace(/\s+/g, "").replace(/=+$/, "");
 
@@ -67,6 +54,9 @@ export function setupVapid() {
   }
 }
 
+// In-process mutex: prevents two concurrent calls from both proceeding
+let sendingInProgress = false;
+
 export async function sendDailyVerseNotification() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   if (!publicKey) {
@@ -74,15 +64,32 @@ export async function sendDailyVerseNotification() {
     return;
   }
 
+  // ── Mutex: block concurrent calls (race between main cron + backup cron) ──
+  if (sendingInProgress) {
+    console.log("[push] Already sending — skipping duplicate trigger");
+    return;
+  }
+  sendingInProgress = true;
+
   try {
-    // ── الحصول على آية اليوم (مع fallback)
-    const today = new Date();
-    const month = today.getMonth() + 1;
-    const day   = today.getDate();
+    const today = getCairoDateString();
+
+    // ── DB guard: skip if already sent today (survives server restarts) ────
+    const lastSentDate = await storage.getAppSetting(NOTIF_DATE_KEY);
+    if (lastSentDate === today) {
+      console.log(`[push] Daily notification already sent for ${today} — skipping`);
+      return;
+    }
+
+    // ── Mark as sent in DB BEFORE sending (prevents duplicate on partial failure) ──
+    await storage.setAppSetting(NOTIF_DATE_KEY, today);
+
+    const month = new Date().getMonth() + 1;
+    const day   = new Date().getDate();
 
     const calVerse = await storage.getCalendarDailyVerse(month, day);
     if (!calVerse) {
-      console.warn(`[push] No calendar verse for ${month}/${day} — notification skipped. Run seed to populate calendar_daily_verses.`);
+      console.warn(`[push] No calendar verse for ${month}/${day} — notification skipped`);
       return;
     }
     const refParts = calVerse.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
@@ -91,7 +98,6 @@ export async function sendDailyVerseNotification() {
     const verseNum = refParts ? parseInt(refParts[3]) : 1;
     const dbVerse  = await storage.getVerseByReference(bookName, chapter, verseNum);
     const verseText = dbVerse?.text ?? calVerse.verseText;
-    // LTR marks around chapter:verse to prevent RTL reversal
     const verseRef  = `${bookName} ‎${chapter}:‎${verseNum}`;
 
     const subscriptions = await storage.getAllPushSubscriptions();
@@ -111,19 +117,20 @@ export async function sendDailyVerseNotification() {
     let sent = 0, expired = 0, errors = 0;
     await Promise.all(subscriptions.map(async sub => {
       const result = await sendOne(sub, payload);
-      if (result === 'ok')      { sent++; }
+      if (result === 'ok')           { sent++; }
       else if (result === 'expired') { expired++; await storage.deletePushSubscription(sub.endpoint); }
-      else                      { errors++; }
+      else                           { errors++; }
     }));
 
-    markDailyNotifSent();
-    console.log(`[push] Daily verse sent=${sent} expired_removed=${expired} errors=${errors} total=${subscriptions.length}`);
+    console.log(`[push] Daily verse sent=${sent} expired_removed=${expired} errors=${errors} total=${subscriptions.length} date=${today}`);
   } catch (err) {
     console.error("[push] Error sending daily verse notification:", err);
+  } finally {
+    sendingInProgress = false;
   }
 }
 
-// ── إرسال إشعار ترحيبي لاشتراك واحد (endpoint محدد)
+// ── Welcome notification (single subscription) ───────────────────────────────
 export async function sendWelcomeNotification(endpoint: string): Promise<boolean> {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   if (!publicKey) return false;
@@ -144,7 +151,7 @@ export async function sendWelcomeNotification(endpoint: string): Promise<boolean
   }
 }
 
-// ── إرسال إشعار اختبار لكل الاشتراكات (للتشخيص فقط)
+// ── Test notification (all subscriptions) ────────────────────────────────────
 export async function sendTestNotification(): Promise<{ sent: number; total: number }> {
   const subscriptions = await storage.getAllPushSubscriptions();
   let sent = 0;
@@ -161,36 +168,30 @@ export async function sendTestNotification(): Promise<{ sent: number; total: num
   return { sent, total: subscriptions.length };
 }
 
-// tracks which calendar date the daily notification was last sent
-// loaded from disk on startup so server restarts don't lose state
-let lastDailyNotifDate = loadLastNotifDate();
-console.log("[push] Last daily notif date:", lastDailyNotifDate || "(none)");
-
+// ── Scheduling ────────────────────────────────────────────────────────────────
 export function scheduleDailyNotification() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   if (!publicKey) return;
 
+  // Primary: 6:00 AM Cairo
   cron.schedule("0 6 * * *", sendDailyVerseNotification, { timezone: "Africa/Cairo" });
   console.log("[push] Daily notification scheduled at 6:00 AM Cairo time");
 
-  // Backup: check every 30 min — only within 6:00-7:59 AM window (handles server sleep at 6 AM)
-  // Narrow window prevents re-sending if server restarts later in the day
+  // Backup: every 30 min within 6:00–7:59 AM Cairo window
+  // Handles server sleep/restart at 6 AM — DB guard prevents double-send
   cron.schedule("*/30 * * * *", async () => {
     const now = new Date();
-    const cairoTime = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
-    const cairoHour = cairoTime.getHours();
-    const today = cairoTime.toISOString().split('T')[0];
-    if (cairoHour >= 6 && cairoHour < 8 && today !== lastDailyNotifDate) {
-      console.log('[push] Backup check: sending missed daily notification for', today);
-      await sendDailyVerseNotification();
+    const cairoHour = parseInt(
+      new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', hour12: false }).format(now)
+    );
+    if (cairoHour >= 6 && cairoHour < 8) {
+      const today = getCairoDateString();
+      const lastSent = await storage.getAppSetting(NOTIF_DATE_KEY).catch(() => null);
+      if (lastSent !== today) {
+        console.log('[push] Backup check: sending missed daily notification for', today);
+        await sendDailyVerseNotification();
+      }
     }
   });
   console.log("[push] Backup 30-min check scheduled (window: 6:00-7:59 AM Cairo)");
-}
-
-// Called by sendDailyVerseNotification to mark today as sent — persisted to disk
-export function markDailyNotifSent() {
-  const today = new Date().toISOString().split('T')[0];
-  lastDailyNotifDate = today;
-  saveLastNotifDate(today);
 }
