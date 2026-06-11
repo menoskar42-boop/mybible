@@ -7,3 +7,4 @@ vite.config.ts.*
 *.zip
 attached_assets/
 client/public/tafsir/
+.claude/worktrees/

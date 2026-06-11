@@ -1,5 +1,20 @@
 // قصص كاملة لقديسي السنكسار — مفتاحها اسم القديس من بيانات السنكسار
-export const synaxariumFullStories: Record<string, string> = {
+import { storiesMonth1 } from './synaxarium-stories/month-01';
+import { storiesMonth2 } from './synaxarium-stories/month-02';
+import { storiesMonth3 } from './synaxarium-stories/month-03';
+import { storiesMonth4 } from './synaxarium-stories/month-04';
+import { storiesMonth5 } from './synaxarium-stories/month-05';
+import { storiesMonth6 } from './synaxarium-stories/month-06';
+import { storiesMonth7 } from './synaxarium-stories/month-07';
+import { storiesMonth8 } from './synaxarium-stories/month-08';
+import { storiesMonth9 } from './synaxarium-stories/month-09';
+import { storiesMonth10 } from './synaxarium-stories/month-10';
+import { storiesMonth11 } from './synaxarium-stories/month-11';
+import { storiesMonth12 } from './synaxarium-stories/month-12';
+import { storiesMonth13 } from './synaxarium-stories/month-13';
+
+// القصص المكتوبة يدوياً للقديسين والأعياد الكبرى
+const coreStories: Record<string, string> = {
 
   // ══════════════════════════════════════════════════════════════
   // أعياد السيد
@@ -205,4 +220,21 @@ export const synaxariumFullStories: Record<string, string> = {
 في عام 311م حين خفّ الاضطهاد أُلقي القبض على بطرس وأُعدم في الإسكندرية. يُقال إن المسيح تراءى له قبل استشهاده وبشّره بالمجد. قبره في كنيسة القديس مرقس في الإسكندرية.
 `.trim(),
 
+};
+
+export const synaxariumFullStories: Record<string, string> = {
+  ...storiesMonth1,
+  ...storiesMonth2,
+  ...storiesMonth3,
+  ...storiesMonth4,
+  ...storiesMonth5,
+  ...storiesMonth6,
+  ...storiesMonth7,
+  ...storiesMonth8,
+  ...storiesMonth9,
+  ...storiesMonth10,
+  ...storiesMonth11,
+  ...storiesMonth12,
+  ...storiesMonth13,
+  ...coreStories, // القصص الأساسية لها الأولوية
 };
