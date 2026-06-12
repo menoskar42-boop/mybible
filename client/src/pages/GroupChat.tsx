@@ -348,7 +348,7 @@ export default function GroupChat() {
   }
 
   return (
-    <div className="flex flex-col text-[15px]" style={{ height: 'calc(100dvh - 60px)' }}>
+    <div className="flex flex-col text-[17px]" style={{ height: 'calc(100dvh - 96px - env(safe-area-inset-bottom, 0px))' }}>
       <SEOHead />
 
       {/* Header */}
@@ -521,7 +521,7 @@ export default function GroupChat() {
 
                             {/* Message text */}
                             {m.message && (
-                              <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.message}</p>
+                              <p className="text-base whitespace-pre-wrap leading-relaxed">{m.message}</p>
                             )}
 
                             {/* Footer: time + admin actions */}

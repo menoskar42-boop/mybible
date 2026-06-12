@@ -51,16 +51,19 @@ const MIN_SECONDS = 40;
 const MIN_SCROLLS = 5;
 const MIN_DEPTH = 80;
 
-function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userName, chapters, onComplete }: {
+function InlineChapterReader({ bookName: initialBookName, chapter: initialChapter, groupCode, assignmentId, userName, chapters, schedule, onComplete, onChapterDone }: {
   bookName: string;
   chapter: number;
   groupCode: string;
   assignmentId: number | null;
   userName: string;
   chapters?: number[];
+  schedule?: {book: string; chapter: number}[];
   onComplete: () => void;
+  onChapterDone?: (book: string, chapter: number) => void;
 }) {
-  const [currentChapter, setCurrentChapter] = useState(chapter);
+  const [currentBook, setCurrentBook] = useState(initialBookName);
+  const [currentChapter, setCurrentChapter] = useState(initialChapter);
   const [verses, setVerses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [elapsed, setElapsed] = useState(0);
@@ -81,16 +84,16 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     setTafsirLoading(true);
     setTafsirText(null);
     if (type === 'intro') {
-      setTafsirTitle(`مقدمة عن سفر ${bookName}`);
-      const text = await fetchBookIntro(bookName);
+      setTafsirTitle(`مقدمة عن سفر ${currentBook}`);
+      const text = await fetchBookIntro(currentBook);
       setTafsirText(text || 'لا توجد مقدمة متاحة لهذا السفر حالياً');
     } else if (type === 'chapter') {
-      setTafsirTitle(`تفسير ${bookName} — الإصحاح ${currentChapter}`);
-      const text = await fetchChapterTafsir(bookName, currentChapter);
+      setTafsirTitle(`تفسير ${currentBook} — الإصحاح ${currentChapter}`);
+      const text = await fetchChapterTafsir(currentBook, currentChapter);
       setTafsirText(text || 'لا يوجد تفسير متاح لهذا الإصحاح حالياً');
     } else if (verseNum !== undefined) {
-      setTafsirTitle(`تفسير ${bookName} ${currentChapter}:${verseNum}`);
-      const text = await fetchVerseTafsir(bookName, currentChapter, verseNum);
+      setTafsirTitle(`تفسير ${currentBook} ${currentChapter}:${verseNum}`);
+      const text = await fetchVerseTafsir(currentBook, currentChapter, verseNum);
       setTafsirText(text || 'لا يوجد تفسير متاح لهذه الآية حالياً');
     }
     setTafsirLoading(false);
@@ -98,8 +101,9 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
 
   const { data: allBooks } = useQuery({ queryKey: ['books'], queryFn: api.books.getAll });
 
-  // Navigate between chapters: reset all reading state
-  const navigateTo = (ch: number) => {
+  // Navigate between chapters (cross-testament supported)
+  const navigateTo = (book: string, ch: number) => {
+    setCurrentBook(book);
     setCurrentChapter(ch);
     setVerses([]);
     setLoading(true);
@@ -108,21 +112,26 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     setScrollDepth(0);
     startTimeRef.current = Date.now();
     lastScrollTop.current = 0;
-    containerRef.current?.scrollTo(0, 0);
+    window.scrollTo({ top: (containerRef.current?.offsetTop ?? 0) - 16, behavior: 'smooth' });
   };
 
   // الأسفار القانونية الثانية محتواها مخزّن محلياً (apocrypha-content) وليس في الـ API
-  const isDeutero = DEUTEROCANONICAL_BOOKS.has(bookName);
-  const apocryphaBook = isDeutero ? apocryphaBooks.find(b => b.name === bookName) : undefined;
+  const isDeutero = DEUTEROCANONICAL_BOOKS.has(currentBook);
+  const apocryphaBook = isDeutero ? apocryphaBooks.find(b => b.name === currentBook) : undefined;
 
-  // Build nav chapters list
-  const bookData = allBooks?.find((b: any) => b.name === bookName);
+  // Build navigation schedule (cross-testament: {book,chapter}[])
+  const bookData = allBooks?.find((b: any) => b.name === currentBook);
   const totalChapters = bookData?.chaptersCount || apocryphaBook?.chaptersCount || 0;
-  const navChapters = (chapters && chapters.length > 0) ? chapters
-    : totalChapters > 0 ? Array.from({ length: totalChapters }, (_, i) => i + 1) : [];
-  const currentIdx = navChapters.indexOf(currentChapter);
+  const navSchedule: {book: string; chapter: number}[] = schedule && schedule.length > 0
+    ? schedule
+    : chapters && chapters.length > 0
+      ? chapters.map(ch => ({ book: currentBook, chapter: ch }))
+      : totalChapters > 0
+        ? Array.from({ length: totalChapters }, (_, i) => ({ book: currentBook, chapter: i + 1 }))
+        : [];
+  const currentIdx = navSchedule.findIndex(s => s.book === currentBook && s.chapter === currentChapter);
   const hasPrev = currentIdx > 0;
-  const hasNext = currentIdx >= 0 && currentIdx < navChapters.length - 1;
+  const hasNext = currentIdx >= 0 && currentIdx < navSchedule.length - 1;
 
   useEffect(() => {
     const loadVerses = async () => {
@@ -130,19 +139,19 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
         // الأسفار القانونية الثانية — تُحمّل من المحتوى المحلي
         if (isDeutero) {
           const ch = apocryphaBook?.chapters.find(c => c.chapter === currentChapter);
-          setVerses((ch?.verses || []).map(v => ({ id: `${bookName}-${currentChapter}-${v.verse}`, verse: v.verse, text: v.text })));
+          setVerses((ch?.verses || []).map(v => ({ id: `${currentBook}-${currentChapter}-${v.verse}`, verse: v.verse, text: v.text })));
           setLoading(false);
           return;
         }
         if (!allBooks) return;
-        const book = allBooks.find((b: any) => b.name === bookName);
+        const book = allBooks.find((b: any) => b.name === currentBook);
         if (!book) { setLoading(false); return; }
         const data = await api.verses.getByBook(book.id, currentChapter);
         setVerses(data);
         if (assignmentId !== null) {
           fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/open`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userName, bookName, chapter: currentChapter }),
+            body: JSON.stringify({ userName, bookName: currentBook, chapter: currentChapter }),
           }).catch(() => {});
         }
       } catch {
@@ -152,7 +161,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
       }
     };
     loadVerses();
-  }, [bookName, currentChapter, allBooks]);
+  }, [currentBook, currentChapter, allBooks]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -162,22 +171,24 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   }, []);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    if (loading) return;
     const handleScroll = () => {
-      const currentTop = el.scrollTop;
-      if (Math.abs(currentTop - lastScrollTop.current) > 50) {
+      const el = containerRef.current;
+      if (!el) return;
+      const scrollY = window.scrollY;
+      if (Math.abs(scrollY - lastScrollTop.current) > 30) {
         setScrollCount(prev => prev + 1);
-        lastScrollTop.current = currentTop;
+        lastScrollTop.current = scrollY;
       }
-      const scrollable = el.scrollHeight - el.clientHeight;
-      if (scrollable > 0) {
-        const depth = Math.round((el.scrollTop / scrollable) * 100);
+      const rect = el.getBoundingClientRect();
+      const scrolledPast = window.innerHeight - rect.top;
+      if (el.scrollHeight > 0) {
+        const depth = Math.round(Math.min(Math.max(scrolledPast / el.scrollHeight, 0), 1) * 100);
         setScrollDepth(prev => Math.max(prev, depth));
       }
     };
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [loading]);
 
   const condTime = elapsed >= MIN_SECONDS;
@@ -188,13 +199,13 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     if (assignmentId !== null) {
       const res = await fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/read`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName, bookName, chapter: chap, timeSpent, scrollCount, scrollDepth }),
+        body: JSON.stringify({ userName, bookName: currentBook, chapter: chap, timeSpent, scrollCount, scrollDepth }),
       });
       return res.ok ? await res.json() : {};
     } else {
       await fetch(`/api/groups/${groupCode}/reading`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName, book: bookName, chapter: chap, timeSpent, scrollPercent: scrollDepth }),
+        body: JSON.stringify({ userName, book: currentBook, chapter: chap, timeSpent, scrollPercent: scrollDepth }),
       });
       return {};
     }
@@ -205,14 +216,16 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
     try {
       const result = await recordReading(currentChapter, timeSpent);
+      onChapterDone?.(currentBook, currentChapter);
       if (result.allDone) {
         toast.success('🎉 مبروك! أنهيت كل القراءات المطلوبة اليوم', { duration: 5000 });
         onComplete();
       } else if (hasNext) {
-        toast.success(`✓ ${bookName} ${currentChapter} - ${formatTime(timeSpent)}`);
-        navigateTo(navChapters[currentIdx + 1]);
+        const next = navSchedule[currentIdx + 1];
+        toast.success(`✓ ${currentBook} ${currentChapter} - ${formatTime(timeSpent)}`);
+        navigateTo(next.book, next.chapter);
       } else {
-        toast.success(`تم تسجيل قراءة ${bookName} ${currentChapter} - ${formatTime(timeSpent)}`);
+        toast.success(`تم تسجيل قراءة ${currentBook} ${currentChapter} - ${formatTime(timeSpent)}`);
         onComplete();
       }
     } catch {
@@ -251,13 +264,13 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
         </div>
       </div>
 
-      {/* منطقة القراءة */}
-      <div ref={containerRef} className="max-h-[60vh] overflow-y-auto rounded-lg border p-4 bg-background" dir="rtl">
+      {/* منطقة القراءة — بدون تمرير داخلي لإظهار كل الآيات */}
+      <div ref={containerRef} className="rounded-lg border p-4 bg-background" dir="rtl">
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display text-xl font-bold text-primary">{bookName} — الإصحاح {currentChapter}</h3>
-            {navChapters.length > 1 && (
-              <span className="text-xs text-muted-foreground">{currentIdx + 1} / {navChapters.length}</span>
+            <h3 className="font-display text-xl font-bold text-primary">{currentBook} — الإصحاح {currentChapter}</h3>
+            {navSchedule.length > 1 && (
+              <span className="text-xs text-muted-foreground">{currentIdx + 1} / {navSchedule.length}</span>
             )}
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -293,16 +306,16 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
       </div>
 
       {/* أزرار التنقل + الإنهاء */}
-      <div className={`grid gap-2 ${hasPrev ? 'grid-cols-[1fr_2fr]' : 'grid-cols-1'}`}>
+      <div className="flex gap-2 mt-4">
         {hasPrev && (
-          <Button variant="outline" size="lg" className="h-14 text-base gap-2" onClick={() => navigateTo(navChapters[currentIdx - 1])} data-testid="button-prev-chapter">
+          <Button variant="outline" size="lg" className="h-14 text-base gap-1 px-4 shrink-0" onClick={() => { const p = navSchedule[currentIdx - 1]; navigateTo(p.book, p.chapter); }} data-testid="button-prev-chapter">
             <ChevronDown className="w-5 h-5 rotate-90" />
             السابق
           </Button>
         )}
-        <Button onClick={handleFinishReading} disabled={completing} className="h-14 text-lg font-bold" size="lg" data-testid="button-finish-reading">
-          {completing ? <Loader2 className="w-5 h-5 animate-spin ml-2" /> : <Check className="w-5 h-5 ml-2" />}
-          {hasNext ? '✅ اكتملت القراءة — التالي ←' : '✅ اكتملت القراءة'}
+        <Button onClick={handleFinishReading} disabled={completing} className="h-14 text-base font-bold flex-1 min-w-0" size="lg" data-testid="button-finish-reading">
+          {completing ? <Loader2 className="w-4 h-4 animate-spin ml-1 shrink-0" /> : <Check className="w-4 h-4 ml-1 shrink-0" />}
+          <span className="truncate">{hasNext ? 'اكتملت ← التالي' : 'اكتملت القراءة ✅'}</span>
         </Button>
       </div>
 
@@ -862,8 +875,24 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
 }) {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [showCalendar, setShowCalendar] = useState(false);
-  const [reading, setReading] = useState<{ book: string; chapter: number; chapters: number[] } | null>(null);
-  const [markingAll, setMarkingAll] = useState(false);
+  const [reading, setReading] = useState<{ book: string; chapter: number; schedule: {book: string; chapter: number}[] } | null>(null);
+  // إصحاحات منتهية اليوم — مخزّنة في localStorage
+  const [doneChs, setDoneChs] = useState<Set<string>>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(`daily_done_${groupCode}_${todayStr()}`) || '[]') as string[];
+      return new Set(saved);
+    } catch { return new Set(); }
+  });
+
+  const markChapterDone = (book: string, chapter: number) => {
+    const chKey = `${book}_${chapter}`;
+    setDoneChs(prev => {
+      const next = new Set(prev);
+      next.add(chKey);
+      try { localStorage.setItem(`daily_done_${groupCode}_${todayStr()}`, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
 
   const displayReading = useMemo(() => {
     try { return getAutoReadingForDate(autoConfig, selectedDate); } catch { return autoReading; }
@@ -871,34 +900,10 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
 
   const isToday = selectedDate === todayStr();
 
-  // افتح إصحاحاً مع تمرير إصحاحات اليوم لنفس السفر فقط (لا كل إصحاحات السفر)
+  // افتح إصحاحاً مع جدول كامل OT+NT لدعم التنقل المتتالي بين العهدين
   const openReading = (book: string, chapter: number) => {
-    const sameBook = [...displayReading.ot, ...displayReading.nt]
-      .filter(c => c.book === book)
-      .map(c => c.chapter)
-      .sort((a, b) => a - b);
-    setReading({ book, chapter, chapters: sameBook.length > 0 ? sameBook : [chapter] });
-  };
-
-  const markAllDone = async () => {
-    if (markingAll) return;
-    setMarkingAll(true);
-    const allChapters = [...displayReading.ot, ...displayReading.nt];
-    try {
-      await Promise.all(allChapters.map(c =>
-        fetch(`/api/groups/${groupCode}/reading`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userName, book: c.book, chapter: c.chapter, timeSpent: 0, scrollPercent: 100 }),
-        })
-      ));
-      toast.success('تم تسجيل قراءة اليوم ✓');
-      onReadComplete();
-    } catch {
-      toast.error('حدث خطأ، حاول مرة أخرى');
-    } finally {
-      setMarkingAll(false);
-    }
+    const schedule = [...displayReading.ot, ...displayReading.nt].map(c => ({ book: c.book, chapter: c.chapter }));
+    setReading({ book, chapter, schedule });
   };
 
   // عند فتح إصحاح للقراءة المُتتبَّعة (يسجّل المدة/العمق/التمرير)
@@ -920,8 +925,9 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
           groupCode={groupCode}
           assignmentId={null}
           userName={userName}
-          chapters={reading.chapters}
+          schedule={reading.schedule}
           onComplete={() => { setReading(null); onReadComplete(); }}
+          onChapterDone={markChapterDone}
         />
       </Card>
     );
@@ -973,22 +979,25 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
         {[...displayReading.ot.map(c => ({ ...c, testament: 'ot' as const })),
           ...displayReading.nt.map(c => ({ ...c, testament: 'nt' as const }))].map((c, i) => {
           const isOt = c.testament === 'ot';
-          const cardCls = isOt
-            ? 'border-amber-200 dark:border-amber-800/40 bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40'
-            : 'border-blue-200 dark:border-blue-800/40 bg-blue-50/60 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40';
-          const iconBoxCls = isOt ? 'from-amber-500 to-amber-600' : 'from-blue-500 to-blue-600';
-          const btnCls = isOt ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600';
+          const isDone = isToday && doneChs.has(`${c.book}_${c.chapter}`);
+          const cardCls = isDone
+            ? 'border-green-300 dark:border-green-700/50 bg-green-50/60 dark:bg-green-950/20'
+            : isOt
+              ? 'border-amber-200 dark:border-amber-800/40 bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40'
+              : 'border-blue-200 dark:border-blue-800/40 bg-blue-50/60 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40';
+          const iconBoxCls = isDone ? 'from-green-500 to-green-600' : isOt ? 'from-amber-500 to-amber-600' : 'from-blue-500 to-blue-600';
+          const btnCls = isDone ? 'bg-green-600' : isOt ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600';
           const inner = (
             <>
               <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${iconBoxCls} flex items-center justify-center shrink-0`}>
-                <BookOpen className="w-5 h-5 text-white" />
+                {isDone ? <Check className="w-5 h-5 text-white" /> : <BookOpen className="w-5 h-5 text-white" />}
               </div>
               <div className="flex-1 min-w-0 text-right">
-                <h4 className="font-display font-bold text-foreground text-sm truncate">{c.book}</h4>
-                <p className="text-xs text-muted-foreground">الإصحاح {c.chapter}</p>
+                <h4 className="font-display font-bold text-foreground text-base truncate">{c.book}</h4>
+                <p className="text-sm text-muted-foreground">الإصحاح {c.chapter}</p>
               </div>
               <span className={`shrink-0 text-white text-xs font-semibold rounded-lg px-3 py-1.5 flex items-center gap-1 ${btnCls} transition-colors`}>
-                <Play className="w-3 h-3" />اقرأ
+                {isDone ? <><Check className="w-3 h-3" />تمت</> : <><Play className="w-3 h-3" />اقرأ</>}
               </span>
             </>
           );
@@ -1010,19 +1019,6 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
           );
         })}
       </div>
-
-      {/* زر اكتملت القراءة — لليوم الحالي فقط */}
-      {isToday && (
-        <Button
-          onClick={markAllDone}
-          disabled={markingAll}
-          className="w-full mb-3 gap-2 bg-green-600 hover:bg-green-700 text-white"
-          size="sm"
-        >
-          {markingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-          اكتملت قراءة اليوم
-        </Button>
-      )}
 
       {/* إحصاء المجموعة */}
       <div className="border-t pt-3 flex items-center justify-between text-sm">
@@ -1577,7 +1573,7 @@ export default function GroupView() {
   const missionCompleted = missionTotal > 0 && myMissionProgress >= missionTotal;
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl text-[15px]">
+    <div className="container mx-auto px-4 py-6 max-w-4xl text-[17px]">
       <SEOHead />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex items-center justify-between mb-4">
