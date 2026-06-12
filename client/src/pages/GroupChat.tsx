@@ -157,16 +157,26 @@ export default function GroupChat() {
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
-  // Initial scroll: go to first unread message
+  // Initial scroll: go to first unread message, otherwise to the very bottom
   useEffect(() => {
     if (loading || initialScrollDone || messages.length === 0) return;
     setInitialScrollDone(true);
     const unreadIdx = messages.findIndex(m => m.id > lastReadId);
-    if (unreadIdx > 0 && firstUnreadRef.current) {
-      firstUnreadRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
-    }
+    const jumpToBottom = () => {
+      const el = scrollAreaRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    };
+    // أجّل التمرير حتى يكتمل رسم الرسائل (الأنيميشن/الصور) ثم كرّره للأمان
+    requestAnimationFrame(() => {
+      if (unreadIdx > 0 && firstUnreadRef.current) {
+        firstUnreadRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+      } else {
+        jumpToBottom();
+      }
+      // إعادة التمرير لأسفل بعد فترة قصيرة لاستيعاب الصور المتأخرة في التحميل
+      setTimeout(() => { if (unreadIdx <= 0) jumpToBottom(); }, 150);
+      setTimeout(() => { if (unreadIdx <= 0) jumpToBottom(); }, 400);
+    });
     // Mark all as read
     const maxId = Math.max(...messages.map(m => m.id));
     if (maxId > lastReadId) { setLastReadId(groupCode, maxId); setLastReadIdState(maxId); }
