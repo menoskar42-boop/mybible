@@ -248,7 +248,7 @@ function InlineChapterReader({ bookName: initialBookName, chapter: initialChapte
     <div className="space-y-4">
       {/* مؤشرات القراءة */}
       <div className="grid grid-cols-3 gap-2">
-        <div className={`flex flex-col items-center p-2 rounded-lg text-xs font-semibold border transition-colors ${condTime ? 'bg-green-50 dark:bg-green-950/30 border-green-300 text-green-700' : 'bg-muted/50 border-border text-muted-foreground'}`}>
+        <div className={`flex flex-col items-center p-2 rounded-lg text-sm font-semibold border transition-colors ${condTime ? 'bg-green-50 dark:bg-green-950/30 border-green-300 text-green-700' : 'bg-muted/50 border-border text-muted-foreground'}`}>
           <Clock className="w-4 h-4 mb-1" />
           <span>{elapsed >= MIN_SECONDS ? '✓' : `${elapsed}/${MIN_SECONDS}`} ث</span>
           <span className="text-[10px] font-normal">وقت القراءة</span>
@@ -995,9 +995,9 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
               </div>
               <div className="flex-1 min-w-0 text-right">
                 <h4 className="font-display font-bold text-foreground text-base truncate">{c.book}</h4>
-                <p className="text-sm text-muted-foreground">الإصحاح {c.chapter}</p>
+                <p className="text-base text-muted-foreground">الإصحاح {c.chapter}</p>
               </div>
-              <span className={`shrink-0 text-white text-xs font-semibold rounded-lg px-3 py-1.5 flex items-center gap-1 ${btnCls} transition-colors`}>
+              <span className={`shrink-0 text-white text-sm font-semibold rounded-lg px-3 py-1.5 flex items-center gap-1 ${btnCls} transition-colors`}>
                 {isDone ? <><Check className="w-3 h-3" />تمت</> : <><Play className="w-3 h-3" />اقرأ</>}
               </span>
             </>
@@ -1022,7 +1022,7 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
       </div>
 
       {/* إحصاء المجموعة */}
-      <div className="border-t pt-3 flex items-center justify-between text-sm">
+      <div className="border-t pt-3 flex items-center justify-between text-base">
         <span className="text-muted-foreground">{stats.totalMembers} عضو</span>
         <span className="font-semibold text-green-600">قرأ {stats.readToday} اليوم ✓</span>
       </div>
@@ -1574,7 +1574,7 @@ export default function GroupView() {
   const missionCompleted = missionTotal > 0 && myMissionProgress >= missionTotal;
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl text-[17px]">
+    <div className="container mx-auto px-4 py-6 max-w-4xl text-[19px]">
       <SEOHead />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex items-center justify-between mb-4">
@@ -1583,7 +1583,7 @@ export default function GroupView() {
               <Users className="w-6 h-6 text-white" />
             </div>
             <div>
-              {group.churchName && <p className="text-sm font-semibold text-muted-foreground">{group.churchName}</p>}
+              {group.churchName && <p className="text-base font-semibold text-muted-foreground">{group.churchName}</p>}
               <h1 className="font-display text-2xl font-bold text-foreground">{group.name}</h1>
             </div>
           </div>
