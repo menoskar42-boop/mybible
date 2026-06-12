@@ -655,8 +655,8 @@ export function registerGroupRoutes(app: Express) {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
       if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
 
-      const { userName, message, memberKey } = req.body;
-      if (!userName || !message) {
+      const { userName, message, memberKey, imageUrl, replyToId, replyToText, replyToUserName } = req.body;
+      if (!userName || (!message && !imageUrl)) {
         return res.status(400).json({ error: 'الرسالة واسم المستخدم مطلوبان' });
       }
 
@@ -669,7 +669,9 @@ export function registerGroupRoutes(app: Express) {
       const [msg] = await db.insert(groupMessages).values({
         groupId: group.id,
         userName,
-        message,
+        message: message || '',
+        ...(imageUrl ? { imageUrl } : {}),
+        ...(replyToId ? { replyToId, replyToText: replyToText || null, replyToUserName: replyToUserName || null } : {}),
       }).returning();
 
       // إشعار للأعضاء عند رسالة الأدمن

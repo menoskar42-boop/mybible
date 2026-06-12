@@ -50,15 +50,16 @@ const MIN_SECONDS = 40;
 const MIN_SCROLLS = 5;
 const MIN_DEPTH = 80;
 
-function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userName, isLastChapter, onComplete }: {
+function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userName, chapters, onComplete }: {
   bookName: string;
   chapter: number;
   groupCode: string;
   assignmentId: number | null;
   userName: string;
-  isLastChapter?: boolean;
+  chapters?: number[];
   onComplete: () => void;
 }) {
+  const [currentChapter, setCurrentChapter] = useState(chapter);
   const [verses, setVerses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [elapsed, setElapsed] = useState(0);
@@ -69,7 +70,6 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollTop = useRef(0);
 
-  // تفسير
   const [tafsirOpen, setTafsirOpen] = useState(false);
   const [tafsirTitle, setTafsirTitle] = useState('');
   const [tafsirText, setTafsirText] = useState<string | null>(null);
@@ -84,21 +84,40 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
       const text = await fetchBookIntro(bookName);
       setTafsirText(text || 'لا توجد مقدمة متاحة لهذا السفر حالياً');
     } else if (type === 'chapter') {
-      setTafsirTitle(`تفسير ${bookName} — الإصحاح ${chapter}`);
-      const text = await fetchChapterTafsir(bookName, chapter);
+      setTafsirTitle(`تفسير ${bookName} — الإصحاح ${currentChapter}`);
+      const text = await fetchChapterTafsir(bookName, currentChapter);
       setTafsirText(text || 'لا يوجد تفسير متاح لهذا الإصحاح حالياً');
     } else if (verseNum !== undefined) {
-      setTafsirTitle(`تفسير ${bookName} ${chapter}:${verseNum}`);
-      const text = await fetchVerseTafsir(bookName, chapter, verseNum);
+      setTafsirTitle(`تفسير ${bookName} ${currentChapter}:${verseNum}`);
+      const text = await fetchVerseTafsir(bookName, currentChapter, verseNum);
       setTafsirText(text || 'لا يوجد تفسير متاح لهذه الآية حالياً');
     }
     setTafsirLoading(false);
   };
 
-  const { data: allBooks } = useQuery({
-    queryKey: ['books'],
-    queryFn: api.books.getAll,
-  });
+  const { data: allBooks } = useQuery({ queryKey: ['books'], queryFn: api.books.getAll });
+
+  // Navigate between chapters: reset all reading state
+  const navigateTo = (ch: number) => {
+    setCurrentChapter(ch);
+    setVerses([]);
+    setLoading(true);
+    setElapsed(0);
+    setScrollCount(0);
+    setScrollDepth(0);
+    startTimeRef.current = Date.now();
+    lastScrollTop.current = 0;
+    containerRef.current?.scrollTo(0, 0);
+  };
+
+  // Build nav chapters list
+  const bookData = allBooks?.find((b: any) => b.name === bookName);
+  const totalChapters = bookData?.chaptersCount || 0;
+  const navChapters = (chapters && chapters.length > 0) ? chapters
+    : totalChapters > 0 ? Array.from({ length: totalChapters }, (_, i) => i + 1) : [];
+  const currentIdx = navChapters.indexOf(currentChapter);
+  const hasPrev = currentIdx > 0;
+  const hasNext = currentIdx >= 0 && currentIdx < navChapters.length - 1;
 
   useEffect(() => {
     const loadVerses = async () => {
@@ -106,13 +125,12 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
         if (!allBooks) return;
         const book = allBooks.find((b: any) => b.name === bookName);
         if (!book) { setLoading(false); return; }
-        const data = await api.verses.getByBook(book.id, chapter);
+        const data = await api.verses.getByBook(book.id, currentChapter);
         setVerses(data);
         if (assignmentId !== null) {
           fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/open`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userName, bookName, chapter }),
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userName, bookName, chapter: currentChapter }),
           }).catch(() => {});
         }
       } catch {
@@ -122,7 +140,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
       }
     };
     loadVerses();
-  }, [bookName, chapter, allBooks]);
+  }, [bookName, currentChapter, allBooks]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -154,31 +172,37 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   const condScrolls = scrollCount >= MIN_SCROLLS;
   const condDepth = scrollDepth >= MIN_DEPTH;
 
+  const recordReading = async (chap: number, timeSpent: number) => {
+    if (assignmentId !== null) {
+      const res = await fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/read`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName, bookName, chapter: chap, timeSpent, scrollCount, scrollDepth }),
+      });
+      return res.ok ? await res.json() : {};
+    } else {
+      await fetch(`/api/groups/${groupCode}/reading`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName, book: bookName, chapter: chap, timeSpent, scrollPercent: scrollDepth }),
+      });
+      return {};
+    }
+  };
+
   const handleFinishReading = async () => {
     setCompleting(true);
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
     try {
-      if (assignmentId !== null) {
-        const res = await fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/read`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userName, bookName, chapter, timeSpent, scrollCount, scrollDepth }),
-        });
-        const data = res.ok ? await res.json() : {};
-        if (data.allDone) {
-          toast.success('🎉 مبروك! أنهيت كل القراءات المطلوبة اليوم', { duration: 5000 });
-        } else {
-          toast.success(`تم تسجيل قراءة ${bookName} ${chapter} - ${formatTime(timeSpent)}`);
-        }
+      const result = await recordReading(currentChapter, timeSpent);
+      if (result.allDone) {
+        toast.success('🎉 مبروك! أنهيت كل القراءات المطلوبة اليوم', { duration: 5000 });
+        onComplete();
+      } else if (hasNext) {
+        toast.success(`✓ ${bookName} ${currentChapter} - ${formatTime(timeSpent)}`);
+        navigateTo(navChapters[currentIdx + 1]);
       } else {
-        await fetch(`/api/groups/${groupCode}/reading`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userName, book: bookName, chapter, timeSpent, scrollPercent: scrollDepth }),
-        });
-        toast.success(`تم تسجيل قراءة ${bookName} ${chapter} - ${formatTime(timeSpent)}`);
+        toast.success(`تم تسجيل قراءة ${bookName} ${currentChapter} - ${formatTime(timeSpent)}`);
+        onComplete();
       }
-      onComplete();
     } catch {
       toast.error('فشل تسجيل القراءة');
     } finally {
@@ -196,7 +220,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
 
   return (
     <div className="space-y-4">
-      {/* مؤشرات القراءة — للمعلومية فقط */}
+      {/* مؤشرات القراءة */}
       <div className="grid grid-cols-3 gap-2">
         <div className={`flex flex-col items-center p-2 rounded-lg text-xs font-semibold border transition-colors ${condTime ? 'bg-green-50 dark:bg-green-950/30 border-green-300 text-green-700' : 'bg-muted/50 border-border text-muted-foreground'}`}>
           <Clock className="w-4 h-4 mb-1" />
@@ -218,7 +242,12 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
       {/* منطقة القراءة */}
       <div ref={containerRef} className="max-h-[60vh] overflow-y-auto rounded-lg border p-4 bg-background" dir="rtl">
         <div className="mb-4">
-          <h3 className="font-display text-xl font-bold text-primary mb-3">{bookName} — الإصحاح {chapter}</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-xl font-bold text-primary">{bookName} — الإصحاح {currentChapter}</h3>
+            {navChapters.length > 1 && (
+              <span className="text-xs text-muted-foreground">{currentIdx + 1} / {navChapters.length}</span>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="sm" className="gap-1.5 text-sm h-10" onClick={() => openTafsir('intro')} data-testid="button-book-intro">
               <BookOpen className="w-4 h-4 text-indigo-500" />
@@ -251,10 +280,19 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
         </div>
       </div>
 
-      <Button onClick={handleFinishReading} disabled={completing} className="w-full h-14 text-lg font-bold" size="lg" data-testid="button-finish-reading">
-        {completing ? <Loader2 className="w-5 h-5 animate-spin ml-2" /> : <Check className="w-5 h-5 ml-2" />}
-        ✅ الانتهاء من القراءة
-      </Button>
+      {/* أزرار التنقل + الإنهاء */}
+      <div className={`grid gap-2 ${hasPrev ? 'grid-cols-[1fr_2fr]' : 'grid-cols-1'}`}>
+        {hasPrev && (
+          <Button variant="outline" size="lg" className="h-14 text-base gap-2" onClick={() => navigateTo(navChapters[currentIdx - 1])} data-testid="button-prev-chapter">
+            <ChevronDown className="w-5 h-5 rotate-90" />
+            السابق
+          </Button>
+        )}
+        <Button onClick={handleFinishReading} disabled={completing} className="h-14 text-lg font-bold" size="lg" data-testid="button-finish-reading">
+          {completing ? <Loader2 className="w-5 h-5 animate-spin ml-2" /> : <Check className="w-5 h-5 ml-2" />}
+          {hasNext ? '✅ اكتملت القراءة — التالي ←' : '✅ الانتهاء من القراءة'}
+        </Button>
+      </div>
 
       {/* Dialog التفسير */}
       <Dialog open={tafsirOpen} onOpenChange={setTafsirOpen}>
@@ -287,7 +325,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
   const [createOpen, setCreateOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportAssignmentId, setReportAssignmentId] = useState<number | null>(null);
-  const [readingChapter, setReadingChapter] = useState<{ assignmentId: number; bookName: string; chapter: number; isLastChapter: boolean } | null>(null);
+  const [readingChapter, setReadingChapter] = useState<{ assignmentId: number; bookName: string; chapter: number; isLastChapter: boolean; chapters?: number[] } | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number> | null>(null);
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<number>>(new Set());
 
@@ -452,7 +490,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
           groupCode={groupCode}
           assignmentId={readingChapter.assignmentId}
           userName={userName}
-          isLastChapter={readingChapter.isLastChapter}
+          chapters={readingChapter.chapters}
           onComplete={handleReadComplete}
         />
       </Card>
@@ -549,7 +587,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
                             onClick={() => {
                               if (done) return;
                               const remaining = chapters.filter((c: number) => !isChapterCompleted(a.id, c));
-                              setReadingChapter({ assignmentId: a.id, bookName: a.bookName, chapter: ch, isLastChapter: remaining.length === 1 });
+                              setReadingChapter({ assignmentId: a.id, bookName: a.bookName, chapter: ch, isLastChapter: remaining.length === 1, chapters: remaining });
                             }}
                             disabled={done}
                             className={`relative p-4 rounded-xl border text-center transition-all ${

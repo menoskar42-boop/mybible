@@ -172,6 +172,15 @@ app.use((req, res, next) => {
       pgPool.query(`ALTER TABLE reading_groups ADD COLUMN IF NOT EXISTS auto_reading_config jsonb DEFAULT NULL`)
         .catch(e => console.warn('[migration] auto_reading_config:', e.message));
 
+      pgPool.query(`ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS image_url text`)
+        .catch(e => console.warn('[migration] group_messages.image_url:', e.message));
+      pgPool.query(`ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS reply_to_id integer`)
+        .catch(e => console.warn('[migration] group_messages.reply_to_id:', e.message));
+      pgPool.query(`ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS reply_to_text text`)
+        .catch(e => console.warn('[migration] group_messages.reply_to_text:', e.message));
+      pgPool.query(`ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS reply_to_user_name text`)
+        .catch(e => console.warn('[migration] group_messages.reply_to_user_name:', e.message));
+
       pgPool.query(`CREATE TABLE IF NOT EXISTS group_push_subscriptions (
         id serial primary key,
         group_id integer not null,

@@ -281,6 +281,10 @@ export const groupMessages = pgTable("group_messages", {
   groupId: integer("group_id").notNull(),
   userName: text("user_name").notNull(),
   message: text("message").notNull(),
+  imageUrl: text("image_url"),
+  replyToId: integer("reply_to_id"),
+  replyToText: text("reply_to_text"),
+  replyToUserName: text("reply_to_user_name"),
   isPinned: boolean("is_pinned").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

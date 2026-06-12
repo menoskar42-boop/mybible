@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useLocation } from 'wouter';
-import { motion } from 'framer-motion';
-import { MessageCircle, Send, Pin, Trash2, BookOpen, Loader2, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MessageCircle, Send, Pin, Trash2, BookOpen, Loader2, ArrowRight, Image, Smile, Reply, X, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -16,8 +15,62 @@ interface Message {
   id: number;
   userName: string;
   message: string;
+  imageUrl?: string | null;
+  replyToId?: number | null;
+  replyToText?: string | null;
+  replyToUserName?: string | null;
   isPinned: boolean;
   createdAt: string;
+}
+
+const EMOJIS = [
+  '😀','😂','😍','🥰','😊','🙏','❤️','💙','💚','💛','🤍','✝️',
+  '📖','⛪','🕊️','🌟','✨','🎉','🎊','👏','💪','🙌','👍','🫶',
+  '😢','😭','🥺','😔','🤔','😮','😲','🤩','😇','🫂','🤗','😌',
+  '🌹','🌸','🌺','🌻','🍀','🌿','🌱','🌳','🌊','⛅','🌙','⭐',
+  '🏠','🏛️','🔔','📢','📣','💬','📝','✏️','🗓️','⏰','🔑','💡',
+];
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new window.Image();
+      img.onload = () => {
+        const MAX = 800;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
+          else { width = Math.round((width * MAX) / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target!.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return 'اليوم';
+  if (d.toDateString() === yesterday.toDateString()) return 'أمس';
+  return d.toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' });
+}
+
+function getLastReadId(groupCode: string): number {
+  try { return parseInt(localStorage.getItem(`chat_lastread_${groupCode}`) || '0') || 0; } catch { return 0; }
+}
+function setLastReadId(groupCode: string, id: number) {
+  try { localStorage.setItem(`chat_lastread_${groupCode}`, String(id)); } catch {}
 }
 
 export default function GroupChat() {
@@ -32,19 +85,34 @@ export default function GroupChat() {
   const [selectedBook, setSelectedBook] = useState('');
   const [selectedChapter, setSelectedChapter] = useState('');
   const [selectedVerse, setSelectedVerse] = useState('');
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [showMention, setShowMention] = useState(false);
+  const [members, setMembers] = useState<string[]>([]);
+  const [lastReadId, setLastReadIdState] = useState(() => getLastReadId(groupCode));
+  const [initialScrollDone, setInitialScrollDone] = useState(false);
+  const [swipedId, setSwipedId] = useState<number | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const firstUnreadRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stored = JSON.parse(localStorage.getItem(`group_${groupCode}`) || '{}');
-  const userEntry = (() => { try { const groups = JSON.parse(localStorage.getItem('userGroups') || '[]'); return groups.find((g: any) => g.groupId === groupCode) || null; } catch { return null; } })();
+  const userEntry = (() => {
+    try { const g = JSON.parse(localStorage.getItem('userGroups') || '[]'); return g.find((x: any) => x.groupId === groupCode) || null; }
+    catch { return null; }
+  })();
   const userName = userEntry?.userName || stored.userName || '';
   const isLeader = userEntry?.role === 'admin' || stored.isLeader || false;
   const leaderKey = userEntry?.memberKey || stored.memberKey || '';
 
   const { data: allBooks } = useQuery({ queryKey: ['books'], queryFn: api.books.getAll });
-
   const selectedBookData = allBooks?.find((b: any) => b.name === selectedBook);
-
   const { data: verses } = useQuery({
     queryKey: ['verses', selectedBookData?.id, parseInt(selectedChapter)],
     queryFn: () => api.verses.getByBook(selectedBookData!.id, parseInt(selectedChapter)),
@@ -62,63 +130,107 @@ export default function GroupChat() {
     }
   }, [groupCode]);
 
+  // Fetch group members for @mention
+  useEffect(() => {
+    fetch(`/api/groups/${groupCode}`)
+      .then(r => r.json())
+      .then(d => setMembers((d.members || []).map((m: any) => m.userName).filter((n: string) => n !== userName)))
+      .catch(() => {});
+  }, [groupCode, userName]);
+
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 10000);
+    const interval = setInterval(fetchMessages, 8000);
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
+  // Initial scroll: go to first unread message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+    if (loading || initialScrollDone || messages.length === 0) return;
+    setInitialScrollDone(true);
+    const unreadIdx = messages.findIndex(m => m.id > lastReadId);
+    if (unreadIdx > 0 && firstUnreadRef.current) {
+      firstUnreadRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+    }
+    // Mark all as read
+    const maxId = Math.max(...messages.map(m => m.id));
+    if (maxId > lastReadId) { setLastReadId(groupCode, maxId); setLastReadIdState(maxId); }
+  }, [loading, messages, initialScrollDone]);
+
+  // Auto-scroll to bottom on new messages only (not initial load)
+  useEffect(() => {
+    if (!initialScrollDone) return;
+    const maxId = messages.length > 0 ? Math.max(...messages.map(m => m.id)) : 0;
+    if (maxId > lastReadId) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setLastReadId(groupCode, maxId);
+      setLastReadIdState(maxId);
+    }
+  }, [messages.length, initialScrollDone]);
+
+  const unreadCount = messages.filter(m => m.id > lastReadId).length;
+  const firstUnreadId = messages.find(m => m.id > lastReadId)?.id;
+
+  const handleInput = (val: string) => {
+    setNewMessage(val);
+    const atIdx = val.lastIndexOf('@');
+    if (atIdx >= 0 && atIdx === val.length - 1) { setShowMention(true); setMentionQuery(''); }
+    else if (atIdx >= 0 && !val.slice(atIdx + 1).includes(' ')) {
+      setMentionQuery(val.slice(atIdx + 1));
+      setShowMention(true);
+    } else { setShowMention(false); }
+  };
+
+  const insertMention = (name: string) => {
+    const atIdx = newMessage.lastIndexOf('@');
+    setNewMessage(newMessage.slice(0, atIdx) + '@' + name + ' ');
+    setShowMention(false);
+    inputRef.current?.focus();
+  };
+
+  const filteredMembers = members.filter(m => m.toLowerCase().includes(mentionQuery.toLowerCase()));
 
   const sendMessage = async (text?: string) => {
     const msg = text || newMessage.trim();
-    if (!msg) return;
+    if (!msg && !imagePreview) return;
     setSending(true);
     try {
+      const body: any = { userName, message: msg || '' };
+      if (leaderKey) body.memberKey = leaderKey;
+      if (imagePreview) body.imageUrl = imagePreview;
+      if (replyTo) { body.replyToId = replyTo.id; body.replyToText = replyTo.message || '📷 صورة'; body.replyToUserName = replyTo.userName; }
       const res = await fetch(`/api/groups/${groupCode}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName, message: msg }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error);
-      }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       setNewMessage('');
+      setImagePreview(null);
+      setReplyTo(null);
+      setShowEmoji(false);
       fetchMessages();
     } catch (err: any) {
       toast.error(err.message || 'فشل الإرسال');
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   };
 
   const pinMessage = async (messageId: number) => {
     try {
       await fetch(`/api/groups/${groupCode}/messages/${messageId}/pin`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leaderKey }),
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leaderKey }),
       });
       fetchMessages();
-    } catch {
-      toast.error('فشل التثبيت');
-    }
+    } catch { toast.error('فشل التثبيت'); }
   };
 
   const deleteMessage = async (messageId: number) => {
     try {
       await fetch(`/api/groups/${groupCode}/messages/${messageId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leaderKey }),
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leaderKey }),
       });
       fetchMessages();
-    } catch {
-      toast.error('فشل الحذف');
-    }
+    } catch { toast.error('فشل الحذف'); }
   };
 
   const sendVerse = () => {
@@ -127,13 +239,29 @@ export default function GroupChat() {
       const text = `📖 ${selectedBook} ${selectedChapter}:${selectedVerse}\n${verse.text}`;
       sendMessage(text);
       setVersePickerOpen(false);
-      setSelectedBook('');
-      setSelectedChapter('');
-      setSelectedVerse('');
+      setSelectedBook(''); setSelectedChapter(''); setSelectedVerse('');
     }
   };
 
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageLoading(true);
+    try { const compressed = await compressImage(file); setImagePreview(compressed); }
+    catch { toast.error('فشل تحميل الصورة'); }
+    finally { setImageLoading(false); e.target.value = ''; }
+  };
+
   const pinnedMessages = messages.filter(m => m.isPinned);
+
+  // Group messages by date
+  const grouped: { date: string; messages: Message[] }[] = [];
+  let lastDate = '';
+  for (const m of messages) {
+    const d = formatDate(m.createdAt);
+    if (d !== lastDate) { grouped.push({ date: d, messages: [] }); lastDate = d; }
+    grouped[grouped.length - 1].messages.push(m);
+  }
 
   if (loading) {
     return (
@@ -144,106 +272,324 @@ export default function GroupChat() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-2xl flex flex-col" style={{ height: 'calc(100vh - 140px)' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 60px)' }}>
       <SEOHead />
-      <div className="flex items-center gap-3 mb-4">
+
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background z-10 shrink-0">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md">
           <MessageCircle className="w-5 h-5 text-white" />
         </div>
-        <h1 className="font-display text-xl font-bold text-foreground">شات المجموعة</h1>
-        <Badge variant="secondary">{groupCode}</Badge>
-        <div className="mr-auto">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/group/${groupCode}`)} data-testid="button-back-group">
-            <ArrowRight className="w-4 h-4 ml-1" />
-            رجوع
-          </Button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="font-display font-bold text-foreground">شات المجموعة</h1>
+            <Badge variant="secondary" className="text-xs">{groupCode}</Badge>
+          </div>
+          {members.length > 0 && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Users className="w-3 h-3" />{members.length + 1} عضو
+            </p>
+          )}
         </div>
+        {unreadCount > 0 && (
+          <Badge className="bg-green-500 text-white text-xs min-w-[20px] text-center">
+            {unreadCount}
+          </Badge>
+        )}
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/group/${groupCode}`)} data-testid="button-back-group">
+          <ArrowRight className="w-4 h-4 ml-1" />
+          رجوع
+        </Button>
       </div>
 
+      {/* Pinned messages */}
       {pinnedMessages.length > 0 && (
-        <div className="mb-3 space-y-1">
+        <div className="px-4 py-1 border-b bg-amber-50 dark:bg-amber-900/10 shrink-0 space-y-1">
           {pinnedMessages.map(m => (
-            <div key={m.id} className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-sm">
+            <div key={m.id} className="flex items-center gap-2 text-xs">
               <Pin className="w-3 h-3 text-amber-500 shrink-0" />
               <span className="font-semibold text-amber-700 dark:text-amber-400">{m.userName}:</span>
-              <span className="text-foreground truncate">{m.message}</span>
+              <span className="truncate text-foreground">{m.message}</span>
             </div>
           ))}
         </div>
       )}
 
-      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto space-y-2 mb-4 px-1">
+      {/* Messages area */}
+      <div ref={scrollAreaRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1" style={{ overscrollBehavior: 'contain' }}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-muted-foreground">لا توجد رسائل بعد. ابدأ المحادثة!</p>
+            <p className="text-sm text-muted-foreground">لا توجد رسائل. ابدأ المحادثة!</p>
           </div>
         ) : (
-          messages.map((m) => {
-            const isMe = m.userName === userName;
-            return (
-              <motion.div
-                key={m.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${isMe ? 'justify-start' : 'justify-end'}`}
-              >
-                <div className={`max-w-[80%] rounded-xl px-4 py-2 ${isMe ? 'bg-primary text-primary-foreground' : 'bg-muted'} ${m.isPinned ? 'ring-2 ring-amber-400' : ''}`}>
-                  {!isMe && <p className="text-xs font-semibold mb-1 opacity-70">{m.userName}</p>}
-                  <p className="text-sm whitespace-pre-wrap">{m.message}</p>
-                  <div className="flex items-center justify-between gap-2 mt-1">
-                    <span className="text-xs opacity-50">
-                      {new Date(m.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    {isLeader && (
-                      <div className="flex gap-1">
-                        {!m.isPinned && (
-                          <button onClick={() => pinMessage(m.id)} className="opacity-50 hover:opacity-100">
-                            <Pin className="w-3 h-3" />
+          <>
+            {grouped.map(group => (
+              <div key={group.date}>
+                {/* Date divider */}
+                <div className="flex items-center gap-2 my-3">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">{group.date}</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                {group.messages.map((m, idx) => {
+                  const isMe = m.userName === userName;
+                  const isFirstUnread = m.id === firstUnreadId && m.id > lastReadId && !initialScrollDone;
+                  const showUnreadDivider = !initialScrollDone && isFirstUnread;
+                  return (
+                    <div key={m.id}>
+                      {showUnreadDivider && (
+                        <div ref={firstUnreadRef} className="flex items-center gap-2 my-3">
+                          <div className="flex-1 h-px bg-green-300" />
+                          <span className="text-xs text-green-700 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full">
+                            {unreadCount} رسائل جديدة
+                          </span>
+                          <div className="flex-1 h-px bg-green-300" />
+                        </div>
+                      )}
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-1 group`}
+                      >
+                        {/* Reply button (swipe-like, always visible on hover) */}
+                        {!isMe && (
+                          <button
+                            className="opacity-0 group-hover:opacity-100 transition-opacity self-end mb-1 mr-1 p-1 rounded-full hover:bg-muted"
+                            onClick={() => { setReplyTo(m); inputRef.current?.focus(); }}
+                            title="رد"
+                          >
+                            <Reply className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
                         )}
-                        <button onClick={() => deleteMessage(m.id)} className="opacity-50 hover:opacity-100">
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })
+
+                        <div className={`max-w-[78%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                          {/* Sender name (for others) */}
+                          {!isMe && (
+                            <span className="text-xs font-semibold text-primary px-1 mb-0.5">{m.userName}</span>
+                          )}
+
+                          <div className={`rounded-2xl px-3 py-2 shadow-sm ${
+                            isMe
+                              ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                              : 'bg-muted dark:bg-muted/80 text-foreground rounded-tl-sm'
+                          } ${m.isPinned ? 'ring-2 ring-amber-400' : ''}`}>
+
+                            {/* Reply quote */}
+                            {m.replyToId && (
+                              <div className={`mb-2 px-2 py-1 rounded-lg text-xs border-r-2 ${
+                                isMe ? 'bg-primary-foreground/10 border-primary-foreground/50 text-primary-foreground/80' : 'bg-background/60 border-primary text-muted-foreground'
+                              }`}>
+                                <p className="font-semibold">{m.replyToUserName}</p>
+                                <p className="truncate">{m.replyToText}</p>
+                              </div>
+                            )}
+
+                            {/* Image */}
+                            {m.imageUrl && (
+                              <img
+                                src={m.imageUrl}
+                                alt="صورة"
+                                className="rounded-lg max-w-full mb-1 cursor-pointer"
+                                style={{ maxHeight: 280 }}
+                                onClick={() => window.open(m.imageUrl!, '_blank')}
+                              />
+                            )}
+
+                            {/* Message text */}
+                            {m.message && (
+                              <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.message}</p>
+                            )}
+
+                            {/* Footer: time + admin actions */}
+                            <div className={`flex items-center gap-2 mt-0.5 ${isMe ? 'justify-end' : 'justify-between'}`}>
+                              <span className={`text-[10px] ${isMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                                {new Date(m.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {isLeader && (
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {!m.isPinned && (
+                                    <button onClick={() => pinMessage(m.id)} className="hover:text-amber-500 transition-colors">
+                                      <Pin className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                  <button onClick={() => deleteMessage(m.id)} className="hover:text-red-500 transition-colors">
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Reply button (for my messages) */}
+                        {isMe && (
+                          <button
+                            className="opacity-0 group-hover:opacity-100 transition-opacity self-end mb-1 ml-1 p-1 rounded-full hover:bg-muted"
+                            onClick={() => { setReplyTo(m); inputRef.current?.focus(); }}
+                            title="رد"
+                          >
+                            <Reply className="w-3.5 h-3.5 text-muted-foreground rotate-180" />
+                          </button>
+                        )}
+                      </motion.div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => setVersePickerOpen(true)} data-testid="button-send-verse">
+      {/* @mention autocomplete */}
+      <AnimatePresence>
+        {showMention && filteredMembers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            className="mx-3 mb-1 border rounded-xl bg-background shadow-lg overflow-hidden"
+          >
+            {filteredMembers.slice(0, 5).map(name => (
+              <button
+                key={name}
+                className="w-full text-right px-4 py-2 text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                onClick={() => insertMention(name)}
+              >
+                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                  {name[0]}
+                </div>
+                {name}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Emoji picker */}
+      <AnimatePresence>
+        {showEmoji && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="mx-3 mb-1 p-3 border rounded-xl bg-background shadow-lg"
+          >
+            <div className="grid grid-cols-10 gap-1.5">
+              {EMOJIS.map(e => (
+                <button
+                  key={e}
+                  className="text-xl hover:scale-125 transition-transform"
+                  onClick={() => { setNewMessage(prev => prev + e); setShowEmoji(false); inputRef.current?.focus(); }}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Image preview */}
+      {imagePreview && (
+        <div className="mx-3 mb-1 flex items-center gap-2 p-2 border rounded-xl bg-muted/40">
+          <img src={imagePreview} alt="preview" className="w-14 h-14 object-cover rounded-lg" />
+          <p className="text-xs text-muted-foreground flex-1">جاهزة للإرسال</p>
+          <button onClick={() => setImagePreview(null)} className="text-muted-foreground hover:text-destructive">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Reply preview */}
+      {replyTo && (
+        <div className="mx-3 mb-1 flex items-center gap-2 px-3 py-1.5 bg-muted/60 border-r-2 border-primary rounded-r-lg">
+          <Reply className="w-4 h-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-primary">{replyTo.userName}</p>
+            <p className="text-xs text-muted-foreground truncate">{replyTo.message || '📷 صورة'}</p>
+          </div>
+          <button onClick={() => setReplyTo(null)}>
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+      )}
+
+      {/* Input bar */}
+      <div className="flex items-center gap-1.5 px-3 py-2.5 border-t bg-background shrink-0">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageSelect}
+        />
+        <button
+          className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={imageLoading}
+          title="إرسال صورة"
+          data-testid="button-attach-image"
+        >
+          {imageLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Image className="w-5 h-5" />}
+        </button>
+
+        <button
+          className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+          onClick={() => setVersePickerOpen(true)}
+          title="إرسال آية"
+          data-testid="button-send-verse"
+        >
           <BookOpen className="w-5 h-5" />
-        </Button>
-        <Input
+        </button>
+
+        <input
+          ref={inputRef}
           value={newMessage}
-          onChange={e => setNewMessage(e.target.value)}
+          onChange={e => handleInput(e.target.value)}
           placeholder="اكتب رسالة..."
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-          className="flex-1"
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+          className="flex-1 bg-muted/40 rounded-full px-4 py-2 text-sm border-0 focus:outline-none focus:ring-1 focus:ring-primary"
+          dir="rtl"
           data-testid="input-chat-message"
         />
-        <Button size="icon" onClick={() => sendMessage()} disabled={sending || !newMessage.trim()} data-testid="button-send-message">
-          <Send className="w-4 h-4" />
+
+        <button
+          className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+          onClick={() => setShowEmoji(v => !v)}
+          title="إيموجي"
+          data-testid="button-emoji"
+        >
+          <Smile className="w-5 h-5" />
+        </button>
+
+        <Button
+          size="icon"
+          className="rounded-full w-10 h-10 shrink-0"
+          onClick={() => sendMessage()}
+          disabled={sending || (!newMessage.trim() && !imagePreview)}
+          data-testid="button-send-message"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
       </div>
 
+      {/* Verse picker dialog */}
       <Dialog open={versePickerOpen} onOpenChange={setVersePickerOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إرسال آية</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>إرسال آية كريمة</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <select value={selectedBook} onChange={e => { setSelectedBook(e.target.value); setSelectedChapter(''); setSelectedVerse(''); }} className="w-full border rounded-md p-2 bg-background text-foreground" data-testid="select-verse-book">
+            <select value={selectedBook} onChange={e => { setSelectedBook(e.target.value); setSelectedChapter(''); setSelectedVerse(''); }}
+              className="w-full border rounded-md p-2.5 bg-background text-foreground" data-testid="select-verse-book">
               <option value="">اختر السفر</option>
               {allBooks?.map((b: any) => <option key={b.id} value={b.name}>{b.name}</option>)}
             </select>
             {selectedBookData && (
-              <select value={selectedChapter} onChange={e => { setSelectedChapter(e.target.value); setSelectedVerse(''); }} className="w-full border rounded-md p-2 bg-background text-foreground" data-testid="select-verse-chapter">
+              <select value={selectedChapter} onChange={e => { setSelectedChapter(e.target.value); setSelectedVerse(''); }}
+                className="w-full border rounded-md p-2.5 bg-background text-foreground" data-testid="select-verse-chapter">
                 <option value="">اختر الإصحاح</option>
                 {Array.from({ length: selectedBookData.chaptersCount }, (_, i) => (
                   <option key={i + 1} value={i + 1}>{i + 1}</option>
@@ -251,12 +597,16 @@ export default function GroupChat() {
               </select>
             )}
             {verses && verses.length > 0 && (
-              <select value={selectedVerse} onChange={e => setSelectedVerse(e.target.value)} className="w-full border rounded-md p-2 bg-background text-foreground" data-testid="select-verse-number">
+              <select value={selectedVerse} onChange={e => setSelectedVerse(e.target.value)}
+                className="w-full border rounded-md p-2.5 bg-background text-foreground" data-testid="select-verse-number">
                 <option value="">اختر الآية</option>
-                {verses.map((v: any) => <option key={v.verse} value={v.verse}>{v.verse}</option>)}
+                {verses.map((v: any) => <option key={v.verse} value={v.verse}>{v.verse} — {v.text?.slice(0, 40)}…</option>)}
               </select>
             )}
-            <Button onClick={sendVerse} disabled={!selectedVerse} className="w-full" data-testid="button-confirm-send-verse">إرسال الآية</Button>
+            <Button onClick={sendVerse} disabled={!selectedVerse} className="w-full h-11" data-testid="button-confirm-send-verse">
+              <Send className="w-4 h-4 ml-2" />
+              إرسال الآية
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
