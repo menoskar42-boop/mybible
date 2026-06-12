@@ -444,11 +444,11 @@ export default function GroupChat() {
                         {/* Reply button */}
                         {!isMe && (
                           <button
-                            className="opacity-30 group-hover:opacity-100 active:opacity-100 transition-opacity self-end mb-1 mr-1 p-1.5 rounded-full hover:bg-muted active:bg-muted"
+                            className="opacity-60 group-hover:opacity-100 active:opacity-100 transition-opacity self-end mb-1 mr-1 p-1.5 rounded-full hover:bg-muted active:bg-muted text-primary"
                             onClick={() => { setReplyTo(m); inputRef.current?.focus(); }}
                             title="رد"
                           >
-                            <Reply className="w-4 h-4 text-muted-foreground" />
+                            <Reply className="w-4 h-4" />
                           </button>
                         )}
 
@@ -555,6 +555,13 @@ export default function GroupChat() {
                                     {e}
                                   </button>
                                 ))}
+                                <div className="w-px bg-border mx-0.5 self-stretch" />
+                                <button
+                                  className="flex items-center gap-1 text-xs text-primary font-semibold px-2 self-center rounded-lg hover:bg-muted active:bg-muted"
+                                  onClick={() => { setReplyTo(m); setReactionPickerMsgId(null); inputRef.current?.focus(); }}
+                                >
+                                  <Reply className="w-3.5 h-3.5" />رد
+                                </button>
                                 <button
                                   className="text-[10px] text-muted-foreground px-1 self-center"
                                   onClick={() => setReactionPickerMsgId(null)}
@@ -567,11 +574,11 @@ export default function GroupChat() {
                         {/* Reply button (for my messages) */}
                         {isMe && (
                           <button
-                            className="opacity-30 group-hover:opacity-100 active:opacity-100 transition-opacity self-end mb-1 ml-1 p-1.5 rounded-full hover:bg-muted active:bg-muted"
+                            className="opacity-60 group-hover:opacity-100 active:opacity-100 transition-opacity self-end mb-1 ml-1 p-1.5 rounded-full hover:bg-muted active:bg-muted text-primary"
                             onClick={() => { setReplyTo(m); inputRef.current?.focus(); }}
                             title="رد"
                           >
-                            <Reply className="w-4 h-4 text-muted-foreground rotate-180" />
+                            <Reply className="w-4 h-4 rotate-180" />
                           </button>
                         )}
                       </motion.div>
