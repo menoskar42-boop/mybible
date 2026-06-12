@@ -160,23 +160,25 @@ export default function GroupChat() {
   // Initial scroll: go to first unread message, otherwise to the very bottom
   useEffect(() => {
     if (loading || initialScrollDone || messages.length === 0) return;
-    setInitialScrollDone(true);
     const unreadIdx = messages.findIndex(m => m.id > lastReadId);
     const jumpToBottom = () => {
       const el = scrollAreaRef.current;
       if (el) el.scrollTop = el.scrollHeight;
     };
-    // أجّل التمرير حتى يكتمل رسم الرسائل (الأنيميشن/الصور) ثم كرّره للأمان
-    requestAnimationFrame(() => {
-      if (unreadIdx > 0 && firstUnreadRef.current) {
-        firstUnreadRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
-      } else {
+    if (unreadIdx > 0 && firstUnreadRef.current) {
+      // العنصر مُركَّب الآن (initialScrollDone لسه false) — مرّر إليه متزامناً
+      // قبل أن تُزيل إعادة الرسم فاصل "الرسائل الجديدة"
+      firstUnreadRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+      setInitialScrollDone(true);
+    } else {
+      // حالة الأسفل: أجّل حتى يكتمل رسم الرسائل/الصور ثم كرّر للأمان
+      setInitialScrollDone(true);
+      requestAnimationFrame(() => {
         jumpToBottom();
-      }
-      // إعادة التمرير لأسفل بعد فترة قصيرة لاستيعاب الصور المتأخرة في التحميل
-      setTimeout(() => { if (unreadIdx <= 0) jumpToBottom(); }, 150);
-      setTimeout(() => { if (unreadIdx <= 0) jumpToBottom(); }, 400);
-    });
+        setTimeout(jumpToBottom, 150);
+        setTimeout(jumpToBottom, 400);
+      });
+    }
     // Mark all as read
     const maxId = Math.max(...messages.map(m => m.id));
     if (maxId > lastReadId) { setLastReadId(groupCode, maxId); setLastReadIdState(maxId); }
