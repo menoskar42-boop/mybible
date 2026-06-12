@@ -29,7 +29,14 @@ const migrations = [
     auth text NOT NULL,
     created_at timestamp DEFAULT now(),
     updated_at timestamp DEFAULT now(),
-    UNIQUE(endpoint)
+    UNIQUE(group_id, endpoint)
+  )`,
+
+  // app_settings — إعدادات التطبيق (تاريخ آخر إشعار يومي)
+  `CREATE TABLE IF NOT EXISTS app_settings (
+    key text PRIMARY KEY,
+    value text NOT NULL,
+    updated_at timestamp DEFAULT now()
   )`,
 ];
 

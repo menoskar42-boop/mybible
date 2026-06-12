@@ -196,8 +196,14 @@ app.use((req, res, next) => {
         auth text not null,
         created_at timestamp default now(),
         updated_at timestamp default now(),
-        UNIQUE(endpoint)
+        UNIQUE(group_id, endpoint)
       )`).catch(e => console.warn('[migration] group_push_subscriptions:', e.message));
+
+      pgPool.query(`CREATE TABLE IF NOT EXISTS app_settings (
+        key text primary key,
+        value text not null,
+        updated_at timestamp default now()
+      )`).catch(e => console.warn('[migration] app_settings:', e.message));
 
       // Run database seeding in the background after server starts
       console.log('[startup] Starting background database seed...');

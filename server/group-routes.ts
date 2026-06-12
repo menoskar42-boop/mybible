@@ -497,7 +497,7 @@ export function registerGroupRoutes(app: Express) {
       await pool.query(
         `INSERT INTO group_push_subscriptions (group_id, group_code, user_name, member_key, endpoint, p256dh, auth)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (endpoint) DO UPDATE SET user_name=$3, member_key=$4, updated_at=NOW()`,
+         ON CONFLICT (group_id, endpoint) DO UPDATE SET user_name=$3, member_key=$4, updated_at=NOW()`,
         [group.id, group.groupCode, userName, memberKey, subscription.endpoint, subscription.keys?.p256dh || '', subscription.keys?.auth || '']
       );
       res.json({ ok: true });
@@ -836,7 +836,8 @@ export function registerGroupRoutes(app: Express) {
       if (!emoji || !userName) return res.status(400).json({ error: 'emoji و userName مطلوبان' });
 
       const msgId = parseInt(req.params.messageId);
-      const [msg] = await db.select().from(groupMessages).where(eq(groupMessages.id, msgId));
+      const [msg] = await db.select().from(groupMessages)
+        .where(and(eq(groupMessages.id, msgId), eq(groupMessages.groupId, group.id)));
       if (!msg) return res.status(404).json({ error: 'الرسالة غير موجودة' });
 
       const reactions: { emoji: string; users: string[] }[] = (msg as any).reactions || [];
