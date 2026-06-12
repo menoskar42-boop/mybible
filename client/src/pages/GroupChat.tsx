@@ -207,6 +207,22 @@ export default function GroupChat() {
     setNewMsgCount(0);
   };
 
+  const insertEmoji = (emoji: string) => {
+    const input = inputRef.current;
+    const start = input?.selectionStart ?? newMessage.length;
+    const end = input?.selectionEnd ?? newMessage.length;
+    const next = newMessage.slice(0, start) + emoji + newMessage.slice(end);
+    setNewMessage(next);
+    // أعد المؤشر بعد الإيموجي المُدرج
+    requestAnimationFrame(() => {
+      if (input) {
+        const pos = start + emoji.length;
+        input.focus();
+        input.setSelectionRange(pos, pos);
+      }
+    });
+  };
+
   const unreadCount = messages.filter(m => m.id > lastReadId).length;
   const firstUnreadId = messages.find(m => m.id > lastReadId)?.id;
 
@@ -627,12 +643,22 @@ export default function GroupChat() {
             exit={{ opacity: 0, y: 8 }}
             className="mx-3 mb-1 p-3 border rounded-xl bg-background shadow-lg"
           >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-muted-foreground">أضف إيموجي للرسالة</span>
+              <button
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => { setShowEmoji(false); inputRef.current?.focus(); }}
+                title="إغلاق"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             <div className="grid grid-cols-10 gap-1.5">
               {EMOJIS.map(e => (
                 <button
                   key={e}
-                  className="text-xl hover:scale-125 transition-transform"
-                  onClick={() => { setNewMessage(prev => prev + e); setShowEmoji(false); inputRef.current?.focus(); }}
+                  className="text-xl hover:scale-125 active:scale-125 transition-transform"
+                  onClick={() => insertEmoji(e)}
                 >
                   {e}
                 </button>
