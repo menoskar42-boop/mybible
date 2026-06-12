@@ -851,6 +851,7 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [showCalendar, setShowCalendar] = useState(false);
   const [reading, setReading] = useState<{ book: string; chapter: number; chapters: number[] } | null>(null);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const displayReading = useMemo(() => {
     try { return getAutoReadingForDate(autoConfig, selectedDate); } catch { return autoReading; }
@@ -865,6 +866,27 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
       .map(c => c.chapter)
       .sort((a, b) => a - b);
     setReading({ book, chapter, chapters: sameBook.length > 0 ? sameBook : [chapter] });
+  };
+
+  const markAllDone = async () => {
+    if (markingAll) return;
+    setMarkingAll(true);
+    const allChapters = [...displayReading.ot, ...displayReading.nt];
+    try {
+      await Promise.all(allChapters.map(c =>
+        fetch(`/api/groups/${groupCode}/reading`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userName, book: c.book, chapter: c.chapter, timeSpent: 0, scrollPercent: 100 }),
+        })
+      ));
+      toast.success('تم تسجيل قراءة اليوم ✓');
+      onReadComplete();
+    } catch {
+      toast.error('حدث خطأ، حاول مرة أخرى');
+    } finally {
+      setMarkingAll(false);
+    }
   };
 
   // عند فتح إصحاح للقراءة المُتتبَّعة (يسجّل المدة/العمق/التمرير)
@@ -976,6 +998,19 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
           );
         })}
       </div>
+
+      {/* زر اكتملت القراءة — لليوم الحالي فقط */}
+      {isToday && (
+        <Button
+          onClick={markAllDone}
+          disabled={markingAll}
+          className="w-full mb-3 gap-2 bg-green-600 hover:bg-green-700 text-white"
+          size="sm"
+        >
+          {markingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          اكتملت قراءة اليوم
+        </Button>
+      )}
 
       {/* إحصاء المجموعة */}
       <div className="border-t pt-3 flex items-center justify-between text-sm">
