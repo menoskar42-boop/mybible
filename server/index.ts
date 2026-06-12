@@ -171,6 +171,8 @@ app.use((req, res, next) => {
       // إضافة أعمدة جديدة إن لم تكن موجودة (migration آمنة)
       pgPool.query(`ALTER TABLE reading_groups ADD COLUMN IF NOT EXISTS auto_reading_config jsonb DEFAULT NULL`)
         .catch(e => console.warn('[migration] auto_reading_config:', e.message));
+      pgPool.query(`ALTER TABLE reading_groups ADD COLUMN IF NOT EXISTS messaging_mode text DEFAULT 'all'`)
+        .catch(e => console.warn('[migration] reading_groups.messaging_mode:', e.message));
 
       pgPool.query(`ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS image_url text`)
         .catch(e => console.warn('[migration] group_messages.image_url:', e.message));

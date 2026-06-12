@@ -952,6 +952,8 @@ export default function GroupView() {
   const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
   const [linkJoinMode, setLinkJoinMode] = useState<'approval' | 'auto'>('approval');
   const [linkModeLoading, setLinkModeLoading] = useState(false);
+  const [messagingMode, setMessagingMode] = useState<'all' | 'admin_only'>('all');
+  const [messagingModeLoading, setMessagingModeLoading] = useState(false);
   const [reportActiveOpen, setReportActiveOpen] = useState(false);
   const [reportInactiveOpen, setReportInactiveOpen] = useState(false);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
@@ -995,6 +997,7 @@ export default function GroupView() {
       setData(d);
       setChallengeTotal(d.group.challengeTotal?.toString() || '');
       setLinkJoinMode((d.group.linkJoinMode as 'approval' | 'auto') || 'approval');
+      setMessagingMode((d.group.messagingMode as 'all' | 'admin_only') || 'all');
       // تحميل إعداد القراءات التلقائية
       const arc = d.group.autoReadingConfig;
       if (arc) {
@@ -1036,7 +1039,7 @@ export default function GroupView() {
     const subscribeToPush = async () => {
       try {
         const reg = await navigator.serviceWorker.ready;
-        const vapidKey = await fetch('/api/vapid-public-key').then(r => r.json()).then(d => d.key).catch(() => null);
+        const vapidKey = await fetch('/api/push/vapid-key').then(r => r.json()).then(d => d.publicKey).catch(() => null);
         if (!vapidKey) return;
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -1369,6 +1372,24 @@ export default function GroupView() {
       toast.error('فشل تحديث الإعداد');
     } finally {
       setLinkModeLoading(false);
+    }
+  };
+
+  const handleToggleMessagingMode = async (newMode: 'all' | 'admin_only') => {
+    setMessagingModeLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/messaging-mode`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, mode: newMode }),
+      });
+      if (!res.ok) throw new Error();
+      setMessagingMode(newMode);
+      toast.success(newMode === 'admin_only' ? 'الإرسال للأدمن فقط الآن' : 'كل الأعضاء يستطيعون الإرسال الآن');
+    } catch {
+      toast.error('فشل تحديث الإعداد');
+    } finally {
+      setMessagingModeLoading(false);
     }
   };
 
@@ -1979,6 +2000,34 @@ export default function GroupView() {
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {linkJoinMode === 'auto' ? 'كل من يفتح الرابط ينضم فوراً بدون موافقة' : 'تصلك طلبات ويمكنك قبول أو رفض كل شخص'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">من يستطيع الإرسال في الشات</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={messagingMode === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={messagingModeLoading}
+                      onClick={() => handleToggleMessagingMode('all')}
+                      data-testid="button-messaging-all"
+                    >
+                      كل الأعضاء
+                    </Button>
+                    <Button
+                      variant={messagingMode === 'admin_only' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={messagingModeLoading}
+                      onClick={() => handleToggleMessagingMode('admin_only')}
+                      data-testid="button-messaging-admin-only"
+                    >
+                      الأدمن فقط
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {messagingMode === 'admin_only' ? 'الأعضاء يقرأون فقط، الأدمن يرسل' : 'كل الأعضاء يستطيعون إرسال الرسائل'}
                   </p>
                 </div>
               </div>

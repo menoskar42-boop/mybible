@@ -241,6 +241,7 @@ export const readingGroups = pgTable("reading_groups", {
   todayChapter: integer("today_chapter"),
   challengeTotal: integer("challenge_total").default(0),
   linkJoinMode: text("link_join_mode").default('approval'), // 'approval' | 'auto'
+  messagingMode: text("messaging_mode").default('all'), // 'all' | 'admin_only'
   autoReadingConfig: jsonb("auto_reading_config").$type<{
     enabled: boolean;
     otChaptersPerDay: number;

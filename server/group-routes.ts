@@ -139,6 +139,26 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  // ── تغيير من يستطيع الإرسال في الشات ──
+  app.put('/api/groups/:code/messaging-mode', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const { leaderKey, mode } = req.body;
+      if (!['all', 'admin_only'].includes(mode)) return res.status(400).json({ error: 'وضع غير صحيح' });
+
+      const authorized = await isAdminByLeaderKey(group, leaderKey);
+      if (!authorized) return res.status(403).json({ error: 'غير مسموح' });
+
+      await db.update(readingGroups).set({ messagingMode: mode } as any).where(eq(readingGroups.id, group.id));
+      res.json({ success: true, mode });
+    } catch (err) {
+      console.error('[groups] messaging-mode error:', err);
+      res.status(500).json({ error: 'فشل تحديث الإعداد' });
+    }
+  });
+
   // endpoint مؤقت لإنشاء مجموعة بكود محدد مسبقاً (للاستخدام الإداري فقط)
   app.post('/api/groups/seed-once', async (req, res) => {
     try {
@@ -700,6 +720,15 @@ export function registerGroupRoutes(app: Express) {
         .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, userName), eq(groupMembers.isMuted, true)));
       if (mutedCheck.length > 0) {
         return res.status(403).json({ error: 'تم كتم هذا العضو' });
+      }
+
+      // إذا كان وضع الرسائل للأدمن فقط، تحقق من صلاحية المرسل
+      const messagingMode = (group as any).messaging_mode || (group as any).messagingMode || 'all';
+      if (messagingMode === 'admin_only') {
+        const isAdminSenderCheck = req.body.memberKey ? await isAdminByLeaderKey(group, req.body.memberKey) : false;
+        if (!isAdminSenderCheck) {
+          return res.status(403).json({ error: 'الإرسال متاح للأدمن فقط حالياً' });
+        }
       }
 
       const [msg] = await db.insert(groupMessages).values({

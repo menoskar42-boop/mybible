@@ -101,6 +101,10 @@ export default function GroupChat() {
   const [newMsgCount, setNewMsgCount] = useState(0);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<number | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [messagingMode, setMessagingMode] = useState<'all' | 'admin_only'>('all');
+  const [swipeOffsets, setSwipeOffsets] = useState<Record<number, number>>({});
+  const swipeStartX = useRef<Record<number, number>>({});
+  const swipeTriggered = useRef<Record<number, boolean>>({});
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const firstUnreadRef = useRef<HTMLDivElement>(null);
@@ -136,11 +140,14 @@ export default function GroupChat() {
     }
   }, [groupCode]);
 
-  // Fetch group members for @mention
+  // Fetch group info (members for @mention + messaging mode)
   useEffect(() => {
     fetch(`/api/groups/${groupCode}`)
       .then(r => r.json())
-      .then(d => setMembers((d.members || []).map((m: any) => m.userName).filter((n: string) => n !== userName)))
+      .then(d => {
+        setMembers((d.members || []).map((m: any) => m.userName).filter((n: string) => n !== userName));
+        setMessagingMode((d.group?.messagingMode as 'all' | 'admin_only') || 'all');
+      })
       .catch(() => {});
   }, [groupCode, userName]);
 
@@ -411,9 +418,28 @@ export default function GroupChat() {
                       )}
                       <motion.div
                         initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.15 }}
+                        animate={{ opacity: 1, y: 0, x: swipeOffsets[m.id] || 0 }}
+                        transition={{ duration: swipeOffsets[m.id] ? 0 : 0.15 }}
                         className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-1 group`}
+                        onTouchStart={e => {
+                          swipeStartX.current[m.id] = e.touches[0].clientX;
+                          swipeTriggered.current[m.id] = false;
+                        }}
+                        onTouchMove={e => {
+                          const dx = e.touches[0].clientX - (swipeStartX.current[m.id] || 0);
+                          if (Math.abs(dx) > 5 && longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                          if (dx > 0 && dx < 80) {
+                            setSwipeOffsets(prev => ({ ...prev, [m.id]: dx }));
+                          }
+                          if (dx > 60 && !swipeTriggered.current[m.id]) {
+                            swipeTriggered.current[m.id] = true;
+                            setReplyTo(m);
+                            inputRef.current?.focus();
+                          }
+                        }}
+                        onTouchEnd={() => {
+                          setSwipeOffsets(prev => ({ ...prev, [m.id]: 0 }));
+                        }}
                       >
                         {/* Reply button */}
                         {!isMe && (
@@ -634,7 +660,15 @@ export default function GroupChat() {
         </div>
       )}
 
+      {/* Locked banner when admin_only mode and user is not admin */}
+      {messagingMode === 'admin_only' && !isLeader && (
+        <div className="flex items-center justify-center gap-2 px-4 py-2.5 border-t bg-muted/50 shrink-0">
+          <span className="text-sm text-muted-foreground">🔒 الإرسال للأدمن فقط حالياً</span>
+        </div>
+      )}
+
       {/* Input bar */}
+      {(messagingMode === 'all' || isLeader) && (
       <div className="flex items-center gap-1.5 px-3 py-2.5 border-t bg-background shrink-0">
         <input
           ref={fileInputRef}
@@ -692,6 +726,7 @@ export default function GroupChat() {
           {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
       </div>
+      )}
 
       {/* Verse picker dialog */}
       <Dialog open={versePickerOpen} onOpenChange={setVersePickerOpen}>
