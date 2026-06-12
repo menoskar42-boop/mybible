@@ -439,6 +439,28 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  // ── إعداد القراءات التلقائية ────────────────────────────────────────────────
+  app.put('/api/groups/:code/auto-reading', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const { leaderKey, config } = req.body;
+      const authorized = await isAdminByLeaderKey(group, leaderKey);
+      if (!authorized) return res.status(403).json({ error: 'غير مسموح' });
+
+      const [updated] = await db.update(readingGroups)
+        .set({ autoReadingConfig: config })
+        .where(eq(readingGroups.id, group.id))
+        .returning();
+
+      res.json({ group: updated });
+    } catch (err) {
+      console.error('[groups] auto-reading config error:', err);
+      res.status(500).json({ error: 'فشل الحفظ' });
+    }
+  });
+
   app.put('/api/groups/:code/today', async (req, res) => {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));

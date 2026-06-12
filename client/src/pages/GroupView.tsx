@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2 } from 'lucide-react';
+import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { OT_BOOKS, NT_BOOKS, OT_FLAT, NT_FLAT, getAutoReadingForDate, todayStr, findFlatIndex, type AutoReadingConfig } from '@/lib/group-auto-reading';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -783,6 +786,104 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
   );
 }
 
+// ── كارت القراءة الموحّد مع التقويم ──────────────────────────────────────────
+function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeTotal }: {
+  autoReading: import('@/lib/group-auto-reading').DayAutoReading;
+  autoConfig: import('@/lib/group-auto-reading').AutoReadingConfig;
+  stats: { totalMembers: number; readToday: number; chaptersRead: number };
+  progress: number;
+  challengeTotal: number;
+}) {
+  const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [showCalendar, setShowCalendar] = useState(false);
+
+  const displayReading = useMemo(() => {
+    try { return getAutoReadingForDate(autoConfig, selectedDate); } catch { return autoReading; }
+  }, [selectedDate, autoConfig, autoReading]);
+
+  const isToday = selectedDate === todayStr();
+
+  return (
+    <Card className="p-5 mb-6" data-testid="card-today-reading">
+      {/* رأس الكارت */}
+      <div className="flex items-center gap-2 mb-4">
+        <Zap className="w-5 h-5 text-amber-500" />
+        <h3 className="font-display font-bold text-lg text-foreground">قراءة اليوم</h3>
+        <div className="mr-auto flex items-center gap-2">
+          {!isToday && (
+            <Badge variant="secondary" className="text-xs">
+              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}
+            </Badge>
+          )}
+          <Button
+            variant="outline" size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={() => setShowCalendar(v => !v)}
+          >
+            📅 {isToday ? 'اليوم' : 'تغيير'}
+          </Button>
+        </div>
+      </div>
+
+      {/* منتقي التاريخ */}
+      {showCalendar && (
+        <div className="mb-4 p-2 border rounded-lg bg-muted/30">
+          <input
+            type="date"
+            value={selectedDate}
+            max={todayStr()}
+            onChange={e => { setSelectedDate(e.target.value); setShowCalendar(false); }}
+            className="w-full text-sm rounded px-2 py-1 border bg-background"
+          />
+          {!isToday && (
+            <Button variant="ghost" size="sm" className="w-full mt-1 text-xs h-7"
+              onClick={() => { setSelectedDate(todayStr()); setShowCalendar(false); }}>
+              العودة لليوم
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* الإصحاحات */}
+      <div className="space-y-2 mb-4">
+        {displayReading.ot.map((c, i) => (
+          <Link key={`ot-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors cursor-pointer">
+              <span className="text-base">📖</span>
+              <span className="font-semibold text-foreground">{c.book}</span>
+              <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
+            </div>
+          </Link>
+        ))}
+        {displayReading.nt.map((c, i) => (
+          <Link key={`nt-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer">
+              <span className="text-base">✝️</span>
+              <span className="font-semibold text-foreground">{c.book}</span>
+              <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* إحصاء المجموعة */}
+      <div className="border-t pt-3 flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">{stats.totalMembers} عضو</span>
+        <span className="font-semibold text-green-600">قرأ {stats.readToday} اليوم ✓</span>
+      </div>
+      {challengeTotal > 0 && (
+        <div className="mt-2">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+            <span>تحدي القراءة</span>
+            <span>{stats.chaptersRead} / {challengeTotal}</span>
+          </div>
+          <Progress value={Math.min(progress, 100)} className="h-1.5" />
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function GroupView() {
   const params = useParams<{ groupId: string }>();
   const groupCode = params.groupId || '';
@@ -809,6 +910,16 @@ export default function GroupView() {
   const [missionEnd, setMissionEnd] = useState('');
   const [missionDeadline, setMissionDeadline] = useState('');
 
+  // ── القراءات التلقائية ──────────────────────────────────────────────────────
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [autoOtChap, setAutoOtChap] = useState(3);
+  const [autoNtChap, setAutoNtChap] = useState(1);
+  const [autoOtBook, setAutoOtBook] = useState(OT_BOOKS[0][0]);
+  const [autoOtChapter, setAutoOtChapter] = useState(1);
+  const [autoNtBook, setAutoNtBook] = useState(NT_BOOKS[0][0]);
+  const [autoNtChapter, setAutoNtChapter] = useState(1);
+  const [autoSaving, setAutoSaving] = useState(false);
+
   const stored = JSON.parse(localStorage.getItem(`group_${groupCode}`) || '{}');
   const userEntry = getUserGroupEntry(groupCode);
   const isAdmin = userEntry?.role === 'admin' || stored.isLeader || false;
@@ -831,6 +942,17 @@ export default function GroupView() {
       setData(d);
       setChallengeTotal(d.group.challengeTotal?.toString() || '');
       setLinkJoinMode((d.group.linkJoinMode as 'approval' | 'auto') || 'approval');
+      // تحميل إعداد القراءات التلقائية
+      const arc = d.group.autoReadingConfig;
+      if (arc) {
+        setAutoEnabled(arc.enabled ?? false);
+        setAutoOtChap(arc.otChaptersPerDay ?? 3);
+        setAutoNtChap(arc.ntChaptersPerDay ?? 1);
+        const otEntry = OT_FLAT[arc.otStartIndex ?? 0];
+        const ntEntry = NT_FLAT[arc.ntStartIndex ?? 0];
+        if (otEntry) { setAutoOtBook(otEntry.book); setAutoOtChapter(otEntry.chapter); }
+        if (ntEntry) { setAutoNtBook(ntEntry.book); setAutoNtChapter(ntEntry.chapter); }
+      }
     } catch {
       toast.error('فشل تحميل بيانات المجموعة');
     } finally {
@@ -952,6 +1074,41 @@ export default function GroupView() {
       refetchJoinRequests();
     } catch {
       toast.error('فشل رفض الطلب');
+    }
+  };
+
+  // القراءة التلقائية لليوم (محسوبة من الإعداد)
+  const todayAutoReading = useMemo(() => {
+    const arc = data?.group?.autoReadingConfig;
+    if (!arc?.enabled) return null;
+    try { return getAutoReadingForDate(arc, todayStr()); } catch { return null; }
+  }, [data?.group?.autoReadingConfig]);
+
+  const saveAutoReading = async (enabled: boolean) => {
+    setAutoSaving(true);
+    try {
+      const otIdx = findFlatIndex(OT_FLAT, autoOtBook, autoOtChapter);
+      const ntIdx = findFlatIndex(NT_FLAT, autoNtBook, autoNtChapter);
+      const config: AutoReadingConfig = {
+        enabled,
+        otChaptersPerDay: autoOtChap,
+        ntChaptersPerDay: autoNtChap,
+        baseDate: todayStr(),
+        otStartIndex: otIdx,
+        ntStartIndex: ntIdx,
+      };
+      const res = await fetch(`/api/groups/${groupCode}/auto-reading`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, config }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(enabled ? 'تم تفعيل القراءات التلقائية' : 'تم إيقاف القراءات التلقائية');
+      fetchGroup();
+    } catch {
+      toast.error('فشل الحفظ');
+    } finally {
+      setAutoSaving(false);
     }
   };
 
@@ -1239,10 +1396,18 @@ export default function GroupView() {
           {isAdminFinal && <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 gap-1"><Shield className="w-3 h-3" /> أدمن</Badge>}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {/* قراءة اليوم — مخفية مؤقتاً */}
-
-          <Card className="p-5" data-testid="card-group-stats">
+        {/* ── كارت القراءة الموحّد ──────────────────────────────────────────── */}
+        {todayAutoReading && (
+          <DailyReadingCard
+            autoReading={todayAutoReading}
+            autoConfig={data.group.autoReadingConfig}
+            stats={stats}
+            progress={progress}
+            challengeTotal={group.challengeTotal}
+          />
+        )}
+        {!todayAutoReading && (
+          <Card className="p-5 mb-6" data-testid="card-group-stats">
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="w-5 h-5 text-green-500" />
               <h3 className="font-display font-bold text-foreground">تقدم المجموعة</h3>
@@ -1267,7 +1432,7 @@ export default function GroupView() {
               )}
             </div>
           </Card>
-        </div>
+        )}
 
         <div id="assignment-section">
           <AssignmentSection
@@ -1526,6 +1691,112 @@ export default function GroupView() {
                 <Input type="number" min="0" value={challengeTotal} onChange={e => setChallengeTotal(e.target.value)} data-testid="input-challenge-total" />
               </div>
               <Button onClick={updateToday} className="w-full" data-testid="button-save-admin">حفظ التغييرات</Button>
+
+              {/* ── القراءات التلقائية ───────────────────────────────────── */}
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    <Label className="font-bold">القراءات التلقائية اليومية</Label>
+                  </div>
+                  <Switch
+                    checked={autoEnabled}
+                    onCheckedChange={v => { setAutoEnabled(v); if (!v) saveAutoReading(false); }}
+                  />
+                </div>
+
+                {autoEnabled && (
+                  <div className="space-y-3 p-3 rounded-lg bg-muted/40 border">
+                    <p className="text-xs text-muted-foreground">حدّد نقطة البداية وعدد الإصحاحات — سيكمل النظام تلقائياً من بعدها كل يوم</p>
+
+                    {/* العهد القديم */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-amber-600">📖 العهد القديم</Label>
+                      <div className="flex gap-2">
+                        <Select value={autoOtBook} onValueChange={v => { setAutoOtBook(v); setAutoOtChapter(1); }}>
+                          <SelectTrigger className="flex-1 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {OT_BOOKS.map(([name]) => (
+                              <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={String(autoOtChapter)} onValueChange={v => setAutoOtChapter(Number(v))}>
+                          <SelectTrigger className="w-20 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: OT_BOOKS.find(([n]) => n === autoOtBook)?.[1] ?? 1 }, (_, i) => i + 1).map(n => (
+                              <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground w-24">إصحاحات/يوم</Label>
+                        <Select value={String(autoOtChap)} onValueChange={v => setAutoOtChap(Number(v))}>
+                          <SelectTrigger className="w-20 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3,4,5].map(n => <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* العهد الجديد */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-blue-600">✝️ العهد الجديد</Label>
+                      <div className="flex gap-2">
+                        <Select value={autoNtBook} onValueChange={v => { setAutoNtBook(v); setAutoNtChapter(1); }}>
+                          <SelectTrigger className="flex-1 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NT_BOOKS.map(([name]) => (
+                              <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={String(autoNtChapter)} onValueChange={v => setAutoNtChapter(Number(v))}>
+                          <SelectTrigger className="w-20 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: NT_BOOKS.find(([n]) => n === autoNtBook)?.[1] ?? 1 }, (_, i) => i + 1).map(n => (
+                              <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground w-24">إصحاحات/يوم</Label>
+                        <Select value={String(autoNtChap)} onValueChange={v => setAutoNtChap(Number(v))}>
+                          <SelectTrigger className="w-20 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3].map(n => <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => saveAutoReading(true)}
+                      disabled={autoSaving}
+                      className="w-full h-8 text-xs"
+                      variant="default"
+                    >
+                      {autoSaving ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <RotateCcw className="w-3 h-3 ml-1" />}
+                      اضبط وابدأ من اليوم
+                    </Button>
+                  </div>
+                )}
+              </div>
 
               <div className="border-t pt-4 space-y-3">
                 <div className="flex items-center gap-2">

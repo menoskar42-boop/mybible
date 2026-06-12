@@ -168,6 +168,10 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
       
+      // إضافة أعمدة جديدة إن لم تكن موجودة (migration آمنة)
+      pgPool.query(`ALTER TABLE reading_groups ADD COLUMN IF NOT EXISTS auto_reading_config jsonb DEFAULT NULL`)
+        .catch(e => console.warn('[migration] auto_reading_config:', e.message));
+
       // Run database seeding in the background after server starts
       console.log('[startup] Starting background database seed...');
       autoSeedIfNeeded()

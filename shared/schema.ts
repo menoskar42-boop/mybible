@@ -241,6 +241,14 @@ export const readingGroups = pgTable("reading_groups", {
   todayChapter: integer("today_chapter"),
   challengeTotal: integer("challenge_total").default(0),
   linkJoinMode: text("link_join_mode").default('approval'), // 'approval' | 'auto'
+  autoReadingConfig: jsonb("auto_reading_config").$type<{
+    enabled: boolean;
+    otChaptersPerDay: number;
+    ntChaptersPerDay: number;
+    baseDate: string;      // YYYY-MM-DD — تاريخ نقطة البداية
+    otStartIndex: number;  // index in flat OT chapter list
+    ntStartIndex: number;  // index in flat NT chapter list
+  } | null>().default(null),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
