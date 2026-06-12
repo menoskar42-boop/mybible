@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw } from 'lucide-react';
+import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw, Play } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { OT_BOOKS, NT_BOOKS, OT_FLAT, NT_FLAT, getAutoReadingForDate, todayStr, findFlatIndex, type AutoReadingConfig } from '@/lib/group-auto-reading';
@@ -850,13 +850,22 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
 }) {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [showCalendar, setShowCalendar] = useState(false);
-  const [reading, setReading] = useState<{ book: string; chapter: number } | null>(null);
+  const [reading, setReading] = useState<{ book: string; chapter: number; chapters: number[] } | null>(null);
 
   const displayReading = useMemo(() => {
     try { return getAutoReadingForDate(autoConfig, selectedDate); } catch { return autoReading; }
   }, [selectedDate, autoConfig, autoReading]);
 
   const isToday = selectedDate === todayStr();
+
+  // افتح إصحاحاً مع تمرير إصحاحات اليوم لنفس السفر فقط (لا كل إصحاحات السفر)
+  const openReading = (book: string, chapter: number) => {
+    const sameBook = [...displayReading.ot, ...displayReading.nt]
+      .filter(c => c.book === book)
+      .map(c => c.chapter)
+      .sort((a, b) => a - b);
+    setReading({ book, chapter, chapters: sameBook.length > 0 ? sameBook : [chapter] });
+  };
 
   // عند فتح إصحاح للقراءة المُتتبَّعة (يسجّل المدة/العمق/التمرير)
   if (reading) {
@@ -877,6 +886,7 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
           groupCode={groupCode}
           assignmentId={null}
           userName={userName}
+          chapters={reading.chapters}
           onComplete={() => { setReading(null); onReadComplete(); }}
         />
       </Card>
@@ -924,52 +934,47 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
         </div>
       )}
 
-      {/* الإصحاحات — الضغط يفتح القراءة المُتتبَّعة (للقراءة اليومية فقط) */}
-      <div className="space-y-2 mb-4">
-        {displayReading.ot.map((c, i) => (
-          isToday ? (
+      {/* الإصحاحات — كروت جاهزة للفتح (الضغط يفتح القراءة المُتتبَّعة لليوم) */}
+      <div className="space-y-2.5 mb-4">
+        {[...displayReading.ot.map(c => ({ ...c, testament: 'ot' as const })),
+          ...displayReading.nt.map(c => ({ ...c, testament: 'nt' as const }))].map((c, i) => {
+          const isOt = c.testament === 'ot';
+          const cardCls = isOt
+            ? 'border-amber-200 dark:border-amber-800/40 bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40'
+            : 'border-blue-200 dark:border-blue-800/40 bg-blue-50/60 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40';
+          const iconBoxCls = isOt ? 'from-amber-500 to-amber-600' : 'from-blue-500 to-blue-600';
+          const btnCls = isOt ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600';
+          const inner = (
+            <>
+              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${iconBoxCls} flex items-center justify-center shrink-0`}>
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0 text-right">
+                <h4 className="font-display font-bold text-foreground text-sm truncate">{c.book}</h4>
+                <p className="text-xs text-muted-foreground">الإصحاح {c.chapter}</p>
+              </div>
+              <span className={`shrink-0 text-white text-xs font-semibold rounded-lg px-3 py-1.5 flex items-center gap-1 ${btnCls} transition-colors`}>
+                <Play className="w-3 h-3" />اقرأ
+              </span>
+            </>
+          );
+          return isToday ? (
             <button
-              key={`ot-${i}`}
-              onClick={() => setReading({ book: c.book, chapter: c.chapter })}
-              className="w-full flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors cursor-pointer text-right"
+              key={`${c.testament}-${i}`}
+              onClick={() => openReading(c.book, c.chapter)}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border ${cardCls} transition-colors cursor-pointer shadow-sm`}
+              data-testid={`card-daily-chapter-${c.book}-${c.chapter}`}
             >
-              <span className="text-base">📖</span>
-              <span className="font-semibold text-foreground">{c.book}</span>
-              <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
-              <span className="mr-auto text-xs text-amber-600 font-semibold">اقرأ ←</span>
+              {inner}
             </button>
           ) : (
-            <Link key={`ot-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors cursor-pointer">
-                <span className="text-base">📖</span>
-                <span className="font-semibold text-foreground">{c.book}</span>
-                <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
+            <Link key={`${c.testament}-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
+              <div className={`flex items-center gap-3 p-3 rounded-xl border ${cardCls} transition-colors cursor-pointer shadow-sm`}>
+                {inner}
               </div>
             </Link>
-          )
-        ))}
-        {displayReading.nt.map((c, i) => (
-          isToday ? (
-            <button
-              key={`nt-${i}`}
-              onClick={() => setReading({ book: c.book, chapter: c.chapter })}
-              className="w-full flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer text-right"
-            >
-              <span className="text-base">✝️</span>
-              <span className="font-semibold text-foreground">{c.book}</span>
-              <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
-              <span className="mr-auto text-xs text-blue-600 font-semibold">اقرأ ←</span>
-            </button>
-          ) : (
-            <Link key={`nt-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer">
-                <span className="text-base">✝️</span>
-                <span className="font-semibold text-foreground">{c.book}</span>
-                <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
-              </div>
-            </Link>
-          )
-        ))}
+          );
+        })}
       </div>
 
       {/* إحصاء المجموعة */}
