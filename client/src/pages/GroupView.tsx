@@ -1565,7 +1565,7 @@ export default function GroupView() {
   const missionCompleted = missionTotal > 0 && myMissionProgress >= missionTotal;
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="container mx-auto px-4 py-6 max-w-4xl text-[15px]">
       <SEOHead />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex items-center justify-between mb-4">
