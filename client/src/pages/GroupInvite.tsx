@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, Clock, Check, Loader2 } from 'lucide-react';
+import { Users, Clock, Check, Loader2, Shield } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { SEOHead } from '@/components/SEOHead';
 import { addUserGroup } from '@/lib/user-groups';
@@ -23,11 +24,27 @@ export default function GroupInvite() {
 
   const [userName, setUserName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'pending' | 'joined'>('idle');
 
   useEffect(() => {
     if (!groupCode) return;
+
+    // إذا كان المستخدم عضواً بالفعل ومحفوظ محلياً → اذهب للجروب مباشرة
+    try {
+      const saved = localStorage.getItem(`group_${groupCode}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.memberKey) {
+          navigate(`/group/${groupCode}`, { replace: true });
+          return;
+        }
+      }
+    } catch {
+      // بيانات تالفة — اتجاهل وأظهر الفورم
+    }
+
     fetch(`/api/groups/${groupCode}/invite-info`)
       .then(r => r.json())
       .then(data => {
@@ -41,6 +58,7 @@ export default function GroupInvite() {
   const handleJoin = async () => {
     if (!userName.trim()) { toast.error('اكتب اسمك'); return; }
     if (!phone.trim() || phone.trim().length < 10) { toast.error('رقم الموبايل غير صحيح'); return; }
+    if (!agreedToTerms) { toast.error('يجب الموافقة على الشروط والأحكام'); return; }
 
     setLoading(true);
     try {
@@ -52,16 +70,21 @@ export default function GroupInvite() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      const savedData = {
+        userName: userName.trim(),
+        memberKey: data.memberKey || data.member?.memberKey,
+        isLeader: data.member?.isAdmin === true || false,
+        groupCode,
+      };
+
       if (data.status === 'already_member') {
-        const isAdmin = data.member?.isAdmin === true;
-        localStorage.setItem(`group_${groupCode}`, JSON.stringify({
-          userName: userName.trim(), memberKey: data.member.memberKey,
-          isLeader: isAdmin, groupCode,
-        }));
+        savedData.memberKey = data.member.memberKey;
+        savedData.isLeader = data.member?.isAdmin === true;
+        localStorage.setItem(`group_${groupCode}`, JSON.stringify(savedData));
         addUserGroup({
           groupId: groupCode, groupName: groupInfo?.name || groupCode,
-          churchName: groupInfo?.churchName || '', role: isAdmin ? 'admin' : 'member',
-          userName: userName.trim(), memberKey: data.member.memberKey,
+          churchName: groupInfo?.churchName || '', role: savedData.isLeader ? 'admin' : 'member',
+          userName: userName.trim(), memberKey: savedData.memberKey,
         });
         toast.success('أنت عضو بالفعل في هذه المجموعة');
         navigate(`/group/${groupCode}`);
@@ -69,14 +92,11 @@ export default function GroupInvite() {
       }
 
       if (data.status === 'joined') {
-        localStorage.setItem(`group_${groupCode}`, JSON.stringify({
-          userName: userName.trim(), memberKey: data.memberKey,
-          isLeader: false, groupCode,
-        }));
+        localStorage.setItem(`group_${groupCode}`, JSON.stringify(savedData));
         addUserGroup({
           groupId: groupCode, groupName: groupInfo?.name || groupCode,
           churchName: groupInfo?.churchName || '', role: 'member',
-          userName: userName.trim(), memberKey: data.memberKey,
+          userName: userName.trim(), memberKey: savedData.memberKey,
         });
         toast.success('تم الانضمام بنجاح!');
         navigate(`/group/${groupCode}`);
@@ -156,9 +176,30 @@ export default function GroupInvite() {
                 <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)}
                   placeholder="01000000000" type="tel" dir="ltr" className="text-left"
                   data-testid="input-invite-phone" />
-                <p className="text-xs text-muted-foreground mt-1">يُستخدم لتسجيل الدخول لاحقاً</p>
+                <p className="text-xs text-muted-foreground mt-1">يُستخدم لتعريفك عند فتح الرابط مجدداً</p>
               </div>
-              <Button onClick={handleJoin} disabled={loading} className="w-full" size="lg" data-testid="button-invite-join">
+
+              {/* الشروط والأحكام */}
+              <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                <Checkbox
+                  id="terms"
+                  checked={agreedToTerms}
+                  onCheckedChange={v => setAgreedToTerms(v === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                  أوافق على{' '}
+                  <span className="text-primary font-medium">شروط وأحكام</span>{' '}
+                  استخدام المجموعة وأن بياناتي ستُستخدم فقط لأغراض الخدمة الكنسية
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Shield className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>بياناتك محفوظة على جهازك — لن تحتاج للتسجيل مجدداً عند فتح الرابط</span>
+              </div>
+
+              <Button onClick={handleJoin} disabled={loading || !agreedToTerms} className="w-full" size="lg" data-testid="button-invite-join">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Check className="w-4 h-4 ml-2" />}
                 {groupInfo?.linkJoinMode === 'auto' ? 'انضمام فوري' : 'طلب الانضمام'}
               </Button>
