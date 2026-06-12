@@ -348,7 +348,7 @@ export default function GroupChat() {
   }
 
   return (
-    <div className="flex flex-col text-[17px]" style={{ height: 'calc(100dvh - 96px - env(safe-area-inset-bottom, 0px))' }}>
+    <div className="flex flex-col text-[17px]" style={{ height: 'calc(100dvh - 64px - 64px - env(safe-area-inset-bottom, 0px))' }}>
       <SEOHead />
 
       {/* Header */}
