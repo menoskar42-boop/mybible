@@ -1240,24 +1240,7 @@ export default function GroupView() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <Card className="p-5" data-testid="card-today-reading">
-            <div className="flex items-center gap-2 mb-3">
-              <BookOpen className="w-5 h-5 text-primary" />
-              <h3 className="font-display font-bold text-foreground">قراءة اليوم</h3>
-            </div>
-            {todayAssignment ? (
-              <div>
-                <p className="text-lg font-semibold text-primary mb-1">{todayAssignment.bookName}</p>
-                <p className="text-sm text-muted-foreground mb-3">{todayAssignment.chapters?.length} إصحاح</p>
-                <Button size="sm" className="w-full" data-testid="button-read-now"
-                  onClick={() => document.getElementById('assignment-section')?.scrollIntoView({ behavior: 'smooth' })}>
-                  اقرأ الآن
-                </Button>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">لم تُضف قراءة يومية بعد</p>
-            )}
-          </Card>
+          {/* قراءة اليوم — مخفية مؤقتاً */}
 
           <Card className="p-5" data-testid="card-group-stats">
             <div className="flex items-center gap-2 mb-3">
