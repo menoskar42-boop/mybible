@@ -461,6 +461,32 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  // اشتراك الأعضاء في إشعارات الشات
+  app.post('/api/groups/:code/push-subscribe', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+      const { memberKey, userName, subscription } = req.body;
+      if (!memberKey || !userName || !subscription?.endpoint) return res.status(400).json({ error: 'بيانات ناقصة' });
+      // Validate member
+      const [member] = await db.select().from(groupMembers).where(
+        and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, memberKey))
+      );
+      if (!member) return res.status(403).json({ error: 'غير مسموح' });
+      // Upsert subscription
+      await pool.query(
+        `INSERT INTO group_push_subscriptions (group_id, group_code, user_name, member_key, endpoint, p256dh, auth)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (endpoint) DO UPDATE SET user_name=$3, member_key=$4, updated_at=NOW()`,
+        [group.id, group.groupCode, userName, memberKey, subscription.endpoint, subscription.keys?.p256dh || '', subscription.keys?.auth || '']
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('[groups] push-subscribe error:', err);
+      res.status(500).json({ error: 'فشل الاشتراك' });
+    }
+  });
+
   app.put('/api/groups/:code/today', async (req, res) => {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
@@ -629,7 +655,7 @@ export function registerGroupRoutes(app: Express) {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
       if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
 
-      const { userName, message } = req.body;
+      const { userName, message, memberKey } = req.body;
       if (!userName || !message) {
         return res.status(400).json({ error: 'الرسالة واسم المستخدم مطلوبان' });
       }
@@ -645,6 +671,27 @@ export function registerGroupRoutes(app: Express) {
         userName,
         message,
       }).returning();
+
+      // إشعار للأعضاء عند رسالة الأدمن
+      const isAdminSender = memberKey ? await isAdminByLeaderKey(group, memberKey) : false;
+      if (isAdminSender && memberKey) {
+        try {
+          const subsResult = await pool.query(
+            `SELECT endpoint, p256dh, auth FROM group_push_subscriptions WHERE group_id = $1 AND member_key != $2`,
+            [group.id, memberKey]
+          );
+          if (subsResult.rows.length > 0) {
+            const { sendGroupChatNotification } = await import('./push-notifications');
+            sendGroupChatNotification(
+              group.groupCode,
+              group.name,
+              userName,
+              message,
+              subsResult.rows
+            ).catch(() => {});
+          }
+        } catch {}
+      }
 
       res.json({ message: msg });
     } catch (err) {

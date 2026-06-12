@@ -17,7 +17,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getUserGroupEntry, addUserGroup, removeUserGroup } from '@/lib/user-groups';
-import { fetchBookIntro, fetchVerseTafsir } from '@/lib/tafsir-csv-service';
+import { fetchBookIntro, fetchVerseTafsir, fetchChapterTafsir } from '@/lib/tafsir-csv-service';
 
 interface GroupData {
   group: any;
@@ -75,7 +75,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   const [tafsirText, setTafsirText] = useState<string | null>(null);
   const [tafsirLoading, setTafsirLoading] = useState(false);
 
-  const openTafsir = async (type: 'intro' | 'verse', verseNum?: number) => {
+  const openTafsir = async (type: 'intro' | 'verse' | 'chapter', verseNum?: number) => {
     setTafsirOpen(true);
     setTafsirLoading(true);
     setTafsirText(null);
@@ -83,6 +83,10 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
       setTafsirTitle(`مقدمة عن سفر ${bookName}`);
       const text = await fetchBookIntro(bookName);
       setTafsirText(text || 'لا توجد مقدمة متاحة لهذا السفر حالياً');
+    } else if (type === 'chapter') {
+      setTafsirTitle(`تفسير ${bookName} — الإصحاح ${chapter}`);
+      const text = await fetchChapterTafsir(bookName, chapter);
+      setTafsirText(text || 'لا يوجد تفسير متاح لهذا الإصحاح حالياً');
     } else if (verseNum !== undefined) {
       setTafsirTitle(`تفسير ${bookName} ${chapter}:${verseNum}`);
       const text = await fetchVerseTafsir(bookName, chapter, verseNum);
@@ -213,36 +217,43 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
 
       {/* منطقة القراءة */}
       <div ref={containerRef} className="max-h-[60vh] overflow-y-auto rounded-lg border p-4 bg-background" dir="rtl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-xl font-bold text-primary">{bookName} - الإصحاح {chapter}</h3>
-          <Button variant="outline" size="sm" className="text-xs gap-1 flex-shrink-0" onClick={() => openTafsir('intro')} data-testid="button-book-intro">
-            <BookOpen className="w-3.5 h-3.5" />
-            مقدمة السفر
-          </Button>
+        <div className="mb-4">
+          <h3 className="font-display text-xl font-bold text-primary mb-3">{bookName} — الإصحاح {chapter}</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-sm h-10" onClick={() => openTafsir('intro')} data-testid="button-book-intro">
+              <BookOpen className="w-4 h-4 text-indigo-500" />
+              مقدمة السفر
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-sm h-10" onClick={() => openTafsir('chapter')} data-testid="button-chapter-tafsir">
+              <ScrollText className="w-4 h-4 text-emerald-500" />
+              تفسير الإصحاح
+            </Button>
+          </div>
         </div>
         <div className="space-y-3">
           {verses.map((v: any) => (
-            <div key={v.id} className="group flex gap-2 items-start">
+            <div key={v.id} className="flex gap-2 items-start border-b border-border/30 pb-2 last:border-0">
               <p className="flex-1 text-xl leading-loose font-display">
                 <span className="text-primary font-bold ml-1">{v.verse}</span>
                 {v.text}
               </p>
               <button
                 onClick={() => openTafsir('verse', v.verse)}
-                className="flex-shrink-0 mt-2 opacity-40 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                className="flex-shrink-0 mt-2 flex flex-col items-center gap-0.5 text-muted-foreground hover:text-primary transition-colors px-1"
                 title={`تفسير الآية ${v.verse}`}
                 data-testid={`button-verse-tafsir-${v.verse}`}
               >
-                <BookOpen className="w-3.5 h-3.5" />
+                <BookOpen className="w-4 h-4" />
+                <span className="text-[9px]">تفسير</span>
               </button>
             </div>
           ))}
         </div>
       </div>
 
-      <Button onClick={handleFinishReading} disabled={completing} className="w-full" size="lg" data-testid="button-finish-reading">
-        {completing ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Check className="w-4 h-4 ml-2" />}
-        الانتهاء من القراءة
+      <Button onClick={handleFinishReading} disabled={completing} className="w-full h-14 text-lg font-bold" size="lg" data-testid="button-finish-reading">
+        {completing ? <Loader2 className="w-5 h-5 animate-spin ml-2" /> : <Check className="w-5 h-5 ml-2" />}
+        ✅ الانتهاء من القراءة
       </Button>
 
       {/* Dialog التفسير */}
@@ -496,11 +507,13 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
                   <div className="flex items-center gap-1">
                     {isAdmin && (
                       <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); setReportAssignmentId(a.id); setReportOpen(true); }} data-testid={`button-report-${a.id}`}>
-                          <Eye className="w-3.5 h-3.5 text-indigo-500" />
+                        <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 text-indigo-600 text-xs" onClick={e => { e.stopPropagation(); setReportAssignmentId(a.id); setReportOpen(true); }} data-testid={`button-report-${a.id}`}>
+                          <Eye className="w-3.5 h-3.5" />
+                          تقرير
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); deleteAssignment(a.id); }} data-testid={`button-delete-assignment-${a.id}`}>
-                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 text-red-500 text-xs" onClick={e => { e.stopPropagation(); deleteAssignment(a.id); }} data-testid={`button-delete-assignment-${a.id}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          حذف
                         </Button>
                       </>
                     )}
@@ -539,23 +552,23 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
                               setReadingChapter({ assignmentId: a.id, bookName: a.bookName, chapter: ch, isLastChapter: remaining.length === 1 });
                             }}
                             disabled={done}
-                            className={`relative p-3 rounded-lg border text-center transition-all ${
+                            className={`relative p-4 rounded-xl border text-center transition-all ${
                               done
                                 ? 'bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-800'
-                                : 'bg-background border-border hover:border-primary hover:shadow-md cursor-pointer'
+                                : 'bg-background border-border hover:border-primary hover:shadow-md cursor-pointer active:scale-95'
                             }`}
                             data-testid={`button-chapter-${a.id}-${ch}`}
                           >
-                            <span className={`font-bold text-lg ${done ? 'text-green-600' : 'text-foreground'}`}>{ch}</span>
+                            <span className={`font-bold text-xl ${done ? 'text-green-600' : 'text-foreground'}`}>{ch}</span>
                             {done && (
                               <div className="mt-1">
-                                <Check className="w-4 h-4 text-green-500 mx-auto" />
+                                <Check className="w-5 h-5 text-green-500 mx-auto" />
                                 {chapterData && (
                                   <span className="text-[10px] text-green-600 block mt-0.5">{formatTime(chapterData.timeSpent)}</span>
                                 )}
                               </div>
                             )}
-                            {!done && <p className="text-[10px] text-muted-foreground mt-1">اضغط للقراءة</p>}
+                            {!done && <p className="text-xs text-primary font-semibold mt-1">▶ اقرأ</p>}
                           </button>
                         );
                       })}
@@ -961,6 +974,31 @@ export default function GroupView() {
   }, [groupCode]);
 
   useEffect(() => { fetchGroup(); }, [fetchGroup]);
+
+  // اشتراك تلقائي في إشعارات الجروب
+  useEffect(() => {
+    if (!groupCode || !memberKey || !userName) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    const subscribeToPush = async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const vapidKey = await fetch('/api/vapid-public-key').then(r => r.json()).then(d => d.key).catch(() => null);
+        if (!vapidKey) return;
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey,
+        });
+        await fetch(`/api/groups/${groupCode}/push-subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberKey, userName, subscription: sub.toJSON() }),
+        });
+      } catch {}
+    };
+
+    subscribeToPush();
+  }, [groupCode, memberKey, userName]);
 
   useEffect(() => {
     if (!data || !userName) return;
@@ -1636,23 +1674,49 @@ export default function GroupView() {
               <DialogTitle className="text-green-700">الأعضاء الذين قرأوا هذا الأسبوع ({leaderReport?.activeMembers?.length || 0})</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              {(leaderReport?.activeMembers || []).map((m: any) => (
-                <div key={m.userName} className="border rounded-lg p-3">
-                  <p className="font-bold text-foreground mb-2">{m.userName}</p>
-                  <div className="space-y-2">
-                    {m.chapters.map((ch: any, i: number) => (
-                      <div key={i} className="bg-muted/40 rounded p-2 text-xs space-y-1">
-                        <p className="font-semibold text-sm">{ch.bookName} — إصحاح {ch.chapter}</p>
-                        <div className="grid grid-cols-3 gap-1 text-muted-foreground">
-                          <span>⏱ {Math.round((ch.timeSpent || 0) / 60)} د {(ch.timeSpent || 0) % 60} ث</span>
-                          <span>📜 سكرول: {ch.scrollCount || 0}</span>
-                          <span>📊 عمق: {ch.scrollDepth || 0}%</span>
-                        </div>
+              {(leaderReport?.activeMembers || []).map((m: any) => {
+                const totalTime = (m.chapters || []).reduce((s: number, c: any) => s + (c.timeSpent || 0), 0);
+                const avgDepth = m.chapters?.length ? Math.round((m.chapters || []).reduce((s: number, c: any) => s + (c.scrollDepth || 0), 0) / m.chapters.length) : 0;
+                const genuineCount = (m.chapters || []).filter((c: any) => (c.scrollDepth || 0) >= 80 && (c.timeSpent || 0) >= 60).length;
+                const fastCount = (m.chapters || []).filter((c: any) => (c.timeSpent || 0) < 30).length;
+                return (
+                  <div key={m.userName} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-bold text-foreground">{m.userName}</p>
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">{m.chapters?.length || 0} إصحاح</span>
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">⏱ {Math.floor(totalTime / 60)} د</span>
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">📊 {avgDepth}%</span>
                       </div>
-                    ))}
+                    </div>
+                    {genuineCount > 0 && <p className="text-xs text-green-600 mb-2">✓ {genuineCount} قراءة متأنية</p>}
+                    {fastCount > 0 && <p className="text-xs text-orange-500 mb-2">⚡ {fastCount} قراءة سريعة جداً</p>}
+                    <div className="space-y-1.5">
+                      {(m.chapters || []).map((ch: any, i: number) => {
+                        const isGenuine = (ch.scrollDepth || 0) >= 80 && (ch.timeSpent || 0) >= 60;
+                        const isFast = (ch.timeSpent || 0) < 30;
+                        const qualityColor = isGenuine ? 'bg-green-50 dark:bg-green-950/30 border-green-200' : isFast ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200' : 'bg-blue-50 dark:bg-blue-950/30 border-blue-200';
+                        const qualityLabel = isGenuine ? '✓ متأنٍ' : isFast ? '⚡ سريع' : '● عادي';
+                        const qualityTextColor = isGenuine ? 'text-green-700' : isFast ? 'text-orange-600' : 'text-blue-700';
+                        return (
+                          <div key={i} className={`rounded p-2 text-xs border ${qualityColor}`}>
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold">{ch.bookName} إصحاح {ch.chapter}</p>
+                              <span className={`font-bold text-xs ${qualityTextColor}`}>{qualityLabel}</span>
+                            </div>
+                            <div className="flex gap-3 mt-1 text-muted-foreground">
+                              <span>⏱ {Math.round((ch.timeSpent || 0) / 60)} د {(ch.timeSpent || 0) % 60} ث</span>
+                              <span>📜 {ch.scrollCount || 0} تمرير</span>
+                              <span>📊 {ch.scrollDepth || 0}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {(!m.chapters?.length) && <p className="text-xs text-muted-foreground">لا توجد تفاصيل متاحة</p>}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {(!leaderReport?.activeMembers?.length) && (
                 <p className="text-center text-muted-foreground py-4">لا يوجد أعضاء قرأوا هذا الأسبوع</p>
               )}

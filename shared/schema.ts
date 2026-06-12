@@ -640,6 +640,19 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 
+// Group-level push subscriptions for chat notifications
+export const groupPushSubscriptions = pgTable('group_push_subscriptions', {
+  id: serial('id').primaryKey(),
+  groupId: integer('group_id').notNull(),
+  groupCode: text('group_code').notNull(),
+  userName: text('user_name').notNull(),
+  memberKey: text('member_key').notNull(),
+  endpoint: text('endpoint').notNull(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // App-level key/value settings (e.g. last_daily_notif_date)
 export const appSettings = pgTable("app_settings", {
   key: text("key").primaryKey(),

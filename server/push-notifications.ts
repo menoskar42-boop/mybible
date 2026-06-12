@@ -168,6 +168,25 @@ export async function sendTestNotification(): Promise<{ sent: number; total: num
   return { sent, total: subscriptions.length };
 }
 
+// ── Group chat notification ────────────────────────────────────────────────────
+export async function sendGroupChatNotification(
+  groupCode: string,
+  groupName: string,
+  senderName: string,
+  messagePreview: string,
+  subscriptions: { endpoint: string; p256dh: string; auth: string }[],
+): Promise<void> {
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  if (!publicKey || subscriptions.length === 0) return;
+  const body = messagePreview.length > 80 ? messagePreview.slice(0, 77) + '…' : messagePreview;
+  const payload = JSON.stringify({
+    title: `💬 ${groupName}`,
+    body: `${senderName}: ${body}`,
+    url: `/group/${groupCode}`,
+  });
+  await Promise.all(subscriptions.map(sub => sendOne(sub, payload)));
+}
+
 // ── Scheduling ────────────────────────────────────────────────────────────────
 export function scheduleDailyNotification() {
   const publicKey = process.env.VAPID_PUBLIC_KEY;

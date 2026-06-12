@@ -172,6 +172,20 @@ app.use((req, res, next) => {
       pgPool.query(`ALTER TABLE reading_groups ADD COLUMN IF NOT EXISTS auto_reading_config jsonb DEFAULT NULL`)
         .catch(e => console.warn('[migration] auto_reading_config:', e.message));
 
+      pgPool.query(`CREATE TABLE IF NOT EXISTS group_push_subscriptions (
+        id serial primary key,
+        group_id integer not null,
+        group_code text not null,
+        user_name text not null,
+        member_key text not null,
+        endpoint text not null,
+        p256dh text not null,
+        auth text not null,
+        created_at timestamp default now(),
+        updated_at timestamp default now(),
+        UNIQUE(endpoint)
+      )`).catch(e => console.warn('[migration] group_push_subscriptions:', e.message));
+
       // Run database seeding in the background after server starts
       console.log('[startup] Starting background database seed...');
       autoSeedIfNeeded()
