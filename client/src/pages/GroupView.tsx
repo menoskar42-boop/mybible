@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw, Play } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { OT_BOOKS, NT_BOOKS, OT_FLAT, NT_FLAT, getAutoReadingForDate, todayStr, findFlatIndex, type AutoReadingConfig } from '@/lib/group-auto-reading';
+import { OT_BOOKS, NT_BOOKS, OT_FLAT, NT_FLAT, getAutoReadingForDate, todayStr, findFlatIndex, DEUTEROCANONICAL_BOOKS, type AutoReadingConfig } from '@/lib/group-auto-reading';
+import { apocryphaBooks } from '@/lib/apocrypha-content';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,9 +111,13 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     containerRef.current?.scrollTo(0, 0);
   };
 
+  // الأسفار القانونية الثانية محتواها مخزّن محلياً (apocrypha-content) وليس في الـ API
+  const isDeutero = DEUTEROCANONICAL_BOOKS.has(bookName);
+  const apocryphaBook = isDeutero ? apocryphaBooks.find(b => b.name === bookName) : undefined;
+
   // Build nav chapters list
   const bookData = allBooks?.find((b: any) => b.name === bookName);
-  const totalChapters = bookData?.chaptersCount || 0;
+  const totalChapters = bookData?.chaptersCount || apocryphaBook?.chaptersCount || 0;
   const navChapters = (chapters && chapters.length > 0) ? chapters
     : totalChapters > 0 ? Array.from({ length: totalChapters }, (_, i) => i + 1) : [];
   const currentIdx = navChapters.indexOf(currentChapter);
@@ -122,6 +127,13 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   useEffect(() => {
     const loadVerses = async () => {
       try {
+        // الأسفار القانونية الثانية — تُحمّل من المحتوى المحلي
+        if (isDeutero) {
+          const ch = apocryphaBook?.chapters.find(c => c.chapter === currentChapter);
+          setVerses((ch?.verses || []).map(v => ({ id: `${bookName}-${currentChapter}-${v.verse}`, verse: v.verse, text: v.text })));
+          setLoading(false);
+          return;
+        }
         if (!allBooks) return;
         const book = allBooks.find((b: any) => b.name === bookName);
         if (!book) { setLoading(false); return; }
