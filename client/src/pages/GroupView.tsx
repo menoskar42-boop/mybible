@@ -112,7 +112,8 @@ function InlineChapterReader({ bookName: initialBookName, chapter: initialChapte
     setScrollDepth(0);
     startTimeRef.current = Date.now();
     lastScrollTop.current = 0;
-    window.scrollTo({ top: (containerRef.current?.offsetTop ?? 0) - 16, behavior: 'smooth' });
+    // Scroll to top of page so chapter starts from the beginning
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // الأسفار القانونية الثانية محتواها مخزّن محلياً (apocrypha-content) وليس في الـ API

@@ -392,7 +392,7 @@ export default function GroupChat() {
       )}
 
       {/* Messages area */}
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex-1 min-h-0 overflow-hidden">
       {/* Scroll-to-bottom floating button */}
       <AnimatePresence>
         {!isAtBottom && (
@@ -413,7 +413,7 @@ export default function GroupChat() {
           </motion.button>
         )}
       </AnimatePresence>
-      <div ref={scrollAreaRef} className="h-full overflow-y-auto px-3 py-2 space-y-1" style={{ overscrollBehavior: 'contain' }} onClick={() => setReactionPickerMsgId(null)}>
+      <div ref={scrollAreaRef} className="absolute inset-0 overflow-y-auto px-3 py-2 space-y-1" style={{ overscrollBehavior: 'contain' }} onClick={() => setReactionPickerMsgId(null)}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-muted-foreground">لا توجد رسائل. ابدأ المحادثة!</p>
