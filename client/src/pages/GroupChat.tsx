@@ -10,6 +10,8 @@ import { SEOHead } from '@/components/SEOHead';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+interface MessageReaction { emoji: string; users: string[]; }
+
 interface Message {
   id: number;
   userName: string;
@@ -18,6 +20,7 @@ interface Message {
   replyToId?: number | null;
   replyToText?: string | null;
   replyToUserName?: string | null;
+  reactions?: MessageReaction[];
   isPinned: boolean;
   createdAt: string;
 }
@@ -96,6 +99,8 @@ export default function GroupChat() {
   const [swipedId, setSwipedId] = useState<number | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [newMsgCount, setNewMsgCount] = useState(0);
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState<number | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const firstUnreadRef = useRef<HTMLDivElement>(null);
@@ -240,6 +245,17 @@ export default function GroupChat() {
     } finally { setSending(false); }
   };
 
+  const sendReaction = async (messageId: number, emoji: string) => {
+    setReactionPickerMsgId(null);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/messages/${messageId}/react`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emoji, userName }),
+      });
+      if (res.ok) fetchMessages();
+    } catch {}
+  };
+
   const pinMessage = async (messageId: number) => {
     try {
       await fetch(`/api/groups/${groupCode}/messages/${messageId}/pin`, {
@@ -362,7 +378,7 @@ export default function GroupChat() {
           </motion.button>
         )}
       </AnimatePresence>
-      <div ref={scrollAreaRef} className="h-full overflow-y-auto px-3 py-2 space-y-1" style={{ overscrollBehavior: 'contain' }}>
+      <div ref={scrollAreaRef} className="h-full overflow-y-auto px-3 py-2 space-y-1" style={{ overscrollBehavior: 'contain' }} onClick={() => setReactionPickerMsgId(null)}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm text-muted-foreground">لا توجد رسائل. ابدأ المحادثة!</p>
@@ -416,11 +432,17 @@ export default function GroupChat() {
                             <span className="text-xs font-semibold text-primary px-1 mb-0.5">{m.userName}</span>
                           )}
 
-                          <div className={`rounded-2xl px-3 py-2 shadow-sm ${
-                            isMe
-                              ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                              : 'bg-muted dark:bg-muted/80 text-foreground rounded-tl-sm'
-                          } ${m.isPinned ? 'ring-2 ring-amber-400' : ''}`}>
+                          <div
+                            className={`rounded-2xl px-3 py-2 shadow-sm ${
+                              isMe
+                                ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                                : 'bg-muted dark:bg-muted/80 text-foreground rounded-tl-sm'
+                            } ${m.isPinned ? 'ring-2 ring-amber-400' : ''}`}
+                            onContextMenu={e => { e.preventDefault(); setReactionPickerMsgId(m.id); }}
+                            onTouchStart={() => { longPressTimerRef.current = setTimeout(() => setReactionPickerMsgId(m.id), 600); }}
+                            onTouchEnd={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
+                            onTouchMove={() => { if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current); }}
+                          >
 
                             {/* Reply quote */}
                             {m.replyToId && (
@@ -467,6 +489,53 @@ export default function GroupChat() {
                               )}
                             </div>
                           </div>
+
+                          {/* Reactions display */}
+                          {m.reactions && m.reactions.length > 0 && (
+                            <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                              {m.reactions.map(r => (
+                                <button
+                                  key={r.emoji}
+                                  onClick={() => sendReaction(m.id, r.emoji)}
+                                  className={`flex items-center gap-0.5 text-xs rounded-full px-1.5 py-0.5 border transition-colors ${
+                                    r.users.includes(userName)
+                                      ? 'bg-primary/10 border-primary/30 text-primary'
+                                      : 'bg-background border-border text-foreground hover:bg-muted'
+                                  }`}
+                                >
+                                  <span>{r.emoji}</span>
+                                  <span className="text-[10px] font-semibold">{r.users.length}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Reaction picker popup */}
+                          <AnimatePresence>
+                            {reactionPickerMsgId === m.id && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.8, y: 4 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className={`flex gap-1 p-1.5 bg-background border rounded-2xl shadow-xl z-30 ${isMe ? 'self-end' : 'self-start'}`}
+                                style={{ position: 'relative' }}
+                              >
+                                {['❤️','👍','🙏','😂','😢','🔥'].map(e => (
+                                  <button
+                                    key={e}
+                                    className="text-xl hover:scale-125 active:scale-125 transition-transform"
+                                    onClick={() => sendReaction(m.id, e)}
+                                  >
+                                    {e}
+                                  </button>
+                                ))}
+                                <button
+                                  className="text-[10px] text-muted-foreground px-1 self-center"
+                                  onClick={() => setReactionPickerMsgId(null)}
+                                >✕</button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
 
                         {/* Reply button (for my messages) */}

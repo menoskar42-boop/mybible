@@ -710,28 +710,46 @@ export function registerGroupRoutes(app: Express) {
         ...(replyToId ? { replyToId, replyToText: replyToText || null, replyToUserName: replyToUserName || null } : {}),
       }).returning();
 
-      // إشعار للأعضاء عند رسالة الأدمن
-      const isAdminSender = memberKey ? await isAdminByLeaderKey(group, memberKey) : false;
-      if (isAdminSender && memberKey) {
+      res.json({ message: msg });
+
+      // إشعارات push — تعمل في الخلفية بعد الرد
+      setImmediate(async () => {
         try {
-          const subsResult = await pool.query(
-            `SELECT endpoint, p256dh, auth FROM group_push_subscriptions WHERE group_id = $1 AND member_key != $2`,
-            [group.id, memberKey]
-          );
-          if (subsResult.rows.length > 0) {
-            const { sendGroupChatNotification } = await import('./push-notifications');
-            sendGroupChatNotification(
-              group.groupCode,
-              group.name,
-              userName,
-              message,
-              subsResult.rows
-            ).catch(() => {});
+          const { sendGroupChatNotification } = await import('./push-notifications');
+          const isAdminSender = memberKey ? await isAdminByLeaderKey(group, memberKey) : false;
+          const msgText = imageUrl ? '📷 صورة' : (message || '');
+
+          // إشعار لكل الأعضاء عند رسالة الأدمن
+          if (isAdminSender && memberKey) {
+            const subsResult = await pool.query(
+              `SELECT endpoint, p256dh, auth FROM group_push_subscriptions WHERE group_id = $1 AND member_key != $2`,
+              [group.id, memberKey]
+            );
+            if (subsResult.rows.length > 0) {
+              sendGroupChatNotification(group.groupCode, group.name, userName, msgText, subsResult.rows).catch(() => {});
+            }
+          }
+
+          // إشعار للأعضاء المذكورين بـ @
+          if (message) {
+            const mentionMatches = message.match(/@([؀-ۿa-zA-Z0-9_ ]+)/g) || [];
+            for (const mention of mentionMatches) {
+              const mentionedName = mention.slice(1).trim();
+              const mentionSub = await pool.query(
+                `SELECT endpoint, p256dh, auth FROM group_push_subscriptions WHERE group_id = $1 AND user_name = $2 LIMIT 1`,
+                [group.id, mentionedName]
+              );
+              if (mentionSub.rows.length > 0) {
+                sendGroupChatNotification(
+                  group.groupCode, group.name, userName,
+                  `${userName} ذكرك: ${msgText}`,
+                  mentionSub.rows
+                ).catch(() => {});
+              }
+            }
           }
         } catch {}
-      }
-
-      res.json({ message: msg });
+      });
     } catch (err) {
       console.error('[groups] send message error:', err);
       res.status(500).json({ error: 'فشل إرسال الرسالة' });
@@ -777,6 +795,40 @@ export function registerGroupRoutes(app: Express) {
     } catch (err) {
       console.error('[groups] delete message error:', err);
       res.status(500).json({ error: 'فشل حذف الرسالة' });
+    }
+  });
+
+  app.put('/api/groups/:code/messages/:messageId/react', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const { emoji, userName } = req.body;
+      if (!emoji || !userName) return res.status(400).json({ error: 'emoji و userName مطلوبان' });
+
+      const msgId = parseInt(req.params.messageId);
+      const [msg] = await db.select().from(groupMessages).where(eq(groupMessages.id, msgId));
+      if (!msg) return res.status(404).json({ error: 'الرسالة غير موجودة' });
+
+      const reactions: { emoji: string; users: string[] }[] = (msg as any).reactions || [];
+      const idx = reactions.findIndex((r: any) => r.emoji === emoji);
+      if (idx >= 0) {
+        const userIdx = reactions[idx].users.indexOf(userName);
+        if (userIdx >= 0) {
+          reactions[idx].users.splice(userIdx, 1);
+          if (reactions[idx].users.length === 0) reactions.splice(idx, 1);
+        } else {
+          reactions[idx].users.push(userName);
+        }
+      } else {
+        reactions.push({ emoji, users: [userName] });
+      }
+
+      await pool.query('UPDATE group_messages SET reactions = $1 WHERE id = $2', [JSON.stringify(reactions), msgId]);
+      res.json({ success: true, reactions });
+    } catch (err) {
+      console.error('[groups] react error:', err);
+      res.status(500).json({ error: 'فشل التفاعل' });
     }
   });
 

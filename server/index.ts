@@ -180,6 +180,8 @@ app.use((req, res, next) => {
         .catch(e => console.warn('[migration] group_messages.reply_to_text:', e.message));
       pgPool.query(`ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS reply_to_user_name text`)
         .catch(e => console.warn('[migration] group_messages.reply_to_user_name:', e.message));
+      pgPool.query(`ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS reactions jsonb DEFAULT '[]'::jsonb`)
+        .catch(e => console.warn('[migration] group_messages.reactions:', e.message));
 
       pgPool.query(`CREATE TABLE IF NOT EXISTS group_push_subscriptions (
         id serial primary key,
