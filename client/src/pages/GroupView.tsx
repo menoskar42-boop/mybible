@@ -1949,10 +1949,6 @@ export default function GroupView() {
               <DialogTitle>إدارة المجموعة</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label>إجمالي تحدي القراءة (عدد الإصحاحات)</Label>
-                <Input type="number" min="0" value={challengeTotal} onChange={e => setChallengeTotal(e.target.value)} data-testid="input-challenge-total" />
-              </div>
               <Button onClick={updateToday} className="w-full" data-testid="button-save-admin">حفظ التغييرات</Button>
 
               {/* ── القراءات التلقائية ───────────────────────────────────── */}
