@@ -1502,6 +1502,19 @@ export default function GroupView() {
           </div>
         </div>
 
+        {userName && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-gradient-to-l from-green-50 to-transparent dark:from-green-900/20 border border-green-200 dark:border-green-800/40">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              {userName[0]}
+            </div>
+            <p className="text-sm text-foreground">
+              <span className="text-muted-foreground">أهلاً</span>{' '}
+              <span className="font-bold text-green-700 dark:text-green-400">{userName}</span>
+              {isAdminFinal && <span className="text-xs text-muted-foreground"> — أنت أدمن هذه المجموعة</span>}
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-6">
           <Badge variant="secondary">كود: {groupCode}</Badge>
           <Badge variant="outline">الأدمن: {group.leaderName}</Badge>
