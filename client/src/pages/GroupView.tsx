@@ -144,7 +144,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     };
     el.addEventListener('scroll', handleScroll, { passive: true });
     return () => el.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [loading]);
 
   const condTime = elapsed >= MIN_SECONDS;
   const condScrolls = scrollCount >= MIN_SCROLLS;
