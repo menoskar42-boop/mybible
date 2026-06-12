@@ -1646,7 +1646,8 @@ export default function GroupView() {
   }
 
   const { group, members, stats } = data;
-  const isMember = members.some((m: any) =>
+  // الضيف يُعتبر عضو مباشرة (حتى لو في تأخير DB بعد أول دخول)
+  const isMember = (isGuest && !!memberKey) || members.some((m: any) =>
     (m.userName === userName && m.memberKey === memberKey) ||
     (m.userName === userName && m.isAdmin === true && !memberKey)
   );
