@@ -648,6 +648,42 @@ export function registerGroupRoutes(app: Express) {
       console.error('[groups] messages error:', err);
       res.status(500).json({ error: 'فشل تحميل الرسائل' });
     }
+
+  // ── ملخص الشات (عداد غير مقروء + آخر رسالة) ──────────────────────────────
+  }); app.get('/api/groups/:code/messages/summary', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ unreadCount: 0, lastMessage: null });
+
+      const afterId = parseInt(req.query.afterId as string || '0') || 0;
+
+      // آخر رسالة للمعاينة
+      const [last] = await db.select().from(groupMessages)
+        .where(eq(groupMessages.groupId, group.id))
+        .orderBy(desc(groupMessages.createdAt))
+        .limit(1);
+
+      // عدد الرسائل الجديدة بعد آخر مقروء
+      let unreadCount = 0;
+      if (afterId > 0) {
+        const result = await pool.query(
+          `SELECT COUNT(*) FROM group_messages WHERE group_id = $1 AND id > $2`,
+          [group.id, afterId]
+        );
+        unreadCount = parseInt(result.rows[0].count) || 0;
+      }
+
+      res.json({
+        unreadCount,
+        lastMessage: last ? (last.imageUrl ? '📷 صورة' : last.message?.slice(0, 60) || '') : null,
+        lastSenderName: last?.userName || null,
+        lastTime: last?.createdAt || null,
+        lastMessageId: last?.id || 0,
+      });
+    } catch (err) {
+      console.error('[groups] messages summary error:', err);
+      res.status(500).json({ unreadCount: 0, lastMessage: null });
+    }
   });
 
   app.post('/api/groups/:code/messages', async (req, res) => {

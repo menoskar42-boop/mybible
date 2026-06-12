@@ -954,6 +954,8 @@ export default function GroupView() {
   const [linkModeLoading, setLinkModeLoading] = useState(false);
   const [reportActiveOpen, setReportActiveOpen] = useState(false);
   const [reportInactiveOpen, setReportInactiveOpen] = useState(false);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [chatLastMsg, setChatLastMsg] = useState<{ senderName: string; text: string } | null>(null);
 
   const [missionTitle, setMissionTitle] = useState('');
   const [missionBook, setMissionBook] = useState('');
@@ -1012,6 +1014,19 @@ export default function GroupView() {
   }, [groupCode]);
 
   useEffect(() => { fetchGroup(); }, [fetchGroup]);
+
+  // جلب ملخص الشات لعرض عداد الرسائل الجديدة
+  useEffect(() => {
+    if (!groupCode) return;
+    const afterId = (() => { try { return parseInt(localStorage.getItem(`chat_lastread_${groupCode}`) || '0') || 0; } catch { return 0; } })();
+    fetch(`/api/groups/${groupCode}/messages/summary?afterId=${afterId}`)
+      .then(r => r.json())
+      .then(d => {
+        setChatUnreadCount(d.unreadCount || 0);
+        if (d.lastMessage && d.lastSenderName) setChatLastMsg({ senderName: d.lastSenderName, text: d.lastMessage });
+      })
+      .catch(() => {});
+  }, [groupCode]);
 
   // اشتراك تلقائي في إشعارات الجروب
   useEffect(() => {
@@ -1655,12 +1670,25 @@ export default function GroupView() {
 
           <Link href={`/group/${groupCode}/chat`}>
             <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer h-full" data-testid="card-chat">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-2">
                 <MessageCircle className="w-5 h-5 text-purple-500" />
                 <h3 className="font-display font-bold text-foreground">شات المجموعة</h3>
+                {chatUnreadCount > 0 && (
+                  <Badge className="bg-green-500 text-white text-xs min-w-[20px] text-center mr-auto">
+                    {chatUnreadCount}
+                  </Badge>
+                )}
               </div>
-              <p className="text-sm text-muted-foreground">تواصل مع أعضاء المجموعة وشارك آيات</p>
-              <Button variant="outline" size="sm" className="mt-3 w-full">فتح الشات</Button>
+              {chatLastMsg ? (
+                <p className="text-xs text-muted-foreground truncate">
+                  <span className="font-semibold text-primary">{chatLastMsg.senderName}:</span> {chatLastMsg.text}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">تواصل مع أعضاء المجموعة</p>
+              )}
+              <Button variant="outline" size="sm" className={`mt-3 w-full ${chatUnreadCount > 0 ? 'border-green-400 text-green-700' : ''}`}>
+                {chatUnreadCount > 0 ? `📨 ${chatUnreadCount} رسالة جديدة` : 'فتح الشات'}
+              </Button>
             </Card>
           </Link>
         </div>
