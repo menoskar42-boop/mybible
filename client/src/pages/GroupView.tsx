@@ -2291,8 +2291,8 @@ export default function GroupView() {
                       <Label className="font-bold text-sm">الدخول الضيف</Label>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {guestAccessEnabled
-                          ? 'أي شخص يفتح رابط الجروب يدخل تلقائياً كـ عضو 1، عضو 2... بدون تسجيل'
-                          : 'الدخول يتطلب الاسم ورقم الموبايل كالمعتاد'}
+                          ? '✅ مفعّل — أي شخص يفتح الرابط يدخل تلقائياً بدون اسم أو موبايل'
+                          : '🔒 مطفي — الدخول يتطلب الاسم ورقم الموبايل'}
                       </p>
                     </div>
                     <Switch
