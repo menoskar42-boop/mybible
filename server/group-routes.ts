@@ -47,6 +47,7 @@ export function registerGroupRoutes(app: Express) {
         churchName: readingGroups.churchName,
         leaderName: readingGroups.leaderName,
         linkJoinMode: readingGroups.linkJoinMode,
+        guestAccessEnabled: readingGroups.guestAccessEnabled,
       }).from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
 
       if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });

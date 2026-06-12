@@ -18,7 +18,7 @@ export default function GroupInvite() {
   const [, navigate] = useLocation();
   const user = getMinistryUser();
 
-  const [groupInfo, setGroupInfo] = useState<{ name: string; churchName?: string; leaderName: string; linkJoinMode: string } | null>(null);
+  const [groupInfo, setGroupInfo] = useState<{ name: string; churchName?: string; leaderName: string; linkJoinMode: string; guestAccessEnabled?: boolean } | null>(null);
   const [infoLoading, setInfoLoading] = useState(true);
   const [infoError, setInfoError] = useState('');
 
@@ -41,15 +41,33 @@ export default function GroupInvite() {
           return;
         }
       }
-    } catch {
-      // بيانات تالفة — اتجاهل وأظهر الفورم
-    }
+    } catch {}
 
     fetch(`/api/groups/${groupCode}/invite-info`)
       .then(r => r.json())
       .then(data => {
-        if (data.group) setGroupInfo(data.group);
-        else setInfoError('المجموعة غير موجودة أو الرابط غير صحيح');
+        if (!data.group) { setInfoError('المجموعة غير موجودة أو الرابط غير صحيح'); return; }
+        setGroupInfo(data.group);
+        // لو الدخول الضيف مفعّل → ادخل تلقائياً بدون فورم
+        if (data.group.guestAccessEnabled) {
+          fetch(`/api/groups/${groupCode}/guest-join`, { method: 'POST', credentials: 'include' })
+            .then(r => r.json())
+            .then(d => {
+              if (d.userName && d.memberKey) {
+                localStorage.setItem(`group_${groupCode}`, JSON.stringify({
+                  userName: d.userName, memberKey: d.memberKey, isLeader: false, isGuest: true,
+                }));
+                addUserGroup({
+                  groupId: groupCode, groupName: data.group.name,
+                  churchName: data.group.churchName || '', role: 'member',
+                  userName: d.userName, memberKey: d.memberKey,
+                });
+                navigate(`/group/${groupCode}`, { replace: true });
+              }
+            })
+            .catch(() => setInfoLoading(false));
+          return; // ابقَ في حالة loading حتى يكتمل الدخول
+        }
       })
       .catch(() => setInfoError('فشل تحميل بيانات المجموعة'))
       .finally(() => setInfoLoading(false));
