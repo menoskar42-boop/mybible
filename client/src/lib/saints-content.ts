@@ -3,6 +3,20 @@
 // ملك عام (Public Domain) — مصدره السنكسار المكتوب في القرن الثالث عشر الميلادي
 // وُثِّقت هذه السير بالعربية في مؤلفات متعددة منذ القرن الثالث الميلادي
 
+import { tutRemainingSaints } from './saints-tut';
+import { babaSaints } from './saints-baba';
+import { hatorSaints } from './saints-hator';
+import { kiahkSaints } from './saints-kiahk';
+import { tobaSaints } from './saints-toba';
+import { amshirSaints } from './saints-amshir';
+import { baramhatSaints } from './saints-baramhat';
+import { baramoudaSaints } from './saints-baramouda';
+import { bashansSaints } from './saints-bashans';
+import { baoonaSaints } from './saints-baoona';
+import { abibSaints } from './saints-abib';
+import { mesraSaints } from './saints-mesra';
+import { nasieSaints } from './saints-nasie';
+
 export interface SaintSection {
   id: string;
   title: string;
@@ -978,6 +992,19 @@ export const saintsData: Saint[] = [
   philipDeacon,
   irenaMartyr,
   johnTheologian,
+  ...tutRemainingSaints,
+  ...babaSaints,
+  ...hatorSaints,
+  ...kiahkSaints,
+  ...tobaSaints,
+  ...amshirSaints,
+  ...baramhatSaints,
+  ...baramoudaSaints,
+  ...bashansSaints,
+  ...baoonaSaints,
+  ...abibSaints,
+  ...mesraSaints,
+  ...nasieSaints,
 ];
 
-export const saintCategories = ['الكل', 'رسل', 'شهداء', 'شهيدات', 'رهبان', 'توّابون'];
+export const saintCategories = ['الكل', 'رسل وأنبياء', 'شهداء', 'شهيدات', 'رهبان وآباء', 'أعياد وذكريات'];
