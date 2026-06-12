@@ -199,6 +199,13 @@ app.use((req, res, next) => {
         UNIQUE(group_id, endpoint)
       )`).catch(e => console.warn('[migration] group_push_subscriptions:', e.message));
 
+      // ترقية constraint من UNIQUE(endpoint) إلى UNIQUE(group_id, endpoint)
+      // على القواعد القديمة التي أُنشئت قبل هذا التعديل
+      pgPool.query(`
+        ALTER TABLE group_push_subscriptions DROP CONSTRAINT IF EXISTS group_push_subscriptions_endpoint_key;
+        CREATE UNIQUE INDEX IF NOT EXISTS gps_group_endpoint_idx ON group_push_subscriptions(group_id, endpoint)
+      `).catch(e => console.warn('[migration] gps constraint upgrade:', e.message));
+
       pgPool.query(`CREATE TABLE IF NOT EXISTS app_settings (
         key text primary key,
         value text not null,
