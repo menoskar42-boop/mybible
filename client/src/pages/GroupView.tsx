@@ -290,7 +290,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
         )}
         <Button onClick={handleFinishReading} disabled={completing} className="h-14 text-lg font-bold" size="lg" data-testid="button-finish-reading">
           {completing ? <Loader2 className="w-5 h-5 animate-spin ml-2" /> : <Check className="w-5 h-5 ml-2" />}
-          {hasNext ? '✅ اكتملت القراءة — التالي ←' : '✅ الانتهاء من القراءة'}
+          {hasNext ? '✅ اكتملت القراءة — التالي ←' : '✅ اكتملت القراءة'}
         </Button>
       </div>
 
