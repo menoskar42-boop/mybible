@@ -296,7 +296,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
 
       {/* Dialog التفسير */}
       <Dialog open={tafsirOpen} onOpenChange={setTafsirOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-right">{tafsirTitle}</DialogTitle>
           </DialogHeader>
@@ -738,7 +738,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
       </Dialog>
 
       <Dialog open={reportOpen} onOpenChange={(o) => { setReportOpen(o); if (!o) setReportAssignmentId(null); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-indigo-500" />
@@ -1669,14 +1669,6 @@ export default function GroupView() {
           </Card>
         )}
 
-        {isAdminFinal && !mission && (
-          <Card className="p-5 mb-6 border-dashed border-2 border-amber-300 dark:border-amber-700 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setMissionOpen(true)} data-testid="card-create-mission">
-            <div className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400">
-              <Target className="w-5 h-5" />
-              <span className="font-bold">إنشاء مهمة قراءة أسبوعية</span>
-            </div>
-          </Card>
-        )}
 
         {leaderboard.length > 0 && (
           <Card className="p-5 mb-6" data-testid="card-leaderboard">
@@ -1827,7 +1819,7 @@ export default function GroupView() {
 
         {/* ── تقرير: الأعضاء الذين قرأوا ── */}
         <Dialog open={reportActiveOpen} onOpenChange={setReportActiveOpen}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-green-700">الأعضاء الذين قرأوا هذا الأسبوع ({leaderReport?.activeMembers?.length || 0})</DialogTitle>
             </DialogHeader>
@@ -1884,7 +1876,7 @@ export default function GroupView() {
 
         {/* ── تقرير: الأعضاء الذين لم يقرأوا ── */}
         <Dialog open={reportInactiveOpen} onOpenChange={setReportInactiveOpen}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-amber-700">لم يقرأوا منذ 3+ أيام ({leaderReport?.inactiveMembers?.length || 0})</DialogTitle>
             </DialogHeader>
@@ -1903,7 +1895,7 @@ export default function GroupView() {
         </Dialog>
 
         <Dialog open={adminOpen} onOpenChange={setAdminOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>إدارة المجموعة</DialogTitle>
             </DialogHeader>
