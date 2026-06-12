@@ -250,6 +250,7 @@ export const readingGroups = pgTable("reading_groups", {
     otStartIndex: number;  // index in flat OT chapter list
     ntStartIndex: number;  // index in flat NT chapter list
   } | null>().default(null),
+  guestAccessEnabled: boolean("guest_access_enabled").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -263,6 +264,19 @@ export const groupMembers = pgTable("group_members", {
   isMuted: boolean("is_muted").default(false),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
+
+export const groupGuestTokens = pgTable("group_guest_tokens", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull(),
+  groupId: integer("group_id").notNull(),
+  groupCode: text("group_code").notNull(),
+  memberNumber: integer("member_number").notNull(),
+  memberKey: text("member_key").notNull(),
+  phone: text("phone"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  tokenGroupIdx: uniqueIndex("ggt_token_group_idx").on(table.token, table.groupCode),
+}));
 
 export const groupReadingLogs = pgTable("group_reading_logs", {
   id: serial("id").primaryKey(),

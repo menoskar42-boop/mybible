@@ -5,8 +5,9 @@ import pg from "pg";
 import {
   readingGroups, groupMembers, groupReadingLogs, groupMessages, groupMissions,
   challengeParticipants, churchChallenges,
-  groupAssignments, assignmentReadings, groupJoinRequests,
+  groupAssignments, assignmentReadings, groupJoinRequests, groupGuestTokens,
 } from "@shared/schema";
+import crypto from "crypto";
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool);
@@ -155,6 +156,118 @@ export function registerGroupRoutes(app: Express) {
       res.json({ success: true, mode });
     } catch (err) {
       console.error('[groups] messaging-mode error:', err);
+      res.status(500).json({ error: 'فشل تحديث الإعداد' });
+    }
+  });
+
+  // ── الدخول الضيف (تلقائي بدون بيانات) ──────────────────────────────────
+  app.post('/api/groups/:code/guest-join', async (req, res) => {
+    try {
+      const code = req.params.code.toUpperCase();
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, code));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+      if (!group.guestAccessEnabled) return res.status(403).json({ error: 'الدخول الضيف غير مفعّل' });
+
+      // قراءة الـ cookie لمعرفة إذا كان هذا الجهاز له token سابق
+      const rawCookie = req.headers.cookie || '';
+      let guestTokens: Record<string, string> = {};
+      try {
+        const match = rawCookie.match(/mbg_guest=([^;]+)/);
+        if (match) guestTokens = JSON.parse(decodeURIComponent(match[1]));
+      } catch {}
+
+      const existingToken = guestTokens[code];
+
+      if (existingToken) {
+        // البحث عن التوكن في DB
+        const [existing] = await db.select().from(groupGuestTokens)
+          .where(and(eq(groupGuestTokens.token, existingToken), eq(groupGuestTokens.groupCode, code)));
+        if (existing) {
+          // تأكد أن المستخدم لا يزال عضوًا فعليًا في group_members
+          const [member] = await db.select().from(groupMembers)
+            .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, existing.memberKey)));
+          if (member) {
+            return res.json({ userName: member.userName, memberKey: existing.memberKey, memberNumber: existing.memberNumber, isGuest: true });
+          }
+        }
+      }
+
+      // إنشاء ضيف جديد — احسب رقم العضوية التالي
+      const guestsInGroup = await db.select().from(groupGuestTokens).where(eq(groupGuestTokens.groupCode, code));
+      const memberNumber = guestsInGroup.length + 1;
+      const userName = `عضو ${memberNumber}`;
+      const newToken = crypto.randomUUID();
+      const memberKey = 'g_' + crypto.randomBytes(8).toString('hex');
+
+      // أضف في group_members كعضو فعلي
+      await pool.query(
+        `INSERT INTO group_members (group_id, user_name, member_key, is_admin, is_muted) VALUES ($1, $2, $3, false, false)`,
+        [group.id, userName, memberKey]
+      );
+
+      // احفظ التوكن
+      await db.insert(groupGuestTokens).values({
+        token: newToken,
+        groupId: group.id,
+        groupCode: code,
+        memberNumber,
+        memberKey,
+      });
+
+      // اضبط الـ cookie (سنة كاملة)
+      const newTokens = { ...guestTokens, [code]: newToken };
+      res.setHeader('Set-Cookie', `mbg_guest=${encodeURIComponent(JSON.stringify(newTokens))}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax`);
+      res.json({ userName, memberKey, memberNumber, isGuest: true });
+    } catch (err) {
+      console.error('[groups] guest-join error:', err);
+      res.status(500).json({ error: 'فشل الدخول الضيف' });
+    }
+  });
+
+  // ── تسجيل اسم وتليفون لضيف موجود ──────────────────────────────────────
+  app.post('/api/groups/:code/guest-register', async (req, res) => {
+    try {
+      const code = req.params.code.toUpperCase();
+      const { memberKey, userName: newName, phone } = req.body;
+      if (!memberKey || !newName?.trim()) return res.status(400).json({ error: 'بيانات ناقصة' });
+
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, code));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      // تحديث اسم العضو في group_members
+      await db.update(groupMembers)
+        .set({ userName: newName.trim(), ...(phone ? { phone: phone.trim() } : {}) })
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, memberKey)));
+
+      // تحديث التليفون في guest_tokens
+      if (phone) {
+        await db.update(groupGuestTokens)
+          .set({ phone: phone.trim() })
+          .where(and(eq(groupGuestTokens.groupCode, code), eq(groupGuestTokens.memberKey, memberKey)));
+      }
+
+      res.json({ success: true, userName: newName.trim() });
+    } catch (err) {
+      console.error('[groups] guest-register error:', err);
+      res.status(500).json({ error: 'فشل التسجيل' });
+    }
+  });
+
+  // ── تفعيل/إيقاف الدخول الضيف (أدمن فقط) ──────────────────────────────
+  app.put('/api/groups/:code/guest-access', async (req, res) => {
+    try {
+      const code = req.params.code.toUpperCase();
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, code));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const { leaderKey, enabled } = req.body;
+      const authorized = await isAdminByLeaderKey(group, leaderKey);
+      if (!authorized) return res.status(403).json({ error: 'غير مسموح' });
+
+      await db.update(readingGroups).set({ guestAccessEnabled: !!enabled } as any).where(eq(readingGroups.id, group.id));
+      res.json({ success: true, guestAccessEnabled: !!enabled });
+    } catch (err) {
+      console.error('[groups] guest-access error:', err);
       res.status(500).json({ error: 'فشل تحديث الإعداد' });
     }
   });

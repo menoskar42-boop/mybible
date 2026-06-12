@@ -1079,11 +1079,29 @@ export default function GroupView() {
   const [autoNtChapter, setAutoNtChapter] = useState(1);
   const [autoSaving, setAutoSaving] = useState(false);
 
+  // ── الدخول الضيف ──────────────────────────────────────────────────────────
+  const [guestJoining, setGuestJoining] = useState(false);
+  const [guestCreds, setGuestCreds] = useState<{ userName: string; memberKey: string } | null>(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(`group_${groupCode}`) || '{}');
+      return (s.isGuest && s.userName && s.memberKey) ? { userName: s.userName, memberKey: s.memberKey } : null;
+    } catch { return null; }
+  });
+  const [isGuest, setIsGuest] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`group_${groupCode}`) || '{}').isGuest === true; } catch { return false; }
+  });
+  const [guestRegisterOpen, setGuestRegisterOpen] = useState(false);
+  const [guestRegName, setGuestRegName] = useState('');
+  const [guestRegPhone, setGuestRegPhone] = useState('');
+  const [guestRegLoading, setGuestRegLoading] = useState(false);
+  const [guestAccessEnabled, setGuestAccessEnabled] = useState(false);
+  const [guestAccessLoading, setGuestAccessLoading] = useState(false);
+
   const stored = JSON.parse(localStorage.getItem(`group_${groupCode}`) || '{}');
   const userEntry = getUserGroupEntry(groupCode);
   const isAdmin = userEntry?.role === 'admin' || stored.isLeader || false;
-  const memberKey = userEntry?.memberKey || stored.memberKey || '';
-  const userName = userEntry?.userName || stored.userName || '';
+  const memberKey = userEntry?.memberKey || stored.memberKey || guestCreds?.memberKey || '';
+  const userName = userEntry?.userName || stored.userName || guestCreds?.userName || '';
 
   // Reactive admin state — starts from localStorage, updated when server confirms admin
   const [isAdminConfirmed, setIsAdminConfirmed] = useState(isAdmin);
@@ -1102,6 +1120,7 @@ export default function GroupView() {
       setChallengeTotal(d.group.challengeTotal?.toString() || '');
       setLinkJoinMode((d.group.linkJoinMode as 'approval' | 'auto') || 'approval');
       setMessagingMode((d.group.messagingMode as 'all' | 'admin_only') || 'all');
+      setGuestAccessEnabled(!!d.group.guestAccessEnabled);
       // تحميل إعداد القراءات التلقائية
       const arc = d.group.autoReadingConfig;
       if (arc) {
@@ -1159,6 +1178,89 @@ export default function GroupView() {
 
     subscribeToPush();
   }, [groupCode, memberKey, userName]);
+
+  // الدخول الضيف التلقائي — يُشغَّل عندما يكون الجروب يسمح بالضيوف والمستخدم بدون بيانات
+  useEffect(() => {
+    if (!data || userName || guestCreds || guestJoining) return;
+    if (!data.group?.guestAccessEnabled) return;
+    setGuestJoining(true);
+    fetch(`/api/groups/${groupCode}/guest-join`, { method: 'POST', credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.userName && d.memberKey) {
+          const creds = { userName: d.userName, memberKey: d.memberKey };
+          setGuestCreds(creds);
+          setIsGuest(true);
+          localStorage.setItem(`group_${groupCode}`, JSON.stringify({
+            userName: d.userName, memberKey: d.memberKey, isLeader: false, isGuest: true,
+          }));
+          addUserGroup({
+            groupId: groupCode,
+            groupName: (data as any).group?.name || '',
+            churchName: (data as any).group?.churchName || '',
+            role: 'member',
+            userName: d.userName,
+            memberKey: d.memberKey,
+          });
+          fetchGroup();
+        }
+      })
+      .catch(() => toast.error('فشل الدخول التلقائي'))
+      .finally(() => setGuestJoining(false));
+  }, [data, userName, guestCreds, guestJoining, groupCode]);
+
+  const handleGuestRegister = async () => {
+    if (!guestRegName.trim()) return;
+    setGuestRegLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/guest-register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberKey, userName: guestRegName.trim(), phone: guestRegPhone.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      // تحديث localStorage باسم حقيقي وإلغاء وضع الضيف
+      localStorage.setItem(`group_${groupCode}`, JSON.stringify({
+        userName: d.userName, memberKey, isLeader: false, isGuest: false,
+      }));
+      addUserGroup({
+        groupId: groupCode,
+        groupName: (data as any)?.group?.name || '',
+        churchName: (data as any)?.group?.churchName || '',
+        role: 'member',
+        userName: d.userName,
+        memberKey,
+      });
+      setGuestCreds({ userName: d.userName, memberKey });
+      setIsGuest(false);
+      setGuestRegisterOpen(false);
+      toast.success('تم تسجيل اسمك بنجاح');
+      fetchGroup();
+    } catch (err: any) {
+      toast.error(err.message || 'فشل التسجيل');
+    } finally {
+      setGuestRegLoading(false);
+    }
+  };
+
+  const handleToggleGuestAccess = async (enabled: boolean) => {
+    setGuestAccessLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/guest-access`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, enabled }),
+      });
+      if (!res.ok) throw new Error();
+      setGuestAccessEnabled(enabled);
+      toast.success(enabled ? 'تم تفعيل الدخول الضيف' : 'تم إيقاف الدخول الضيف');
+    } catch {
+      toast.error('فشل تحديث الإعداد');
+    } finally {
+      setGuestAccessLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!data || !userName) return;
@@ -1555,6 +1657,16 @@ export default function GroupView() {
   const isAdminFinal = isAdmin || serverMember?.isAdmin === true || group.leaderKey === memberKey || !!serverMemberByName;
 
   if (!isMember && !isAdminFinal) {
+    if (guestJoining || (data?.group?.guestAccessEnabled && !userName)) {
+      return (
+        <div className="container mx-auto px-4 py-6 max-w-4xl flex items-center justify-center min-h-[50vh]">
+          <div className="text-center space-y-3">
+            <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
+            <p className="text-sm text-muted-foreground">جاري تسجيل دخولك تلقائياً...</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         <Card className="p-8 text-center">
@@ -1611,11 +1723,17 @@ export default function GroupView() {
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
               {userName[0]}
             </div>
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-foreground flex-1">
               <span className="text-muted-foreground">أهلاً</span>{' '}
               <span className="font-bold text-green-700 dark:text-green-400">{userName}</span>
               {isAdminFinal && <span className="text-xs text-muted-foreground"> — أنت أدمن هذه المجموعة</span>}
             </p>
+            {isGuest && (
+              <Button size="sm" variant="outline" className="text-xs shrink-0 h-7 px-2" onClick={() => setGuestRegisterOpen(true)}>
+                <UserPlus className="w-3 h-3 ml-1" />
+                سجّل اسمك
+              </Button>
+            )}
           </div>
         )}
 
@@ -1943,6 +2061,34 @@ export default function GroupView() {
           </DialogContent>
         </Dialog>
 
+        {/* ── نافذة تسجيل اسم الضيف ── */}
+        <Dialog open={guestRegisterOpen} onOpenChange={setGuestRegisterOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>سجّل اسمك (اختياري)</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                أنت الآن مسجّل كـ <strong>{userName}</strong>. سجّل اسمك الحقيقي لتظهر باسمك في المجموعة.
+                رقم عضويتك لن يتغير.
+              </p>
+              <div>
+                <Label htmlFor="guest-name">الاسم *</Label>
+                <Input id="guest-name" value={guestRegName} onChange={e => setGuestRegName(e.target.value)} placeholder="اكتب اسمك" />
+              </div>
+              <div>
+                <Label htmlFor="guest-phone">رقم الموبايل (اختياري)</Label>
+                <Input id="guest-phone" value={guestRegPhone} onChange={e => setGuestRegPhone(e.target.value)} placeholder="01000000000" type="tel" dir="ltr" className="text-left" />
+              </div>
+              <p className="text-xs text-muted-foreground">بالضغط على "تسجيل" أنت توافق على شروط الاستخدام وسياسة الخصوصية.</p>
+              <Button onClick={handleGuestRegister} disabled={guestRegLoading || !guestRegName.trim()} className="w-full">
+                {guestRegLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                تسجيل
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={adminOpen} onOpenChange={setAdminOpen}>
           <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
@@ -2137,6 +2283,24 @@ export default function GroupView() {
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {messagingMode === 'admin_only' ? 'الأعضاء يقرأون فقط، الأدمن يرسل' : 'كل الأعضاء يستطيعون إرسال الرسائل'}
                   </p>
+                </div>
+                {/* ── الدخول الضيف ── */}
+                <div className="border-t pt-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="font-bold text-sm">الدخول الضيف</Label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {guestAccessEnabled
+                          ? 'أي شخص يفتح رابط الجروب يدخل تلقائياً كـ عضو 1، عضو 2... بدون تسجيل'
+                          : 'الدخول يتطلب الاسم ورقم الموبايل كالمعتاد'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={guestAccessEnabled}
+                      disabled={guestAccessLoading}
+                      onCheckedChange={handleToggleGuestAccess}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

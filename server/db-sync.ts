@@ -42,6 +42,22 @@ const migrations = [
     value text NOT NULL,
     updated_at timestamp DEFAULT now()
   )`,
+
+  // reading_groups — تفعيل الدخول الضيف
+  `ALTER TABLE reading_groups ADD COLUMN IF NOT EXISTS guest_access_enabled boolean DEFAULT false`,
+
+  // group_guest_tokens — رموز الدخول الضيف (ثابتة per device+group)
+  `CREATE TABLE IF NOT EXISTS group_guest_tokens (
+    id serial PRIMARY KEY,
+    token text NOT NULL,
+    group_id integer NOT NULL,
+    group_code text NOT NULL,
+    member_number integer NOT NULL,
+    member_key text NOT NULL,
+    phone text,
+    created_at timestamp DEFAULT now()
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS ggt_token_group_idx ON group_guest_tokens(token, group_code)`,
 ];
 
 async function run() {
