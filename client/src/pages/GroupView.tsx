@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw } from 'lucide-react';
+import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw, Play } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { OT_BOOKS, NT_BOOKS, OT_FLAT, NT_FLAT, getAutoReadingForDate, todayStr, findFlatIndex, type AutoReadingConfig } from '@/lib/group-auto-reading';
+import { OT_BOOKS, NT_BOOKS, OT_FLAT, NT_FLAT, getAutoReadingForDate, todayStr, findFlatIndex, DEUTEROCANONICAL_BOOKS, type AutoReadingConfig } from '@/lib/group-auto-reading';
+import { apocryphaBooks } from '@/lib/apocrypha-content';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,9 +111,13 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     containerRef.current?.scrollTo(0, 0);
   };
 
+  // الأسفار القانونية الثانية محتواها مخزّن محلياً (apocrypha-content) وليس في الـ API
+  const isDeutero = DEUTEROCANONICAL_BOOKS.has(bookName);
+  const apocryphaBook = isDeutero ? apocryphaBooks.find(b => b.name === bookName) : undefined;
+
   // Build nav chapters list
   const bookData = allBooks?.find((b: any) => b.name === bookName);
-  const totalChapters = bookData?.chaptersCount || 0;
+  const totalChapters = bookData?.chaptersCount || apocryphaBook?.chaptersCount || 0;
   const navChapters = (chapters && chapters.length > 0) ? chapters
     : totalChapters > 0 ? Array.from({ length: totalChapters }, (_, i) => i + 1) : [];
   const currentIdx = navChapters.indexOf(currentChapter);
@@ -122,6 +127,13 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   useEffect(() => {
     const loadVerses = async () => {
       try {
+        // الأسفار القانونية الثانية — تُحمّل من المحتوى المحلي
+        if (isDeutero) {
+          const ch = apocryphaBook?.chapters.find(c => c.chapter === currentChapter);
+          setVerses((ch?.verses || []).map(v => ({ id: `${bookName}-${currentChapter}-${v.verse}`, verse: v.verse, text: v.text })));
+          setLoading(false);
+          return;
+        }
         if (!allBooks) return;
         const book = allBooks.find((b: any) => b.name === bookName);
         if (!book) { setLoading(false); return; }
@@ -296,7 +308,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
 
       {/* Dialog التفسير */}
       <Dialog open={tafsirOpen} onOpenChange={setTafsirOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-right">{tafsirTitle}</DialogTitle>
           </DialogHeader>
@@ -738,7 +750,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
       </Dialog>
 
       <Dialog open={reportOpen} onOpenChange={(o) => { setReportOpen(o); if (!o) setReportAssignmentId(null); }}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-indigo-500" />
@@ -838,21 +850,82 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
 }
 
 // ── كارت القراءة الموحّد مع التقويم ──────────────────────────────────────────
-function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeTotal }: {
+function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeTotal, groupCode, userName, onReadComplete }: {
   autoReading: import('@/lib/group-auto-reading').DayAutoReading;
   autoConfig: import('@/lib/group-auto-reading').AutoReadingConfig;
   stats: { totalMembers: number; readToday: number; chaptersRead: number };
   progress: number;
   challengeTotal: number;
+  groupCode: string;
+  userName: string;
+  onReadComplete: () => void;
 }) {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [reading, setReading] = useState<{ book: string; chapter: number; chapters: number[] } | null>(null);
+  const [markingAll, setMarkingAll] = useState(false);
 
   const displayReading = useMemo(() => {
     try { return getAutoReadingForDate(autoConfig, selectedDate); } catch { return autoReading; }
   }, [selectedDate, autoConfig, autoReading]);
 
   const isToday = selectedDate === todayStr();
+
+  // افتح إصحاحاً مع تمرير إصحاحات اليوم لنفس السفر فقط (لا كل إصحاحات السفر)
+  const openReading = (book: string, chapter: number) => {
+    const sameBook = [...displayReading.ot, ...displayReading.nt]
+      .filter(c => c.book === book)
+      .map(c => c.chapter)
+      .sort((a, b) => a - b);
+    setReading({ book, chapter, chapters: sameBook.length > 0 ? sameBook : [chapter] });
+  };
+
+  const markAllDone = async () => {
+    if (markingAll) return;
+    setMarkingAll(true);
+    const allChapters = [...displayReading.ot, ...displayReading.nt];
+    try {
+      await Promise.all(allChapters.map(c =>
+        fetch(`/api/groups/${groupCode}/reading`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userName, book: c.book, chapter: c.chapter, timeSpent: 0, scrollPercent: 100 }),
+        })
+      ));
+      toast.success('تم تسجيل قراءة اليوم ✓');
+      onReadComplete();
+    } catch {
+      toast.error('حدث خطأ، حاول مرة أخرى');
+    } finally {
+      setMarkingAll(false);
+    }
+  };
+
+  // عند فتح إصحاح للقراءة المُتتبَّعة (يسجّل المدة/العمق/التمرير)
+  if (reading) {
+    return (
+      <Card className="p-5 mb-6" data-testid="card-today-reading-inline">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-500" />
+            <h3 className="font-display font-bold text-lg text-foreground">قراءة اليوم</h3>
+          </div>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setReading(null)}>
+            <ArrowRight className="w-4 h-4 ml-1" />رجوع للقائمة
+          </Button>
+        </div>
+        <InlineChapterReader
+          bookName={reading.book}
+          chapter={reading.chapter}
+          groupCode={groupCode}
+          assignmentId={null}
+          userName={userName}
+          chapters={reading.chapters}
+          onComplete={() => { setReading(null); onReadComplete(); }}
+        />
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-5 mb-6" data-testid="card-today-reading">
@@ -895,27 +968,61 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
         </div>
       )}
 
-      {/* الإصحاحات */}
-      <div className="space-y-2 mb-4">
-        {displayReading.ot.map((c, i) => (
-          <Link key={`ot-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors cursor-pointer">
-              <span className="text-base">📖</span>
-              <span className="font-semibold text-foreground">{c.book}</span>
-              <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
-            </div>
-          </Link>
-        ))}
-        {displayReading.nt.map((c, i) => (
-          <Link key={`nt-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer">
-              <span className="text-base">✝️</span>
-              <span className="font-semibold text-foreground">{c.book}</span>
-              <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
-            </div>
-          </Link>
-        ))}
+      {/* الإصحاحات — كروت جاهزة للفتح (الضغط يفتح القراءة المُتتبَّعة لليوم) */}
+      <div className="space-y-2.5 mb-4">
+        {[...displayReading.ot.map(c => ({ ...c, testament: 'ot' as const })),
+          ...displayReading.nt.map(c => ({ ...c, testament: 'nt' as const }))].map((c, i) => {
+          const isOt = c.testament === 'ot';
+          const cardCls = isOt
+            ? 'border-amber-200 dark:border-amber-800/40 bg-amber-50/60 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40'
+            : 'border-blue-200 dark:border-blue-800/40 bg-blue-50/60 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40';
+          const iconBoxCls = isOt ? 'from-amber-500 to-amber-600' : 'from-blue-500 to-blue-600';
+          const btnCls = isOt ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600';
+          const inner = (
+            <>
+              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${iconBoxCls} flex items-center justify-center shrink-0`}>
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0 text-right">
+                <h4 className="font-display font-bold text-foreground text-sm truncate">{c.book}</h4>
+                <p className="text-xs text-muted-foreground">الإصحاح {c.chapter}</p>
+              </div>
+              <span className={`shrink-0 text-white text-xs font-semibold rounded-lg px-3 py-1.5 flex items-center gap-1 ${btnCls} transition-colors`}>
+                <Play className="w-3 h-3" />اقرأ
+              </span>
+            </>
+          );
+          return isToday ? (
+            <button
+              key={`${c.testament}-${i}`}
+              onClick={() => openReading(c.book, c.chapter)}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border ${cardCls} transition-colors cursor-pointer shadow-sm`}
+              data-testid={`card-daily-chapter-${c.book}-${c.chapter}`}
+            >
+              {inner}
+            </button>
+          ) : (
+            <Link key={`${c.testament}-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
+              <div className={`flex items-center gap-3 p-3 rounded-xl border ${cardCls} transition-colors cursor-pointer shadow-sm`}>
+                {inner}
+              </div>
+            </Link>
+          );
+        })}
       </div>
+
+      {/* زر اكتملت القراءة — لليوم الحالي فقط */}
+      {isToday && (
+        <Button
+          onClick={markAllDone}
+          disabled={markingAll}
+          className="w-full mb-3 gap-2 bg-green-600 hover:bg-green-700 text-white"
+          size="sm"
+        >
+          {markingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          اكتملت قراءة اليوم
+        </Button>
+      )}
 
       {/* إحصاء المجموعة */}
       <div className="border-t pt-3 flex items-center justify-between text-sm">
@@ -1470,7 +1577,7 @@ export default function GroupView() {
   const missionCompleted = missionTotal > 0 && myMissionProgress >= missionTotal;
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="container mx-auto px-4 py-6 max-w-4xl text-[15px]">
       <SEOHead />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         <div className="flex items-center justify-between mb-4">
@@ -1502,6 +1609,19 @@ export default function GroupView() {
           </div>
         </div>
 
+        {userName && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-gradient-to-l from-green-50 to-transparent dark:from-green-900/20 border border-green-200 dark:border-green-800/40">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              {userName[0]}
+            </div>
+            <p className="text-sm text-foreground">
+              <span className="text-muted-foreground">أهلاً</span>{' '}
+              <span className="font-bold text-green-700 dark:text-green-400">{userName}</span>
+              {isAdminFinal && <span className="text-xs text-muted-foreground"> — أنت أدمن هذه المجموعة</span>}
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-6">
           <Badge variant="secondary">كود: {groupCode}</Badge>
           <Badge variant="outline">الأدمن: {group.leaderName}</Badge>
@@ -1516,6 +1636,9 @@ export default function GroupView() {
             stats={stats}
             progress={progress}
             challengeTotal={group.challengeTotal}
+            groupCode={groupCode}
+            userName={userName}
+            onReadComplete={() => fetchGroup()}
           />
         )}
         {!todayAutoReading && (
@@ -1598,14 +1721,6 @@ export default function GroupView() {
           </Card>
         )}
 
-        {isAdminFinal && !mission && (
-          <Card className="p-5 mb-6 border-dashed border-2 border-amber-300 dark:border-amber-700 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setMissionOpen(true)} data-testid="card-create-mission">
-            <div className="flex items-center justify-center gap-2 text-amber-600 dark:text-amber-400">
-              <Target className="w-5 h-5" />
-              <span className="font-bold">إنشاء مهمة قراءة أسبوعية</span>
-            </div>
-          </Card>
-        )}
 
         {leaderboard.length > 0 && (
           <Card className="p-5 mb-6" data-testid="card-leaderboard">
@@ -1756,7 +1871,7 @@ export default function GroupView() {
 
         {/* ── تقرير: الأعضاء الذين قرأوا ── */}
         <Dialog open={reportActiveOpen} onOpenChange={setReportActiveOpen}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-green-700">الأعضاء الذين قرأوا هذا الأسبوع ({leaderReport?.activeMembers?.length || 0})</DialogTitle>
             </DialogHeader>
@@ -1813,7 +1928,7 @@ export default function GroupView() {
 
         {/* ── تقرير: الأعضاء الذين لم يقرأوا ── */}
         <Dialog open={reportInactiveOpen} onOpenChange={setReportInactiveOpen}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-amber-700">لم يقرأوا منذ 3+ أيام ({leaderReport?.inactiveMembers?.length || 0})</DialogTitle>
             </DialogHeader>
@@ -1832,7 +1947,7 @@ export default function GroupView() {
         </Dialog>
 
         <Dialog open={adminOpen} onOpenChange={setAdminOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>إدارة المجموعة</DialogTitle>
             </DialogHeader>

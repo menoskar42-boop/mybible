@@ -157,15 +157,27 @@ export default function GroupChat() {
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
-  // Initial scroll: go to first unread message
+  // Initial scroll: go to first unread message, otherwise to the very bottom
   useEffect(() => {
     if (loading || initialScrollDone || messages.length === 0) return;
-    setInitialScrollDone(true);
     const unreadIdx = messages.findIndex(m => m.id > lastReadId);
+    const jumpToBottom = () => {
+      const el = scrollAreaRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    };
     if (unreadIdx > 0 && firstUnreadRef.current) {
-      firstUnreadRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // العنصر مُركَّب الآن (initialScrollDone لسه false) — مرّر إليه متزامناً
+      // قبل أن تُزيل إعادة الرسم فاصل "الرسائل الجديدة"
+      firstUnreadRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+      setInitialScrollDone(true);
     } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      // حالة الأسفل: أجّل حتى يكتمل رسم الرسائل/الصور ثم كرّر للأمان
+      setInitialScrollDone(true);
+      requestAnimationFrame(() => {
+        jumpToBottom();
+        setTimeout(jumpToBottom, 150);
+        setTimeout(jumpToBottom, 400);
+      });
     }
     // Mark all as read
     const maxId = Math.max(...messages.map(m => m.id));
@@ -336,7 +348,7 @@ export default function GroupChat() {
   }
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100dvh - 60px)' }}>
+    <div className="flex flex-col text-[15px]" style={{ height: 'calc(100dvh - 60px)' }}>
       <SEOHead />
 
       {/* Header */}

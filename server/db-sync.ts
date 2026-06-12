@@ -29,7 +29,18 @@ const migrations = [
     auth text NOT NULL,
     created_at timestamp DEFAULT now(),
     updated_at timestamp DEFAULT now(),
-    UNIQUE(endpoint)
+    UNIQUE(group_id, endpoint)
+  )`,
+
+  // ترقية constraint على قواعد موجودة: UNIQUE(endpoint) → UNIQUE(group_id, endpoint)
+  `ALTER TABLE group_push_subscriptions DROP CONSTRAINT IF EXISTS group_push_subscriptions_endpoint_key`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS gps_group_endpoint_idx ON group_push_subscriptions(group_id, endpoint)`,
+
+  // app_settings — إعدادات التطبيق (تاريخ آخر إشعار يومي)
+  `CREATE TABLE IF NOT EXISTS app_settings (
+    key text PRIMARY KEY,
+    value text NOT NULL,
+    updated_at timestamp DEFAULT now()
   )`,
 ];
 
