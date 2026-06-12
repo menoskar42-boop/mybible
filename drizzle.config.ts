@@ -11,10 +11,5 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
-  // لا تحذف أي جدول أو عمود تلقائياً عند publish
-  // الأعمدة الجديدة تُضاف عبر ALTER TABLE IF NOT EXISTS في server/index.ts
-  tablesFilter: ["!session", "!group_push_subscriptions"],
-  migrations: {
-    table: "__drizzle_migrations",
-  },
+  tablesFilter: ["!session"],
 });

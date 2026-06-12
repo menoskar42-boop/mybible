@@ -286,6 +286,7 @@ export const groupMessages = pgTable("group_messages", {
   replyToId: integer("reply_to_id"),
   replyToText: text("reply_to_text"),
   replyToUserName: text("reply_to_user_name"),
+  reactions: jsonb("reactions").$type<{ emoji: string; users: string[] }[]>().default([]),
   isPinned: boolean("is_pinned").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -652,10 +653,11 @@ export const groupPushSubscriptions = pgTable('group_push_subscriptions', {
   groupCode: text('group_code').notNull(),
   userName: text('user_name').notNull(),
   memberKey: text('member_key').notNull(),
-  endpoint: text('endpoint').notNull(),
+  endpoint: text('endpoint').notNull().unique(),
   p256dh: text('p256dh').notNull(),
   auth: text('auth').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // App-level key/value settings (e.g. last_daily_notif_date)
