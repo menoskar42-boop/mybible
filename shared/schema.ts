@@ -653,12 +653,12 @@ export const groupPushSubscriptions = pgTable('group_push_subscriptions', {
   groupCode: text('group_code').notNull(),
   userName: text('user_name').notNull(),
   memberKey: text('member_key').notNull(),
-  endpoint: text('endpoint').notNull().unique(),
+  endpoint: text('endpoint').notNull(),
   p256dh: text('p256dh').notNull(),
   auth: text('auth').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, t => ({ uniq: uniqueIndex('gps_group_endpoint_idx').on(t.groupId, t.endpoint) }));
 
 // App-level key/value settings (e.g. last_daily_notif_date)
 export const appSettings = pgTable("app_settings", {
