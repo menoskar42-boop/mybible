@@ -838,21 +838,50 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
 }
 
 // ── كارت القراءة الموحّد مع التقويم ──────────────────────────────────────────
-function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeTotal }: {
+function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeTotal, groupCode, userName, onReadComplete }: {
   autoReading: import('@/lib/group-auto-reading').DayAutoReading;
   autoConfig: import('@/lib/group-auto-reading').AutoReadingConfig;
   stats: { totalMembers: number; readToday: number; chaptersRead: number };
   progress: number;
   challengeTotal: number;
+  groupCode: string;
+  userName: string;
+  onReadComplete: () => void;
 }) {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [reading, setReading] = useState<{ book: string; chapter: number } | null>(null);
 
   const displayReading = useMemo(() => {
     try { return getAutoReadingForDate(autoConfig, selectedDate); } catch { return autoReading; }
   }, [selectedDate, autoConfig, autoReading]);
 
   const isToday = selectedDate === todayStr();
+
+  // عند فتح إصحاح للقراءة المُتتبَّعة (يسجّل المدة/العمق/التمرير)
+  if (reading) {
+    return (
+      <Card className="p-5 mb-6" data-testid="card-today-reading-inline">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-500" />
+            <h3 className="font-display font-bold text-lg text-foreground">قراءة اليوم</h3>
+          </div>
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setReading(null)}>
+            <ArrowRight className="w-4 h-4 ml-1" />رجوع للقائمة
+          </Button>
+        </div>
+        <InlineChapterReader
+          bookName={reading.book}
+          chapter={reading.chapter}
+          groupCode={groupCode}
+          assignmentId={null}
+          userName={userName}
+          onComplete={() => { setReading(null); onReadComplete(); }}
+        />
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-5 mb-6" data-testid="card-today-reading">
@@ -895,25 +924,51 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
         </div>
       )}
 
-      {/* الإصحاحات */}
+      {/* الإصحاحات — الضغط يفتح القراءة المُتتبَّعة (للقراءة اليومية فقط) */}
       <div className="space-y-2 mb-4">
         {displayReading.ot.map((c, i) => (
-          <Link key={`ot-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors cursor-pointer">
+          isToday ? (
+            <button
+              key={`ot-${i}`}
+              onClick={() => setReading({ book: c.book, chapter: c.chapter })}
+              className="w-full flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors cursor-pointer text-right"
+            >
               <span className="text-base">📖</span>
               <span className="font-semibold text-foreground">{c.book}</span>
               <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
-            </div>
-          </Link>
+              <span className="mr-auto text-xs text-amber-600 font-semibold">اقرأ ←</span>
+            </button>
+          ) : (
+            <Link key={`ot-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors cursor-pointer">
+                <span className="text-base">📖</span>
+                <span className="font-semibold text-foreground">{c.book}</span>
+                <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
+              </div>
+            </Link>
+          )
         ))}
         {displayReading.nt.map((c, i) => (
-          <Link key={`nt-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer">
+          isToday ? (
+            <button
+              key={`nt-${i}`}
+              onClick={() => setReading({ book: c.book, chapter: c.chapter })}
+              className="w-full flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer text-right"
+            >
               <span className="text-base">✝️</span>
               <span className="font-semibold text-foreground">{c.book}</span>
               <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
-            </div>
-          </Link>
+              <span className="mr-auto text-xs text-blue-600 font-semibold">اقرأ ←</span>
+            </button>
+          ) : (
+            <Link key={`nt-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer">
+                <span className="text-base">✝️</span>
+                <span className="font-semibold text-foreground">{c.book}</span>
+                <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
+              </div>
+            </Link>
+          )
         ))}
       </div>
 
@@ -1529,6 +1584,9 @@ export default function GroupView() {
             stats={stats}
             progress={progress}
             challengeTotal={group.challengeTotal}
+            groupCode={groupCode}
+            userName={userName}
+            onReadComplete={() => fetchGroup()}
           />
         )}
         {!todayAutoReading && (
