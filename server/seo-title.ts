@@ -60,8 +60,58 @@ export function generateSearchTitle(query: string): string {
   return `${template(displayQuery)} | ${SITE_SUFFIX}`;
 }
 
+const FAMOUS_PSALMS: Record<number, string> = {
+  1:   'مزمور 1 — طريق البار',
+  23:  'مزمور 23 — الرب راعيَّ فلا يعوزني شيء',
+  51:  'مزمور 51 — صلاة التوبة والاعتراف',
+  91:  'مزمور 91 — الساكن في ستر العلي',
+  103: 'مزمور 103 — باركي يا نفسي الرب',
+  121: 'مزمور 121 — رافع عينيَّ إلى الجبال',
+  150: 'مزمور 150 — سبّحوا الله في قدسه',
+};
+
+// Famous chapters across key books — keyed by `${book} ${chapter}`.
+// Titles verified ≤70 chars including the site suffix.
+const FAMOUS_CHAPTERS: Record<string, string> = {
+  'يوحنا 1':   'يوحنا 1 — في البدء كان الكلمة',
+  'يوحنا 3':   'يوحنا 3 — حديث المسيح مع نيقوديموس',
+  'يوحنا 10':  'يوحنا 10 — الراعي الصالح',
+  'يوحنا 14':  'يوحنا 14 — الطريق والحق والحياة',
+  'يوحنا 15':  'يوحنا 15 — الكرمة الحقيقية',
+  'يوحنا 17':  'يوحنا 17 — الصلاة الشفاعية',
+  'متى 5':     'متى 5 — الموعظة على الجبل والتطويبات',
+  'متى 6':     'متى 6 — الصلاة الربانية',
+  'متى 13':    'متى 13 — أمثال الملكوت',
+  'متى 28':    'متى 28 — القيامة والإرسالية',
+  'مرقس 16':   'مرقس 16 — القيامة والصعود',
+  'لوقا 2':    'لوقا 2 — ميلاد يسوع في بيت لحم',
+  'لوقا 10':   'لوقا 10 — مثل السامري الصالح',
+  'لوقا 15':   'لوقا 15 — مثل الابن الضال',
+  'التكوين 1': 'التكوين 1 — خلق السموات والأرض',
+  'التكوين 3': 'التكوين 3 — السقوط والخطية الأولى',
+  'الخروج 14': 'الخروج 14 — عبور البحر الأحمر',
+  'الخروج 20': 'الخروج 20 — الوصايا العشر',
+  'الأمثال 31':'الأمثال 31 — المرأة الفاضلة',
+  'إشعياء 7':  'إشعياء 7 — نبوة عمانوئيل',
+  'إشعياء 53': 'إشعياء 53 — العبد المتألم',
+  'رومية 8':   'رومية 8 — محبة الله الثابتة',
+  'رومية 12':  'رومية 12 — تقديم الأجساد ذبيحة حية',
+  'أعمال الرسل 2': 'أعمال 2 — حلول الروح القدس يوم الخمسين',
+  'أيوب 1':    'أيوب 1 — تجربة أيوب البار',
+};
+
 export function generateBibleChapterTitle(bookName: string, chapter: number, verseCount: number): string {
-  return `تفسير ${bookName} الإصحاح ${chapter} | قراءة ${verseCount} آية كاملة - ${SITE_SUFFIX}`;
+  if (bookName === 'المزامير' && FAMOUS_PSALMS[chapter]) {
+    return `${FAMOUS_PSALMS[chapter]} - ${SITE_SUFFIX}`;
+  }
+  const famous = FAMOUS_CHAPTERS[`${bookName} ${chapter}`];
+  if (famous) {
+    return `${famous} - ${SITE_SUFFIX}`;
+  }
+  const fullTitle = `تفسير ${bookName} الإصحاح ${chapter} | قراءة ${verseCount} آية كاملة - ${SITE_SUFFIX}`;
+  if (fullTitle.length <= 70) return fullTitle;
+  const shortTitle = `تفسير ${bookName} ${chapter} | الكتاب المقدس رفيقي`;
+  return shortTitle.length <= 70 ? shortTitle : `${bookName} ${chapter} | الكتاب المقدس رفيقي`;
 }
 
 export function generateBibleBookTitle(bookName: string, chaptersCount: number): string {

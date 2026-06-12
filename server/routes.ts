@@ -1045,6 +1045,40 @@ ${excludedStr}
     }
   });
 
+  app.get('/api/daily-verse/:date', async (req, res) => {
+    try {
+      const dateStr = req.params.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return res.status(400).json({ message: 'Invalid date format' });
+      }
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return res.status(400).json({ message: 'Invalid date' });
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+
+      const calendarVerse = await storage.getCalendarDailyVerse(month, day);
+      if (calendarVerse) {
+        const refParts = calendarVerse.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
+        const bookName = refParts ? refParts[1].trim() : calendarVerse.verseReference;
+        const chapter = refParts ? parseInt(refParts[2]) : 1;
+        const verseNum = refParts ? parseInt(refParts[3]) : 1;
+        const dbVerse = await storage.getVerseByReference(bookName, chapter, verseNum);
+        const verseText = dbVerse?.text ?? calendarVerse.verseText;
+        return res.json({
+          id: calendarVerse.id,
+          verseId: calendarVerse.id,
+          date: dateStr,
+          verse: { id: dbVerse?.id ?? calendarVerse.id, text: verseText, chapter, verse: verseNum },
+          book: { name: bookName },
+          theme: calendarVerse.theme,
+        });
+      }
+      return res.json(null);
+    } catch (error) {
+      res.status(500).json({ message: 'Failed to fetch daily verse' });
+    }
+  });
+
   app.get('/api/daily-verse', async (_req, res) => {
     try {
       const today = new Date();

@@ -241,6 +241,15 @@ export const readingGroups = pgTable("reading_groups", {
   todayChapter: integer("today_chapter"),
   challengeTotal: integer("challenge_total").default(0),
   linkJoinMode: text("link_join_mode").default('approval'), // 'approval' | 'auto'
+  messagingMode: text("messaging_mode").default('all'), // 'all' | 'admin_only'
+  autoReadingConfig: jsonb("auto_reading_config").$type<{
+    enabled: boolean;
+    otChaptersPerDay: number;
+    ntChaptersPerDay: number;
+    baseDate: string;      // YYYY-MM-DD — تاريخ نقطة البداية
+    otStartIndex: number;  // index in flat OT chapter list
+    ntStartIndex: number;  // index in flat NT chapter list
+  } | null>().default(null),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -273,6 +282,11 @@ export const groupMessages = pgTable("group_messages", {
   groupId: integer("group_id").notNull(),
   userName: text("user_name").notNull(),
   message: text("message").notNull(),
+  imageUrl: text("image_url"),
+  replyToId: integer("reply_to_id"),
+  replyToText: text("reply_to_text"),
+  replyToUserName: text("reply_to_user_name"),
+  reactions: jsonb("reactions").$type<{ emoji: string; users: string[] }[]>().default([]),
   isPinned: boolean("is_pinned").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -631,3 +645,24 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 });
 
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
+// Group-level push subscriptions for chat notifications
+export const groupPushSubscriptions = pgTable('group_push_subscriptions', {
+  id: serial('id').primaryKey(),
+  groupId: integer('group_id').notNull(),
+  groupCode: text('group_code').notNull(),
+  userName: text('user_name').notNull(),
+  memberKey: text('member_key').notNull(),
+  endpoint: text('endpoint').notNull().unique(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// App-level key/value settings (e.g. last_daily_notif_date)
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});

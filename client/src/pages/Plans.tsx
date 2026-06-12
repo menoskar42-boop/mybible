@@ -123,6 +123,7 @@ export default function Plans() {
   const [listenChoiceChante, setListenChoiceChante] = useState<{ id: string; start?: number; end?: number } | null>(null);
   const [listenChoiceRegular, setListenChoiceRegular] = useState<string | null>(null);
   const [listenChoiceSource, setListenChoiceSource] = useState<'plan' | 'custom'>('plan');
+  const [isChantedMode, setIsChantedMode] = useState<boolean>(false);
 
   const [chapterSubView, setChapterSubView] = useState<'verses' | 'tafsir' | 'lesson' | 'video'>('verses');
   const [lessonParts, setLessonParts] = useState<{ videoId: string; partNum: number; title: string }[]>([]);
@@ -175,6 +176,7 @@ export default function Plans() {
     setCurrentVideoBookName(bookName);
     setCurrentVideoChapter(chapter);
     setVideoSource(source);
+    setIsChantedMode(false);
     setCurrentVideoId(getVideoId(bookName, chapter));
     if (source === 'plan') setVideoReadingIndex(currentReadingIndex);
     else setVideoReadingIndex(customReadingIndex);
@@ -186,6 +188,41 @@ export default function Plans() {
       return currentDayData?.readings ?? [];
     }
     return customReadings.map(r => ({ book: r.bookName, bookDbName: r.bookName, chapter: r.chapter }));
+  };
+
+  const applyVideoPreferenceForReading = (bookName: string, chapter: number) => {
+    if (isChantedMode) {
+      const chanteId = getChanteVideoId(bookName, chapter);
+      if (chanteId) {
+        setCurrentVideoId(chanteId.id);
+        setCurrentVideoStart(chanteId.start);
+        setCurrentVideoEnd(chanteId.end);
+        setIsChantedMode(true);
+        return;
+      }
+    }
+    const regularId = getVideoId(bookName, chapter);
+    if (regularId) {
+      setCurrentVideoId(regularId);
+      setCurrentVideoStart(undefined);
+      setCurrentVideoEnd(undefined);
+      setIsChantedMode(false);
+      return;
+    }
+    if (!isChantedMode) {
+      const chanteId = getChanteVideoId(bookName, chapter);
+      if (chanteId) {
+        setCurrentVideoId(chanteId.id);
+        setCurrentVideoStart(chanteId.start);
+        setCurrentVideoEnd(chanteId.end);
+        setIsChantedMode(true);
+        return;
+      }
+    }
+    setCurrentVideoId(null);
+    setCurrentVideoStart(undefined);
+    setCurrentVideoEnd(undefined);
+    setIsChantedMode(false);
   };
 
   const goToVideoPrevReading = () => {
@@ -205,7 +242,7 @@ export default function Plans() {
     const bookName = videoSource === 'plan' ? prevReading.bookDbName : prevReading.book;
     setCurrentVideoBookName(bookName);
     setCurrentVideoChapter(prevReading.chapter);
-    setCurrentVideoId(getVideoId(bookName, prevReading.chapter));
+    applyVideoPreferenceForReading(bookName, prevReading.chapter);
   };
 
   const goToVideoNextReading = () => {
@@ -225,7 +262,7 @@ export default function Plans() {
     const bookName = videoSource === 'plan' ? nextReading.bookDbName : nextReading.book;
     setCurrentVideoBookName(bookName);
     setCurrentVideoChapter(nextReading.chapter);
-    setCurrentVideoId(getVideoId(bookName, nextReading.chapter));
+    applyVideoPreferenceForReading(bookName, nextReading.chapter);
   };
 
   const { data: oldBooks } = useQuery({
@@ -759,73 +796,71 @@ export default function Plans() {
             {currentReading.book} - الإصحاح {planEffectiveChapter}
           </h2>
 
-          <div className="flex flex-wrap justify-center gap-2 mb-6">
-            <Button
-              size="sm"
-              onClick={() => handleListenClick(currentReading.book, planEffectiveChapter, 'plan')}
-              className="gap-2 bg-gradient-to-r from-primary to-primary/80"
-              style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
-              data-testid="button-listen-chapter"
-            >
-              <Volume2 className="w-4 h-4" />
-              استمع للإصحاح
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => handleLessonClick(currentReading.book, planEffectiveChapter)}
-              disabled={lessonLoading}
-              className="gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white"
-              style={{ background: '#b45309', color: '#ffffff' }}
-              data-testid="button-lesson-plan"
-            >
-              {lessonLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GraduationCap className="w-4 h-4" />}
-              درس كتاب
-            </Button>
-            <Button
-              size="sm"
-              className="gap-2 bg-gradient-to-r from-primary to-primary/80"
-              style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
-              onClick={() => {
-                setTafsirDialogType('intro');
-                setTafsirBookName(currentReading.book);
-                setChapterSubView('tafsir');
-                setTafsirText(null);
-                setTafsirLoading(true);
-                fetchBookIntro(currentReading.book)
-                  .then(text => { setTafsirText(text); setTafsirLoading(false); })
-                  .catch(() => setTafsirLoading(false));
-              }}
-              data-testid="button-book-intro"
-            >
-              <BookOpen className="w-4 h-4" />
-              مقدمة عن السفر
-            </Button>
-            <Button
-              size="sm"
-              className="gap-2 bg-gradient-to-r from-primary to-primary/80"
-              style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
-              onClick={() => {
-                setTafsirDialogType('chapter');
-                setTafsirBookName(currentReading.book);
-                setTafsirChapter(planEffectiveChapter);
-                setChapterSubView('tafsir');
-                setTafsirText(null);
-                setTafsirLoading(true);
-                fetchChapterTafsir(currentReading.book, planEffectiveChapter)
-                  .then(text => { setTafsirText(text); setTafsirLoading(false); })
-                  .catch(() => setTafsirLoading(false));
-              }}
-              data-testid="button-chapter-tafsir"
-            >
-              <BookText className="w-4 h-4" />
-              تفسير الإصحاح
-            </Button>
-          </div>
-
           {chapterSubView !== 'verses' && (
             <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mb-4 w-full border-primary text-primary font-semibold">
               <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
             </Button>
+          )}
+
+          {chapterSubView === 'verses' && (
+            <div className="flex flex-wrap justify-center gap-2 mb-4 pb-3 border-b">
+              <Button
+                size="sm"
+                onClick={() => handleListenClick(currentReading.book, planEffectiveChapter, 'plan')}
+                style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                data-testid="button-listen-chapter"
+              >
+                <Volume2 className="w-4 h-4 ml-1" />
+                استمع للإصحاح
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleLessonClick(currentReading.book, planEffectiveChapter)}
+                disabled={lessonLoading}
+                style={{ background: '#b45309', color: '#ffffff' }}
+                data-testid="button-lesson-plan"
+              >
+                {lessonLoading ? <Loader2 className="w-4 h-4 ml-1 animate-spin" /> : <GraduationCap className="w-4 h-4 ml-1" />}
+                درس كتاب
+              </Button>
+              <Button
+                size="sm"
+                style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                onClick={() => {
+                  setTafsirDialogType('intro');
+                  setTafsirBookName(currentReading.book);
+                  setChapterSubView('tafsir');
+                  setTafsirText(null);
+                  setTafsirLoading(true);
+                  fetchBookIntro(currentReading.book)
+                    .then(text => { setTafsirText(text); setTafsirLoading(false); })
+                    .catch(() => setTafsirLoading(false));
+                }}
+                data-testid="button-book-intro"
+              >
+                <BookOpen className="w-4 h-4 ml-1" />
+                مقدمة عن السفر
+              </Button>
+              <Button
+                size="sm"
+                style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                onClick={() => {
+                  setTafsirDialogType('chapter');
+                  setTafsirBookName(currentReading.book);
+                  setTafsirChapter(planEffectiveChapter);
+                  setChapterSubView('tafsir');
+                  setTafsirText(null);
+                  setTafsirLoading(true);
+                  fetchChapterTafsir(currentReading.book, planEffectiveChapter)
+                    .then(text => { setTafsirText(text); setTafsirLoading(false); })
+                    .catch(() => setTafsirLoading(false));
+                }}
+                data-testid="button-chapter-tafsir"
+              >
+                <BookText className="w-4 h-4 ml-1" />
+                تفسير الإصحاح
+              </Button>
+            </div>
           )}
 
           {chapterSubView === 'verses' && (
@@ -944,8 +979,39 @@ export default function Plans() {
           {chapterSubView === 'video' && (
             <div className="mt-2">
               <h3 className="font-display text-lg font-semibold mb-4 text-center">
-                استمع للإصحاح — {currentVideoBookName} {currentVideoChapter}
+                {isChantedMode ? 'استمع مرتلاً' : 'استمع كقراءة'} — {currentVideoBookName} {currentVideoChapter}
               </h3>
+              <div className="mb-4 pb-3 border-b flex flex-wrap justify-center gap-2" dir="rtl">
+                {isChantedMode
+                  ? (() => {
+                      const regularId = getVideoId(currentVideoBookName, currentVideoChapter);
+                      if (!regularId) return null;
+                      return (
+                        <Button size="sm" onClick={() => { setIsChantedMode(false); setCurrentVideoId(regularId); setCurrentVideoStart(undefined); setCurrentVideoEnd(undefined); }} style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}>
+                          <Volume2 className="w-4 h-4 ml-1" />استمع كقراءة
+                        </Button>
+                      );
+                    })()
+                  : (() => {
+                      const chanteId = getChanteVideoId(currentVideoBookName, currentVideoChapter);
+                      if (!chanteId) return null;
+                      return (
+                        <Button size="sm" onClick={() => { setIsChantedMode(true); setCurrentVideoId(chanteId.id); setCurrentVideoStart(chanteId.start); setCurrentVideoEnd(chanteId.end); }} style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}>
+                          <Music className="w-4 h-4 ml-1" />استمع مرتلاً
+                        </Button>
+                      );
+                    })()
+                }
+                <Button size="sm" onClick={() => handleLessonClick(currentVideoBookName, currentVideoChapter)} disabled={lessonLoading} style={{ background: '#b45309', color: '#ffffff' }}>
+                  {lessonLoading ? <Loader2 className="w-4 h-4 ml-1 animate-spin" /> : <GraduationCap className="w-4 h-4 ml-1" />}درس كتاب
+                </Button>
+                <Button size="sm" style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }} onClick={() => { setTafsirDialogType('intro'); setTafsirBookName(currentVideoBookName); setChapterSubView('tafsir'); setTafsirText(null); setTafsirLoading(true); fetchBookIntro(currentVideoBookName).then(t => { setTafsirText(t); setTafsirLoading(false); }).catch(() => setTafsirLoading(false)); }}>
+                  <BookOpen className="w-4 h-4 ml-1" />مقدمة عن السفر
+                </Button>
+                <Button size="sm" style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }} onClick={() => { setTafsirDialogType('chapter'); setTafsirBookName(currentVideoBookName); setTafsirChapter(currentVideoChapter); setChapterSubView('tafsir'); setTafsirText(null); setTafsirLoading(true); fetchChapterTafsir(currentVideoBookName, currentVideoChapter).then(t => { setTafsirText(t); setTafsirLoading(false); }).catch(() => setTafsirLoading(false)); }}>
+                  <BookText className="w-4 h-4 ml-1" />تفسير الإصحاح
+                </Button>
+              </div>
               {currentVideoId ? (
                 <YouTubeCard videoId={currentVideoId} start={currentVideoStart} end={currentVideoEnd} />
               ) : (
@@ -1052,69 +1118,71 @@ export default function Plans() {
               {customCurrentReading.bookName} - الإصحاح {customEffectiveChapter}
             </h2>
 
-            <div className="flex flex-wrap justify-center gap-2 mb-6">
-              <Button
-                size="sm"
-                onClick={() => handleListenClick(customCurrentReading.bookName, customEffectiveChapter, 'custom')}
-                className="gap-2 bg-gradient-to-r from-primary to-primary/80"
-                data-testid="button-listen-custom-chapter"
-              >
-                <Volume2 className="w-4 h-4" />
-                استمع للإصحاح
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => handleLessonClick(customCurrentReading.bookName, customEffectiveChapter)}
-                disabled={lessonLoading}
-                className="gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white"
-                data-testid="button-lesson-custom"
-              >
-                {lessonLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GraduationCap className="w-4 h-4" />}
-                درس كتاب
-              </Button>
-              <Button
-                size="sm"
-                className="gap-2 bg-gradient-to-r from-primary to-primary/80"
-                onClick={() => {
-                  setTafsirDialogType('intro');
-                  setTafsirBookName(customCurrentReading.bookName);
-                  setChapterSubView('tafsir');
-                  setTafsirText(null);
-                  setTafsirLoading(true);
-                  fetchBookIntro(customCurrentReading.bookName)
-                    .then(text => { setTafsirText(text); setTafsirLoading(false); })
-                    .catch(() => setTafsirLoading(false));
-                }}
-                data-testid="button-custom-book-intro"
-              >
-                <BookOpen className="w-4 h-4" />
-                مقدمة عن السفر
-              </Button>
-              <Button
-                size="sm"
-                className="gap-2 bg-gradient-to-r from-primary to-primary/80"
-                onClick={() => {
-                  setTafsirDialogType('chapter');
-                  setTafsirBookName(customCurrentReading.bookName);
-                  setTafsirChapter(customEffectiveChapter);
-                  setChapterSubView('tafsir');
-                  setTafsirText(null);
-                  setTafsirLoading(true);
-                  fetchChapterTafsir(customCurrentReading.bookName, customEffectiveChapter)
-                    .then(text => { setTafsirText(text); setTafsirLoading(false); })
-                    .catch(() => setTafsirLoading(false));
-                }}
-                data-testid="button-custom-chapter-tafsir"
-              >
-                <BookText className="w-4 h-4" />
-                تفسير الإصحاح
-              </Button>
-            </div>
-
             {chapterSubView !== 'verses' && (
-              <Button variant="ghost" size="sm" onClick={() => setChapterSubView('verses')} className="mb-4 text-primary">
-                <ChevronLeft className="w-4 h-4 ml-1" />رجوع للآيات
+              <Button variant="outline" onClick={() => setChapterSubView('verses')} className="mb-4 w-full border-primary text-primary font-semibold">
+                <ChevronLeft className="w-5 h-5 ml-1" />رجوع للآيات
               </Button>
+            )}
+
+            {chapterSubView === 'verses' && (
+              <div className="flex flex-wrap justify-center gap-2 mb-4 pb-3 border-b">
+                <Button
+                  size="sm"
+                  onClick={() => handleListenClick(customCurrentReading.bookName, customEffectiveChapter, 'custom')}
+                  style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                  data-testid="button-listen-custom-chapter"
+                >
+                  <Volume2 className="w-4 h-4 ml-1" />
+                  استمع للإصحاح
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleLessonClick(customCurrentReading.bookName, customEffectiveChapter)}
+                  disabled={lessonLoading}
+                  style={{ background: '#b45309', color: '#ffffff' }}
+                  data-testid="button-lesson-custom"
+                >
+                  {lessonLoading ? <Loader2 className="w-4 h-4 ml-1 animate-spin" /> : <GraduationCap className="w-4 h-4 ml-1" />}
+                  درس كتاب
+                </Button>
+                <Button
+                  size="sm"
+                  style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                  onClick={() => {
+                    setTafsirDialogType('intro');
+                    setTafsirBookName(customCurrentReading.bookName);
+                    setChapterSubView('tafsir');
+                    setTafsirText(null);
+                    setTafsirLoading(true);
+                    fetchBookIntro(customCurrentReading.bookName)
+                      .then(text => { setTafsirText(text); setTafsirLoading(false); })
+                      .catch(() => setTafsirLoading(false));
+                  }}
+                  data-testid="button-custom-book-intro"
+                >
+                  <BookOpen className="w-4 h-4 ml-1" />
+                  مقدمة عن السفر
+                </Button>
+                <Button
+                  size="sm"
+                  style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                  onClick={() => {
+                    setTafsirDialogType('chapter');
+                    setTafsirBookName(customCurrentReading.bookName);
+                    setTafsirChapter(customEffectiveChapter);
+                    setChapterSubView('tafsir');
+                    setTafsirText(null);
+                    setTafsirLoading(true);
+                    fetchChapterTafsir(customCurrentReading.bookName, customEffectiveChapter)
+                      .then(text => { setTafsirText(text); setTafsirLoading(false); })
+                      .catch(() => setTafsirLoading(false));
+                  }}
+                  data-testid="button-custom-chapter-tafsir"
+                >
+                  <BookText className="w-4 h-4 ml-1" />
+                  تفسير الإصحاح
+                </Button>
+              </div>
             )}
 
             {chapterSubView === 'verses' && (
@@ -1233,8 +1301,39 @@ export default function Plans() {
             {chapterSubView === 'video' && (
               <div className="mt-2">
                 <h3 className="font-display text-lg font-semibold mb-4 text-center">
-                  استمع للإصحاح — {currentVideoBookName} {currentVideoChapter}
+                  {isChantedMode ? 'استمع مرتلاً' : 'استمع كقراءة'} — {currentVideoBookName} {currentVideoChapter}
                 </h3>
+                <div className="mb-4 pb-3 border-b flex flex-wrap justify-center gap-2" dir="rtl">
+                  {isChantedMode
+                    ? (() => {
+                        const regularId = getVideoId(currentVideoBookName, currentVideoChapter);
+                        if (!regularId) return null;
+                        return (
+                          <Button size="sm" onClick={() => { setIsChantedMode(false); setCurrentVideoId(regularId); setCurrentVideoStart(undefined); setCurrentVideoEnd(undefined); }} style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}>
+                            <Volume2 className="w-4 h-4 ml-1" />استمع كقراءة
+                          </Button>
+                        );
+                      })()
+                    : (() => {
+                        const chanteId = getChanteVideoId(currentVideoBookName, currentVideoChapter);
+                        if (!chanteId) return null;
+                        return (
+                          <Button size="sm" onClick={() => { setIsChantedMode(true); setCurrentVideoId(chanteId.id); setCurrentVideoStart(chanteId.start); setCurrentVideoEnd(chanteId.end); }} style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }}>
+                            <Music className="w-4 h-4 ml-1" />استمع مرتلاً
+                          </Button>
+                        );
+                      })()
+                  }
+                  <Button size="sm" onClick={() => handleLessonClick(currentVideoBookName, currentVideoChapter)} disabled={lessonLoading} style={{ background: '#b45309', color: '#ffffff' }}>
+                    {lessonLoading ? <Loader2 className="w-4 h-4 ml-1 animate-spin" /> : <GraduationCap className="w-4 h-4 ml-1" />}درس كتاب
+                  </Button>
+                  <Button size="sm" style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }} onClick={() => { setTafsirDialogType('intro'); setTafsirBookName(currentVideoBookName); setChapterSubView('tafsir'); setTafsirText(null); setTafsirLoading(true); fetchBookIntro(currentVideoBookName).then(t => { setTafsirText(t); setTafsirLoading(false); }).catch(() => setTafsirLoading(false)); }}>
+                    <BookOpen className="w-4 h-4 ml-1" />مقدمة عن السفر
+                  </Button>
+                  <Button size="sm" style={{ background: 'hsl(345, 55%, 35%)', color: 'hsl(40, 30%, 97%)' }} onClick={() => { setTafsirDialogType('chapter'); setTafsirBookName(currentVideoBookName); setTafsirChapter(currentVideoChapter); setChapterSubView('tafsir'); setTafsirText(null); setTafsirLoading(true); fetchChapterTafsir(currentVideoBookName, currentVideoChapter).then(t => { setTafsirText(t); setTafsirLoading(false); }).catch(() => setTafsirLoading(false)); }}>
+                    <BookText className="w-4 h-4 ml-1" />تفسير الإصحاح
+                  </Button>
+                </div>
                 {currentVideoId ? (
                   <YouTubeCard videoId={currentVideoId} start={currentVideoStart} end={currentVideoEnd} />
                 ) : (
@@ -1462,6 +1561,7 @@ export default function Plans() {
                 setCurrentVideoStart(listenChoiceChante.start);
                 setCurrentVideoEnd(listenChoiceChante.end);
               }
+              setIsChantedMode(true);
               if (listenChoiceSource === 'plan') setVideoReadingIndex(currentReadingIndex);
               else setVideoReadingIndex(customReadingIndex);
               setChapterSubView('video');
@@ -1481,6 +1581,7 @@ export default function Plans() {
               setCurrentVideoId(listenChoiceRegular);
               setCurrentVideoStart(undefined);
               setCurrentVideoEnd(undefined);
+              setIsChantedMode(false);
               if (listenChoiceSource === 'plan') setVideoReadingIndex(currentReadingIndex);
               else setVideoReadingIndex(customReadingIndex);
               setChapterSubView('video');

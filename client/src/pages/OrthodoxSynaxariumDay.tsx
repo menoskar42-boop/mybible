@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useParams, Link } from 'wouter';
-import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import {
   synaxariumMonths,
@@ -10,6 +12,7 @@ import {
   getDayEntries,
   entryTypeIcon,
 } from '@/lib/synaxarium-content';
+import { synaxariumFullStories } from '@/lib/synaxarium-full-stories';
 
 export default function OrthodoxSynaxariumDay() {
   const { monthId: monthIdStr, day: dayStr } = useParams<{ monthId: string; day: string }>();
@@ -17,6 +20,8 @@ export default function OrthodoxSynaxariumDay() {
   const day = parseInt(dayStr || '1', 10);
 
   usePageTracker(`/orthodox/synaxarium/${monthId}/${day}`);
+
+  const [expandedStory, setExpandedStory] = useState<string | null>(null);
 
   const month = getMonthById(monthId);
   const entries = getDayEntries(monthId, day);
@@ -66,12 +71,45 @@ export default function OrthodoxSynaxariumDay() {
               <Card className="p-4">
                 <div className="flex items-start gap-3">
                   <span className="text-xl mt-0.5">{entryTypeIcon[entry.type]}</span>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h2 className="font-semibold text-sm">{entry.name}</h2>
                       <Badge variant="outline" className="text-xs">{entry.type}</Badge>
                     </div>
                     <p className="text-sm leading-relaxed text-muted-foreground">{entry.description}</p>
+
+                    {synaxariumFullStories[entry.name] && (
+                      <div className="mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs gap-1.5 text-primary border-primary/30 hover:bg-primary/5"
+                          onClick={() => setExpandedStory(expandedStory === entry.name ? null : entry.name)}
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          {expandedStory === entry.name ? 'إخفاء القصة' : 'اقرأ القصة الكاملة'}
+                          {expandedStory === entry.name ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </Button>
+
+                        <AnimatePresence>
+                          {expandedStory === entry.name && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mt-3 p-3 bg-muted/40 rounded-lg border border-border/50">
+                                <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">
+                                  {synaxariumFullStories[entry.name]}
+                                </p>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>

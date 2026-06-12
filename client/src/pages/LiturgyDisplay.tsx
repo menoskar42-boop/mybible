@@ -58,7 +58,7 @@ export default function LiturgyDisplay() {
       ? 'arabic'
       : 'script';
 
-  const copticArabicText = COPTIC_ARABIC_MAP[session.sectionKey] ?? null;
+  const copticArabicText = currentSlide?.copticArabicText ?? COPTIC_ARABIC_MAP[session.sectionKey] ?? null;
   const showCopticSide =
     (copticMode === 'script' && !!(currentSlide?.copticText)) ||
     (copticMode === 'arabic' && !!copticArabicText);

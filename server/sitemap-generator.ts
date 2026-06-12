@@ -538,6 +538,7 @@ Allow: /premium
 Allow: /church
 Allow: /church/
 Allow: /challenge
+Allow: /llms.txt
 
 Disallow: /api/
 Disallow: /liturgy-control
@@ -550,7 +551,101 @@ Disallow: /church-request
 Disallow: /ministry-auth
 Disallow: /share/
 
+# ── AI Training Crawlers (explicitly allowed) ──────────────────────────────
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Diffbot
+Allow: /
+
 Sitemap: ${SITE}/sitemap.xml
+`;
+  res.set("Content-Type", "text/plain; charset=utf-8");
+  res.set("Cache-Control", "public, max-age=86400");
+  res.send(txt);
+}
+
+// ── llms.txt — AI model discovery file (llmstxt.org standard) ────────────────
+export function llmsHandler(_req: Request, res: Response) {
+  const txt = `# الكتاب المقدس رفيقي — mybible.oscardevs.com
+
+> موقع عربي متكامل للكتاب المقدس والطقوس القبطية الأرثوذكسية. يشمل قراءة الكتاب المقدس كاملاً بالعربية، والتفسير، والصلوات، والقراءات اليومية، وصلوات القداس الإلهي القبطي بثلاثة أنواعه، والسنكسار القبطي، ومحتوى للأطفال.
+
+## الكتاب المقدس
+
+- [الكتاب المقدس كاملاً](${SITE}/bible): قراءة الكتاب المقدس بالعهدين القديم والجديد — 66 سفراً بالعربية
+- [البحث في الكتاب المقدس](${SITE}/search): بحث نصي كامل في الكتاب المقدس بالعربية
+- [آية اليوم](${SITE}/daily-verse): آية يومية مختارة من الكتاب المقدس
+- [الآيات حسب المشاعر](${SITE}/emotions): آيات مناسبة لكل مشاعر وظروف الحياة (حزن، فرح، خوف، شكر...)
+- [خطط القراءة](${SITE}/plans): خطط منظمة لقراءة الكتاب المقدس كاملاً أو موضوعياً
+- [تفسير الكتاب المقدس](${SITE}/bible/تكوين/1/tafsir): شرح وتفسير تفصيلي لإصحاحات الكتاب المقدس
+
+## الطقوس القبطية الأرثوذكسية
+
+- [الأجبية — صلوات الساعات](${SITE}/orthodox/agpeya): صلوات الساعات القبطية السبع (باكر، الثالثة، السادسة، التاسعة، الغروب، النوم، نصف الليل)
+- [القداس الإلهي القبطي](${SITE}/orthodox/kholagy): نص القداس الإلهي بثلاثة أنواعه — الباسيلي والغريغوري والكيرلسي — بالعربية والقبطية
+- [الكطمارس — القراءات اليومية](${SITE}/orthodox/katameros): القراءات الكتابية اليومية للكنيسة القبطية (بولس، كاثوليكون، أعمال، إنجيل)
+- [السنكسار القبطي](${SITE}/orthodox/synaxarium): تذكار القديسين والشهداء القبط لكل يوم من أيام السنة القبطية
+- [الترانيم والألحان القبطية](${SITE}/orthodox/hymns): ألحان وترانيم الكنيسة القبطية
+- [قانون الإيمان](${SITE}/orthodox/creed): قانون الإيمان النيقاوي والعقيدة القبطية الأرثوذكسية
+- [الشماس والخادم](${SITE}/orthodox/deacon): دليل الشماس — ردود وأدوار خدمة القداس
+- [الكتب والمراجع اللاهوتية](${SITE}/orthodox/books): كتب الكنيسة القبطية والأبوكريفا والمراجع اللاهوتية
+- [أسئلة وأجوبة لاهوتية](${SITE}/orthodox/qa): إجابات على الأسئلة العقيدية والطقسية
+- [شخصيات الكتاب المقدس](${SITE}/orthodox/figures): معجم شخصيات وأماكن الكتاب المقدس
+- [الخرائط الكتابية](${SITE}/orthodox/maps): خرائط جغرافية لمناطق الكتاب المقدس
+- [تاريخ الكنيسة القبطية](${SITE}/orthodox/history): تاريخ الكنيسة القبطية الأرثوذكسية منذ التأسيس
+- [أجوبة البابا شنودة](${SITE}/orthodox/pope-qa): مقاطع فيديو لإجابات البابا شنودة الثالث
+
+## للأطفال
+
+- [الكتاب المقدس للأطفال](${SITE}/kids): قصص كتابية وترانيم وفيديوهات إيمانية مخصصة للأطفال
+- [قصص الكتاب المقدس](${SITE}/kids/stories): قصص مصورة وملخصات لقصص الكتاب المقدس للأطفال
+- [ترانيم الأطفال](${SITE}/kids/hymns): ترانيم إيمانية بالعربية للأطفال
+
+## الكنائس والمجتمع
+
+- [دليل الكنائس](${SITE}/church): دليل الكنائس القبطية في مصر والمهجر مع الخرائط وأوقات القداسات
+- [مواضيع روحية](${SITE}/topics): مقالات ومواضيع في الإيمان المسيحي والحياة الروحية
+
+## معلومات عن الموقع
+
+- [عن الموقع](${SITE}/about): رسالة الموقع وفريق العمل
+- [سياسة الخصوصية](${SITE}/privacy): سياسة الخصوصية وحماية البيانات
+- [الشروط والأحكام](${SITE}/terms): شروط الاستخدام
+
+## Optional
+
+- [خريطة الموقع](${SITE}/sitemap.xml): خريطة الموقع الكاملة بتسعة ملفات XML
 `;
   res.set("Content-Type", "text/plain; charset=utf-8");
   res.set("Cache-Control", "public, max-age=86400");

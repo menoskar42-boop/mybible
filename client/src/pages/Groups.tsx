@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, LogIn, Church, Shield, ShieldCheck, ChevronLeft, Plus, LogOut, Trophy } from 'lucide-react';
+import { Users, LogIn, Church, Shield, ShieldCheck, ChevronLeft, Plus, LogOut, Trophy, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,8 +9,36 @@ import { SEOHead } from '@/components/SEOHead';
 import { getUserGroups, migrateOldStorage, type UserGroupEntry } from '@/lib/user-groups';
 import { getMinistryUser, clearMinistryUser, isAdmin } from '@/lib/ministry-auth';
 
+interface ChatSummary {
+  unreadCount: number;
+  lastMessage: string | null;
+  lastSenderName: string | null;
+  lastTime: string | null;
+  lastMessageId: number;
+}
+
+function getLastReadId(groupCode: string): number {
+  try { return parseInt(localStorage.getItem(`chat_lastread_${groupCode}`) || '0') || 0; } catch { return 0; }
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'الآن';
+  if (mins < 60) return `${mins} د`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} س`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'أمس';
+  if (days < 7) return `${days} أيام`;
+  return d.toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' });
+}
+
 export default function Groups() {
   const [, navigate] = useLocation();
+  const [chatSummaries, setChatSummaries] = useState<Record<string, ChatSummary>>({});
 
   useEffect(() => {
     if (!getMinistryUser()) {
@@ -22,6 +50,18 @@ export default function Groups() {
 
   const user = getMinistryUser();
   const groups = getUserGroups();
+
+  // Fetch chat summaries for all groups
+  useEffect(() => {
+    if (groups.length === 0) return;
+    groups.forEach((g: UserGroupEntry) => {
+      const afterId = getLastReadId(g.groupId);
+      fetch(`/api/groups/${g.groupId}/messages/summary?afterId=${afterId}`)
+        .then(r => r.json())
+        .then(data => setChatSummaries(prev => ({ ...prev, [g.groupId]: data })))
+        .catch(() => {});
+    });
+  }, [groups.length]);
 
   const handleLogout = () => {
     clearMinistryUser();
@@ -56,39 +96,70 @@ export default function Groups() {
           <div className="mb-6">
             <h2 className="font-display text-lg font-bold text-foreground mb-3">مجموعاتي</h2>
             <div className="space-y-3">
-              {groups.map((g: UserGroupEntry) => (
-                <Card
-                  key={g.groupId}
-                  className="p-4 hover:shadow-lg transition-shadow cursor-pointer border-primary/10"
-                  onClick={() => navigate(`/group/${g.groupId}`)}
-                  data-testid={`card-my-group-${g.groupId}`}
-                >
-                  <div className="flex items-center justify-between">
+              {groups.map((g: UserGroupEntry) => {
+                const summary = chatSummaries[g.groupId];
+                const hasUnread = (summary?.unreadCount || 0) > 0;
+                return (
+                  <Card
+                    key={g.groupId}
+                    className={`p-4 hover:shadow-lg transition-shadow cursor-pointer ${hasUnread ? 'border-green-300 dark:border-green-700' : 'border-primary/10'}`}
+                    onClick={() => navigate(`/group/${g.groupId}`)}
+                    data-testid={`card-my-group-${g.groupId}`}
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
-                        <Users className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        {g.churchName && (
-                          <p className="text-xs font-semibold text-muted-foreground">{g.churchName}</p>
+                      {/* Avatar */}
+                      <div className="relative shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow">
+                          <Users className="w-6 h-6 text-white" />
+                        </div>
+                        {hasUnread && (
+                          <div className="absolute -top-1 -left-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                            <span className="text-[10px] text-white font-bold">{summary.unreadCount > 9 ? '9+' : summary.unreadCount}</span>
+                          </div>
                         )}
-                        <h3 className="font-display font-bold text-foreground">{g.groupName || g.groupId}</h3>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {g.role === 'admin' ? (
-                            <Badge variant="secondary" className="text-xs gap-1">
-                              <Shield className="w-3 h-3" />
-                              أدمن
-                            </Badge>
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <h3 className={`font-display font-bold truncate ${hasUnread ? 'text-foreground' : 'text-foreground'}`}>
+                            {g.groupName || g.groupId}
+                          </h3>
+                          {summary?.lastTime && (
+                            <span className={`text-[11px] shrink-0 ${hasUnread ? 'text-green-600 font-semibold' : 'text-muted-foreground'}`}>
+                              {formatRelativeTime(summary.lastTime)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-1 mt-0.5">
+                          {summary?.lastMessage ? (
+                            <p className={`text-xs truncate flex items-center gap-1 ${hasUnread ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                              {summary.lastSenderName && <span className="text-primary font-semibold shrink-0">{summary.lastSenderName}:</span>}
+                              {summary.lastMessage}
+                            </p>
                           ) : (
-                            <Badge variant="outline" className="text-xs">عضو</Badge>
+                            <div className="flex items-center gap-1.5">
+                              {g.role === 'admin' ? (
+                                <Badge variant="secondary" className="text-xs gap-1 py-0">
+                                  <Shield className="w-3 h-3" />أدمن
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs py-0">عضو</Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <MessageCircle className="w-3 h-3" />شات
+                              </span>
+                            </div>
+                          )}
+                          {hasUnread && (
+                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full shrink-0" />
                           )}
                         </div>
                       </div>
                     </div>
-                    <ChevronLeft className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}

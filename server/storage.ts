@@ -184,6 +184,10 @@ export interface IStorage {
   getAllPushSubscriptions(): Promise<schema.PushSubscription[]>;
   savePushSubscription(endpoint: string, p256dh: string, auth: string): Promise<void>;
   deletePushSubscription(endpoint: string): Promise<void>;
+
+  // App Settings (persistent key/value)
+  getAppSetting(key: string): Promise<string | null>;
+  setAppSetting(key: string, value: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1250,6 +1254,19 @@ export class DatabaseStorage implements IStorage {
   async deletePushSubscription(endpoint: string): Promise<void> {
     await this.db.delete(schema.pushSubscriptions)
       .where(eq(schema.pushSubscriptions.endpoint, endpoint));
+  }
+
+  async getAppSetting(key: string): Promise<string | null> {
+    try {
+      const rows = await this.db.select().from(schema.appSettings).where(eq(schema.appSettings.key, key));
+      return rows[0]?.value ?? null;
+    } catch { return null; }
+  }
+
+  async setAppSetting(key: string, value: string): Promise<void> {
+    await this.db.insert(schema.appSettings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: schema.appSettings.key, set: { value, updatedAt: new Date() } });
   }
 }
 

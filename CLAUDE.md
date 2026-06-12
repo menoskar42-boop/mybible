@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## SEO change checklist (MANDATORY)
+
+Any SEO-related change (titles, meta descriptions, H1, schema, snapshot HTML) MUST be followed by a compliance check before committing:
+
+1. **Title ≤ 70 characters** (Bing de-indexes / down-ranks longer titles). Count with Python `len()` on the exact string — `wc -m` miscounts Arabic under some locales.
+2. **Meta description ≤ 160 characters** (avoid truncation).
+3. **No content that violates Google AdSense policies** (no misleading content, no scraped-only pages, must add original value).
+4. **Nothing that triggers "page not fully served / not indexed" in Bing** — ensure bot snapshots render real, unique, indexable content; keep `X-Robots-Tag: index, follow`.
+5. **Verify the exact book/route key** against the real stored name (e.g. Revelation key is `رؤيا يوحنا`, not `الرؤيا`) before adding per-route overrides.
+
+If any change risks an indexing violation, fix it in the same commit. This is a standing rule — apply it every time without being reminded.
+
 ## Commands
 
 ```bash

@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2 } from 'lucide-react';
+import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { OT_BOOKS, NT_BOOKS, OT_FLAT, NT_FLAT, getAutoReadingForDate, todayStr, findFlatIndex, type AutoReadingConfig } from '@/lib/group-auto-reading';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +17,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getUserGroupEntry, addUserGroup, removeUserGroup } from '@/lib/user-groups';
-import { fetchBookIntro, fetchVerseTafsir } from '@/lib/tafsir-csv-service';
+import { fetchBookIntro, fetchVerseTafsir, fetchChapterTafsir } from '@/lib/tafsir-csv-service';
 
 interface GroupData {
   group: any;
@@ -47,15 +50,16 @@ const MIN_SECONDS = 40;
 const MIN_SCROLLS = 5;
 const MIN_DEPTH = 80;
 
-function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userName, isLastChapter, onComplete }: {
+function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userName, chapters, onComplete }: {
   bookName: string;
   chapter: number;
   groupCode: string;
   assignmentId: number | null;
   userName: string;
-  isLastChapter?: boolean;
+  chapters?: number[];
   onComplete: () => void;
 }) {
+  const [currentChapter, setCurrentChapter] = useState(chapter);
   const [verses, setVerses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [elapsed, setElapsed] = useState(0);
@@ -66,13 +70,12 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollTop = useRef(0);
 
-  // تفسير
   const [tafsirOpen, setTafsirOpen] = useState(false);
   const [tafsirTitle, setTafsirTitle] = useState('');
   const [tafsirText, setTafsirText] = useState<string | null>(null);
   const [tafsirLoading, setTafsirLoading] = useState(false);
 
-  const openTafsir = async (type: 'intro' | 'verse', verseNum?: number) => {
+  const openTafsir = async (type: 'intro' | 'verse' | 'chapter', verseNum?: number) => {
     setTafsirOpen(true);
     setTafsirLoading(true);
     setTafsirText(null);
@@ -80,18 +83,41 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
       setTafsirTitle(`مقدمة عن سفر ${bookName}`);
       const text = await fetchBookIntro(bookName);
       setTafsirText(text || 'لا توجد مقدمة متاحة لهذا السفر حالياً');
+    } else if (type === 'chapter') {
+      setTafsirTitle(`تفسير ${bookName} — الإصحاح ${currentChapter}`);
+      const text = await fetchChapterTafsir(bookName, currentChapter);
+      setTafsirText(text || 'لا يوجد تفسير متاح لهذا الإصحاح حالياً');
     } else if (verseNum !== undefined) {
-      setTafsirTitle(`تفسير ${bookName} ${chapter}:${verseNum}`);
-      const text = await fetchVerseTafsir(bookName, chapter, verseNum);
+      setTafsirTitle(`تفسير ${bookName} ${currentChapter}:${verseNum}`);
+      const text = await fetchVerseTafsir(bookName, currentChapter, verseNum);
       setTafsirText(text || 'لا يوجد تفسير متاح لهذه الآية حالياً');
     }
     setTafsirLoading(false);
   };
 
-  const { data: allBooks } = useQuery({
-    queryKey: ['books'],
-    queryFn: api.books.getAll,
-  });
+  const { data: allBooks } = useQuery({ queryKey: ['books'], queryFn: api.books.getAll });
+
+  // Navigate between chapters: reset all reading state
+  const navigateTo = (ch: number) => {
+    setCurrentChapter(ch);
+    setVerses([]);
+    setLoading(true);
+    setElapsed(0);
+    setScrollCount(0);
+    setScrollDepth(0);
+    startTimeRef.current = Date.now();
+    lastScrollTop.current = 0;
+    containerRef.current?.scrollTo(0, 0);
+  };
+
+  // Build nav chapters list
+  const bookData = allBooks?.find((b: any) => b.name === bookName);
+  const totalChapters = bookData?.chaptersCount || 0;
+  const navChapters = (chapters && chapters.length > 0) ? chapters
+    : totalChapters > 0 ? Array.from({ length: totalChapters }, (_, i) => i + 1) : [];
+  const currentIdx = navChapters.indexOf(currentChapter);
+  const hasPrev = currentIdx > 0;
+  const hasNext = currentIdx >= 0 && currentIdx < navChapters.length - 1;
 
   useEffect(() => {
     const loadVerses = async () => {
@@ -99,13 +125,12 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
         if (!allBooks) return;
         const book = allBooks.find((b: any) => b.name === bookName);
         if (!book) { setLoading(false); return; }
-        const data = await api.verses.getByBook(book.id, chapter);
+        const data = await api.verses.getByBook(book.id, currentChapter);
         setVerses(data);
         if (assignmentId !== null) {
           fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/open`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userName, bookName, chapter }),
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userName, bookName, chapter: currentChapter }),
           }).catch(() => {});
         }
       } catch {
@@ -115,7 +140,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
       }
     };
     loadVerses();
-  }, [bookName, chapter, allBooks]);
+  }, [bookName, currentChapter, allBooks]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -141,37 +166,43 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
     };
     el.addEventListener('scroll', handleScroll, { passive: true });
     return () => el.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [loading]);
 
   const condTime = elapsed >= MIN_SECONDS;
   const condScrolls = scrollCount >= MIN_SCROLLS;
   const condDepth = scrollDepth >= MIN_DEPTH;
 
+  const recordReading = async (chap: number, timeSpent: number) => {
+    if (assignmentId !== null) {
+      const res = await fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/read`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName, bookName, chapter: chap, timeSpent, scrollCount, scrollDepth }),
+      });
+      return res.ok ? await res.json() : {};
+    } else {
+      await fetch(`/api/groups/${groupCode}/reading`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userName, book: bookName, chapter: chap, timeSpent, scrollPercent: scrollDepth }),
+      });
+      return {};
+    }
+  };
+
   const handleFinishReading = async () => {
     setCompleting(true);
     const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
     try {
-      if (assignmentId !== null) {
-        const res = await fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/read`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userName, bookName, chapter, timeSpent, scrollCount, scrollDepth }),
-        });
-        const data = res.ok ? await res.json() : {};
-        if (data.allDone) {
-          toast.success('🎉 مبروك! أنهيت كل القراءات المطلوبة اليوم', { duration: 5000 });
-        } else {
-          toast.success(`تم تسجيل قراءة ${bookName} ${chapter} - ${formatTime(timeSpent)}`);
-        }
+      const result = await recordReading(currentChapter, timeSpent);
+      if (result.allDone) {
+        toast.success('🎉 مبروك! أنهيت كل القراءات المطلوبة اليوم', { duration: 5000 });
+        onComplete();
+      } else if (hasNext) {
+        toast.success(`✓ ${bookName} ${currentChapter} - ${formatTime(timeSpent)}`);
+        navigateTo(navChapters[currentIdx + 1]);
       } else {
-        await fetch(`/api/groups/${groupCode}/reading`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userName, book: bookName, chapter, timeSpent, scrollPercent: scrollDepth }),
-        });
-        toast.success(`تم تسجيل قراءة ${bookName} ${chapter} - ${formatTime(timeSpent)}`);
+        toast.success(`تم تسجيل قراءة ${bookName} ${currentChapter} - ${formatTime(timeSpent)}`);
+        onComplete();
       }
-      onComplete();
     } catch {
       toast.error('فشل تسجيل القراءة');
     } finally {
@@ -189,7 +220,7 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
 
   return (
     <div className="space-y-4">
-      {/* مؤشرات القراءة — للمعلومية فقط */}
+      {/* مؤشرات القراءة */}
       <div className="grid grid-cols-3 gap-2">
         <div className={`flex flex-col items-center p-2 rounded-lg text-xs font-semibold border transition-colors ${condTime ? 'bg-green-50 dark:bg-green-950/30 border-green-300 text-green-700' : 'bg-muted/50 border-border text-muted-foreground'}`}>
           <Clock className="w-4 h-4 mb-1" />
@@ -210,37 +241,58 @@ function InlineChapterReader({ bookName, chapter, groupCode, assignmentId, userN
 
       {/* منطقة القراءة */}
       <div ref={containerRef} className="max-h-[60vh] overflow-y-auto rounded-lg border p-4 bg-background" dir="rtl">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-display text-xl font-bold text-primary">{bookName} - الإصحاح {chapter}</h3>
-          <Button variant="outline" size="sm" className="text-xs gap-1 flex-shrink-0" onClick={() => openTafsir('intro')} data-testid="button-book-intro">
-            <BookOpen className="w-3.5 h-3.5" />
-            مقدمة السفر
-          </Button>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-xl font-bold text-primary">{bookName} — الإصحاح {currentChapter}</h3>
+            {navChapters.length > 1 && (
+              <span className="text-xs text-muted-foreground">{currentIdx + 1} / {navChapters.length}</span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 text-sm h-10" onClick={() => openTafsir('intro')} data-testid="button-book-intro">
+              <BookOpen className="w-4 h-4 text-indigo-500" />
+              مقدمة السفر
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-sm h-10" onClick={() => openTafsir('chapter')} data-testid="button-chapter-tafsir">
+              <ScrollText className="w-4 h-4 text-emerald-500" />
+              تفسير الإصحاح
+            </Button>
+          </div>
         </div>
         <div className="space-y-3">
           {verses.map((v: any) => (
-            <div key={v.id} className="group flex gap-2 items-start">
+            <div key={v.id} className="flex gap-2 items-start border-b border-border/30 pb-2 last:border-0">
               <p className="flex-1 text-xl leading-loose font-display">
                 <span className="text-primary font-bold ml-1">{v.verse}</span>
                 {v.text}
               </p>
               <button
                 onClick={() => openTafsir('verse', v.verse)}
-                className="flex-shrink-0 mt-2 opacity-40 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                className="flex-shrink-0 mt-2 flex flex-col items-center gap-0.5 text-muted-foreground hover:text-primary transition-colors px-1"
                 title={`تفسير الآية ${v.verse}`}
                 data-testid={`button-verse-tafsir-${v.verse}`}
               >
-                <BookOpen className="w-3.5 h-3.5" />
+                <BookOpen className="w-4 h-4" />
+                <span className="text-[9px]">تفسير</span>
               </button>
             </div>
           ))}
         </div>
       </div>
 
-      <Button onClick={handleFinishReading} disabled={completing} className="w-full" size="lg" data-testid="button-finish-reading">
-        {completing ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Check className="w-4 h-4 ml-2" />}
-        الانتهاء من القراءة
-      </Button>
+      {/* أزرار التنقل + الإنهاء */}
+      <div className={`grid gap-2 ${hasPrev ? 'grid-cols-[1fr_2fr]' : 'grid-cols-1'}`}>
+        {hasPrev && (
+          <Button variant="outline" size="lg" className="h-14 text-base gap-2" onClick={() => navigateTo(navChapters[currentIdx - 1])} data-testid="button-prev-chapter">
+            <ChevronDown className="w-5 h-5 rotate-90" />
+            السابق
+          </Button>
+        )}
+        <Button onClick={handleFinishReading} disabled={completing} className="h-14 text-lg font-bold" size="lg" data-testid="button-finish-reading">
+          {completing ? <Loader2 className="w-5 h-5 animate-spin ml-2" /> : <Check className="w-5 h-5 ml-2" />}
+          {hasNext ? '✅ اكتملت القراءة — التالي ←' : '✅ اكتملت القراءة'}
+        </Button>
+      </div>
 
       {/* Dialog التفسير */}
       <Dialog open={tafsirOpen} onOpenChange={setTafsirOpen}>
@@ -273,7 +325,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
   const [createOpen, setCreateOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportAssignmentId, setReportAssignmentId] = useState<number | null>(null);
-  const [readingChapter, setReadingChapter] = useState<{ assignmentId: number; bookName: string; chapter: number; isLastChapter: boolean } | null>(null);
+  const [readingChapter, setReadingChapter] = useState<{ assignmentId: number; bookName: string; chapter: number; isLastChapter: boolean; chapters?: number[] } | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number> | null>(null);
   const [completedAssignmentIds, setCompletedAssignmentIds] = useState<Set<number>>(new Set());
 
@@ -438,7 +490,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
           groupCode={groupCode}
           assignmentId={readingChapter.assignmentId}
           userName={userName}
-          isLastChapter={readingChapter.isLastChapter}
+          chapters={readingChapter.chapters}
           onComplete={handleReadComplete}
         />
       </Card>
@@ -493,11 +545,13 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
                   <div className="flex items-center gap-1">
                     {isAdmin && (
                       <>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); setReportAssignmentId(a.id); setReportOpen(true); }} data-testid={`button-report-${a.id}`}>
-                          <Eye className="w-3.5 h-3.5 text-indigo-500" />
+                        <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 text-indigo-600 text-xs" onClick={e => { e.stopPropagation(); setReportAssignmentId(a.id); setReportOpen(true); }} data-testid={`button-report-${a.id}`}>
+                          <Eye className="w-3.5 h-3.5" />
+                          تقرير
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); deleteAssignment(a.id); }} data-testid={`button-delete-assignment-${a.id}`}>
-                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 text-red-500 text-xs" onClick={e => { e.stopPropagation(); deleteAssignment(a.id); }} data-testid={`button-delete-assignment-${a.id}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          حذف
                         </Button>
                       </>
                     )}
@@ -533,26 +587,26 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
                             onClick={() => {
                               if (done) return;
                               const remaining = chapters.filter((c: number) => !isChapterCompleted(a.id, c));
-                              setReadingChapter({ assignmentId: a.id, bookName: a.bookName, chapter: ch, isLastChapter: remaining.length === 1 });
+                              setReadingChapter({ assignmentId: a.id, bookName: a.bookName, chapter: ch, isLastChapter: remaining.length === 1, chapters: remaining });
                             }}
                             disabled={done}
-                            className={`relative p-3 rounded-lg border text-center transition-all ${
+                            className={`relative p-4 rounded-xl border text-center transition-all ${
                               done
                                 ? 'bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-800'
-                                : 'bg-background border-border hover:border-primary hover:shadow-md cursor-pointer'
+                                : 'bg-background border-border hover:border-primary hover:shadow-md cursor-pointer active:scale-95'
                             }`}
                             data-testid={`button-chapter-${a.id}-${ch}`}
                           >
-                            <span className={`font-bold text-lg ${done ? 'text-green-600' : 'text-foreground'}`}>{ch}</span>
+                            <span className={`font-bold text-xl ${done ? 'text-green-600' : 'text-foreground'}`}>{ch}</span>
                             {done && (
                               <div className="mt-1">
-                                <Check className="w-4 h-4 text-green-500 mx-auto" />
+                                <Check className="w-5 h-5 text-green-500 mx-auto" />
                                 {chapterData && (
                                   <span className="text-[10px] text-green-600 block mt-0.5">{formatTime(chapterData.timeSpent)}</span>
                                 )}
                               </div>
                             )}
-                            {!done && <p className="text-[10px] text-muted-foreground mt-1">اضغط للقراءة</p>}
+                            {!done && <p className="text-xs text-primary font-semibold mt-1">▶ اقرأ</p>}
                           </button>
                         );
                       })}
@@ -783,6 +837,104 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
   );
 }
 
+// ── كارت القراءة الموحّد مع التقويم ──────────────────────────────────────────
+function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeTotal }: {
+  autoReading: import('@/lib/group-auto-reading').DayAutoReading;
+  autoConfig: import('@/lib/group-auto-reading').AutoReadingConfig;
+  stats: { totalMembers: number; readToday: number; chaptersRead: number };
+  progress: number;
+  challengeTotal: number;
+}) {
+  const [selectedDate, setSelectedDate] = useState(todayStr());
+  const [showCalendar, setShowCalendar] = useState(false);
+
+  const displayReading = useMemo(() => {
+    try { return getAutoReadingForDate(autoConfig, selectedDate); } catch { return autoReading; }
+  }, [selectedDate, autoConfig, autoReading]);
+
+  const isToday = selectedDate === todayStr();
+
+  return (
+    <Card className="p-5 mb-6" data-testid="card-today-reading">
+      {/* رأس الكارت */}
+      <div className="flex items-center gap-2 mb-4">
+        <Zap className="w-5 h-5 text-amber-500" />
+        <h3 className="font-display font-bold text-lg text-foreground">قراءة اليوم</h3>
+        <div className="mr-auto flex items-center gap-2">
+          {!isToday && (
+            <Badge variant="secondary" className="text-xs">
+              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}
+            </Badge>
+          )}
+          <Button
+            variant="outline" size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={() => setShowCalendar(v => !v)}
+          >
+            📅 {isToday ? 'اليوم' : 'تغيير'}
+          </Button>
+        </div>
+      </div>
+
+      {/* منتقي التاريخ */}
+      {showCalendar && (
+        <div className="mb-4 p-2 border rounded-lg bg-muted/30">
+          <input
+            type="date"
+            value={selectedDate}
+            max={todayStr()}
+            onChange={e => { setSelectedDate(e.target.value); setShowCalendar(false); }}
+            className="w-full text-sm rounded px-2 py-1 border bg-background"
+          />
+          {!isToday && (
+            <Button variant="ghost" size="sm" className="w-full mt-1 text-xs h-7"
+              onClick={() => { setSelectedDate(todayStr()); setShowCalendar(false); }}>
+              العودة لليوم
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* الإصحاحات */}
+      <div className="space-y-2 mb-4">
+        {displayReading.ot.map((c, i) => (
+          <Link key={`ot-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 hover:bg-amber-100 dark:hover:bg-amber-950/40 transition-colors cursor-pointer">
+              <span className="text-base">📖</span>
+              <span className="font-semibold text-foreground">{c.book}</span>
+              <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
+            </div>
+          </Link>
+        ))}
+        {displayReading.nt.map((c, i) => (
+          <Link key={`nt-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors cursor-pointer">
+              <span className="text-base">✝️</span>
+              <span className="font-semibold text-foreground">{c.book}</span>
+              <span className="text-muted-foreground text-sm">الإصحاح {c.chapter}</span>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* إحصاء المجموعة */}
+      <div className="border-t pt-3 flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">{stats.totalMembers} عضو</span>
+        <span className="font-semibold text-green-600">قرأ {stats.readToday} اليوم ✓</span>
+      </div>
+      {challengeTotal > 0 && (
+        <div className="mt-2">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+            <span>تحدي القراءة</span>
+            <span>{stats.chaptersRead} / {challengeTotal}</span>
+          </div>
+          <Progress value={Math.min(progress, 100)} className="h-1.5" />
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function GroupView() {
   const params = useParams<{ groupId: string }>();
   const groupCode = params.groupId || '';
@@ -800,14 +952,28 @@ export default function GroupView() {
   const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
   const [linkJoinMode, setLinkJoinMode] = useState<'approval' | 'auto'>('approval');
   const [linkModeLoading, setLinkModeLoading] = useState(false);
+  const [messagingMode, setMessagingMode] = useState<'all' | 'admin_only'>('all');
+  const [messagingModeLoading, setMessagingModeLoading] = useState(false);
   const [reportActiveOpen, setReportActiveOpen] = useState(false);
   const [reportInactiveOpen, setReportInactiveOpen] = useState(false);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [chatLastMsg, setChatLastMsg] = useState<{ senderName: string; text: string } | null>(null);
 
   const [missionTitle, setMissionTitle] = useState('');
   const [missionBook, setMissionBook] = useState('');
   const [missionStart, setMissionStart] = useState('');
   const [missionEnd, setMissionEnd] = useState('');
   const [missionDeadline, setMissionDeadline] = useState('');
+
+  // ── القراءات التلقائية ──────────────────────────────────────────────────────
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [autoOtChap, setAutoOtChap] = useState(3);
+  const [autoNtChap, setAutoNtChap] = useState(1);
+  const [autoOtBook, setAutoOtBook] = useState(OT_BOOKS[0][0]);
+  const [autoOtChapter, setAutoOtChapter] = useState(1);
+  const [autoNtBook, setAutoNtBook] = useState(NT_BOOKS[0][0]);
+  const [autoNtChapter, setAutoNtChapter] = useState(1);
+  const [autoSaving, setAutoSaving] = useState(false);
 
   const stored = JSON.parse(localStorage.getItem(`group_${groupCode}`) || '{}');
   const userEntry = getUserGroupEntry(groupCode);
@@ -831,6 +997,18 @@ export default function GroupView() {
       setData(d);
       setChallengeTotal(d.group.challengeTotal?.toString() || '');
       setLinkJoinMode((d.group.linkJoinMode as 'approval' | 'auto') || 'approval');
+      setMessagingMode((d.group.messagingMode as 'all' | 'admin_only') || 'all');
+      // تحميل إعداد القراءات التلقائية
+      const arc = d.group.autoReadingConfig;
+      if (arc) {
+        setAutoEnabled(arc.enabled ?? false);
+        setAutoOtChap(arc.otChaptersPerDay ?? 3);
+        setAutoNtChap(arc.ntChaptersPerDay ?? 1);
+        const otEntry = OT_FLAT[arc.otStartIndex ?? 0];
+        const ntEntry = NT_FLAT[arc.ntStartIndex ?? 0];
+        if (otEntry) { setAutoOtBook(otEntry.book); setAutoOtChapter(otEntry.chapter); }
+        if (ntEntry) { setAutoNtBook(ntEntry.book); setAutoNtChapter(ntEntry.chapter); }
+      }
     } catch {
       toast.error('فشل تحميل بيانات المجموعة');
     } finally {
@@ -839,6 +1017,44 @@ export default function GroupView() {
   }, [groupCode]);
 
   useEffect(() => { fetchGroup(); }, [fetchGroup]);
+
+  // جلب ملخص الشات لعرض عداد الرسائل الجديدة
+  useEffect(() => {
+    if (!groupCode) return;
+    const afterId = (() => { try { return parseInt(localStorage.getItem(`chat_lastread_${groupCode}`) || '0') || 0; } catch { return 0; } })();
+    fetch(`/api/groups/${groupCode}/messages/summary?afterId=${afterId}`)
+      .then(r => r.json())
+      .then(d => {
+        setChatUnreadCount(d.unreadCount || 0);
+        if (d.lastMessage && d.lastSenderName) setChatLastMsg({ senderName: d.lastSenderName, text: d.lastMessage });
+      })
+      .catch(() => {});
+  }, [groupCode]);
+
+  // اشتراك تلقائي في إشعارات الجروب
+  useEffect(() => {
+    if (!groupCode || !memberKey || !userName) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    const subscribeToPush = async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const vapidKey = await fetch('/api/push/vapid-key').then(r => r.json()).then(d => d.publicKey).catch(() => null);
+        if (!vapidKey) return;
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey,
+        });
+        await fetch(`/api/groups/${groupCode}/push-subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberKey, userName, subscription: sub.toJSON() }),
+        });
+      } catch {}
+    };
+
+    subscribeToPush();
+  }, [groupCode, memberKey, userName]);
 
   useEffect(() => {
     if (!data || !userName) return;
@@ -952,6 +1168,41 @@ export default function GroupView() {
       refetchJoinRequests();
     } catch {
       toast.error('فشل رفض الطلب');
+    }
+  };
+
+  // القراءة التلقائية لليوم (محسوبة من الإعداد)
+  const todayAutoReading = useMemo(() => {
+    const arc = data?.group?.autoReadingConfig;
+    if (!arc?.enabled) return null;
+    try { return getAutoReadingForDate(arc, todayStr()); } catch { return null; }
+  }, [data?.group?.autoReadingConfig]);
+
+  const saveAutoReading = async (enabled: boolean) => {
+    setAutoSaving(true);
+    try {
+      const otIdx = findFlatIndex(OT_FLAT, autoOtBook, autoOtChapter);
+      const ntIdx = findFlatIndex(NT_FLAT, autoNtBook, autoNtChapter);
+      const config: AutoReadingConfig = {
+        enabled,
+        otChaptersPerDay: autoOtChap,
+        ntChaptersPerDay: autoNtChap,
+        baseDate: todayStr(),
+        otStartIndex: otIdx,
+        ntStartIndex: ntIdx,
+      };
+      const res = await fetch(`/api/groups/${groupCode}/auto-reading`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, config }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(enabled ? 'تم تفعيل القراءات التلقائية' : 'تم إيقاف القراءات التلقائية');
+      fetchGroup();
+    } catch {
+      toast.error('فشل الحفظ');
+    } finally {
+      setAutoSaving(false);
     }
   };
 
@@ -1124,6 +1375,24 @@ export default function GroupView() {
     }
   };
 
+  const handleToggleMessagingMode = async (newMode: 'all' | 'admin_only') => {
+    setMessagingModeLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/messaging-mode`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, mode: newMode }),
+      });
+      if (!res.ok) throw new Error();
+      setMessagingMode(newMode);
+      toast.success(newMode === 'admin_only' ? 'الإرسال للأدمن فقط الآن' : 'كل الأعضاء يستطيعون الإرسال الآن');
+    } catch {
+      toast.error('فشل تحديث الإعداد');
+    } finally {
+      setMessagingModeLoading(false);
+    }
+  };
+
   const handleAddAdmin = async () => {
     if (!addAdminName.trim() || !addAdminPhone.trim()) {
       toast.error('الاسم ورقم الموبايل مطلوبان');
@@ -1239,27 +1508,18 @@ export default function GroupView() {
           {isAdminFinal && <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 gap-1"><Shield className="w-3 h-3" /> أدمن</Badge>}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <Card className="p-5" data-testid="card-today-reading">
-            <div className="flex items-center gap-2 mb-3">
-              <BookOpen className="w-5 h-5 text-primary" />
-              <h3 className="font-display font-bold text-foreground">قراءة اليوم</h3>
-            </div>
-            {todayAssignment ? (
-              <div>
-                <p className="text-lg font-semibold text-primary mb-1">{todayAssignment.bookName}</p>
-                <p className="text-sm text-muted-foreground mb-3">{todayAssignment.chapters?.length} إصحاح</p>
-                <Button size="sm" className="w-full" data-testid="button-read-now"
-                  onClick={() => document.getElementById('assignment-section')?.scrollIntoView({ behavior: 'smooth' })}>
-                  اقرأ الآن
-                </Button>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">لم تُضف قراءة يومية بعد</p>
-            )}
-          </Card>
-
-          <Card className="p-5" data-testid="card-group-stats">
+        {/* ── كارت القراءة الموحّد ──────────────────────────────────────────── */}
+        {todayAutoReading && (
+          <DailyReadingCard
+            autoReading={todayAutoReading}
+            autoConfig={data.group.autoReadingConfig}
+            stats={stats}
+            progress={progress}
+            challengeTotal={group.challengeTotal}
+          />
+        )}
+        {!todayAutoReading && (
+          <Card className="p-5 mb-6" data-testid="card-group-stats">
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="w-5 h-5 text-green-500" />
               <h3 className="font-display font-bold text-foreground">تقدم المجموعة</h3>
@@ -1284,7 +1544,7 @@ export default function GroupView() {
               )}
             </div>
           </Card>
-        </div>
+        )}
 
         <div id="assignment-section">
           <AssignmentSection
@@ -1431,12 +1691,25 @@ export default function GroupView() {
 
           <Link href={`/group/${groupCode}/chat`}>
             <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer h-full" data-testid="card-chat">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-2">
                 <MessageCircle className="w-5 h-5 text-purple-500" />
                 <h3 className="font-display font-bold text-foreground">شات المجموعة</h3>
+                {chatUnreadCount > 0 && (
+                  <Badge className="bg-green-500 text-white text-xs min-w-[20px] text-center mr-auto">
+                    {chatUnreadCount}
+                  </Badge>
+                )}
               </div>
-              <p className="text-sm text-muted-foreground">تواصل مع أعضاء المجموعة وشارك آيات</p>
-              <Button variant="outline" size="sm" className="mt-3 w-full">فتح الشات</Button>
+              {chatLastMsg ? (
+                <p className="text-xs text-muted-foreground truncate">
+                  <span className="font-semibold text-primary">{chatLastMsg.senderName}:</span> {chatLastMsg.text}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">تواصل مع أعضاء المجموعة</p>
+              )}
+              <Button variant="outline" size="sm" className={`mt-3 w-full ${chatUnreadCount > 0 ? 'border-green-400 text-green-700' : ''}`}>
+                {chatUnreadCount > 0 ? `📨 ${chatUnreadCount} رسالة جديدة` : 'فتح الشات'}
+              </Button>
             </Card>
           </Link>
         </div>
@@ -1488,23 +1761,49 @@ export default function GroupView() {
               <DialogTitle className="text-green-700">الأعضاء الذين قرأوا هذا الأسبوع ({leaderReport?.activeMembers?.length || 0})</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
-              {(leaderReport?.activeMembers || []).map((m: any) => (
-                <div key={m.userName} className="border rounded-lg p-3">
-                  <p className="font-bold text-foreground mb-2">{m.userName}</p>
-                  <div className="space-y-2">
-                    {m.chapters.map((ch: any, i: number) => (
-                      <div key={i} className="bg-muted/40 rounded p-2 text-xs space-y-1">
-                        <p className="font-semibold text-sm">{ch.bookName} — إصحاح {ch.chapter}</p>
-                        <div className="grid grid-cols-3 gap-1 text-muted-foreground">
-                          <span>⏱ {Math.round((ch.timeSpent || 0) / 60)} د {(ch.timeSpent || 0) % 60} ث</span>
-                          <span>📜 سكرول: {ch.scrollCount || 0}</span>
-                          <span>📊 عمق: {ch.scrollDepth || 0}%</span>
-                        </div>
+              {(leaderReport?.activeMembers || []).map((m: any) => {
+                const totalTime = (m.chapters || []).reduce((s: number, c: any) => s + (c.timeSpent || 0), 0);
+                const avgDepth = m.chapters?.length ? Math.round((m.chapters || []).reduce((s: number, c: any) => s + (c.scrollDepth || 0), 0) / m.chapters.length) : 0;
+                const genuineCount = (m.chapters || []).filter((c: any) => (c.scrollDepth || 0) >= 80 && (c.timeSpent || 0) >= 60).length;
+                const fastCount = (m.chapters || []).filter((c: any) => (c.timeSpent || 0) < 30).length;
+                return (
+                  <div key={m.userName} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-bold text-foreground">{m.userName}</p>
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">{m.chapters?.length || 0} إصحاح</span>
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">⏱ {Math.floor(totalTime / 60)} د</span>
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded">📊 {avgDepth}%</span>
                       </div>
-                    ))}
+                    </div>
+                    {genuineCount > 0 && <p className="text-xs text-green-600 mb-2">✓ {genuineCount} قراءة متأنية</p>}
+                    {fastCount > 0 && <p className="text-xs text-orange-500 mb-2">⚡ {fastCount} قراءة سريعة جداً</p>}
+                    <div className="space-y-1.5">
+                      {(m.chapters || []).map((ch: any, i: number) => {
+                        const isGenuine = (ch.scrollDepth || 0) >= 80 && (ch.timeSpent || 0) >= 60;
+                        const isFast = (ch.timeSpent || 0) < 30;
+                        const qualityColor = isGenuine ? 'bg-green-50 dark:bg-green-950/30 border-green-200' : isFast ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200' : 'bg-blue-50 dark:bg-blue-950/30 border-blue-200';
+                        const qualityLabel = isGenuine ? '✓ متأنٍ' : isFast ? '⚡ سريع' : '● عادي';
+                        const qualityTextColor = isGenuine ? 'text-green-700' : isFast ? 'text-orange-600' : 'text-blue-700';
+                        return (
+                          <div key={i} className={`rounded p-2 text-xs border ${qualityColor}`}>
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold">{ch.bookName} إصحاح {ch.chapter}</p>
+                              <span className={`font-bold text-xs ${qualityTextColor}`}>{qualityLabel}</span>
+                            </div>
+                            <div className="flex gap-3 mt-1 text-muted-foreground">
+                              <span>⏱ {Math.round((ch.timeSpent || 0) / 60)} د {(ch.timeSpent || 0) % 60} ث</span>
+                              <span>📜 {ch.scrollCount || 0} تمرير</span>
+                              <span>📊 {ch.scrollDepth || 0}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {(!m.chapters?.length) && <p className="text-xs text-muted-foreground">لا توجد تفاصيل متاحة</p>}
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {(!leaderReport?.activeMembers?.length) && (
                 <p className="text-center text-muted-foreground py-4">لا يوجد أعضاء قرأوا هذا الأسبوع</p>
               )}
@@ -1543,6 +1842,112 @@ export default function GroupView() {
                 <Input type="number" min="0" value={challengeTotal} onChange={e => setChallengeTotal(e.target.value)} data-testid="input-challenge-total" />
               </div>
               <Button onClick={updateToday} className="w-full" data-testid="button-save-admin">حفظ التغييرات</Button>
+
+              {/* ── القراءات التلقائية ───────────────────────────────────── */}
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    <Label className="font-bold">القراءات التلقائية اليومية</Label>
+                  </div>
+                  <Switch
+                    checked={autoEnabled}
+                    onCheckedChange={v => { setAutoEnabled(v); if (!v) saveAutoReading(false); }}
+                  />
+                </div>
+
+                {autoEnabled && (
+                  <div className="space-y-3 p-3 rounded-lg bg-muted/40 border">
+                    <p className="text-xs text-muted-foreground">حدّد نقطة البداية وعدد الإصحاحات — سيكمل النظام تلقائياً من بعدها كل يوم</p>
+
+                    {/* العهد القديم */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-amber-600">📖 العهد القديم</Label>
+                      <div className="flex gap-2">
+                        <Select value={autoOtBook} onValueChange={v => { setAutoOtBook(v); setAutoOtChapter(1); }}>
+                          <SelectTrigger className="flex-1 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {OT_BOOKS.map(([name]) => (
+                              <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={String(autoOtChapter)} onValueChange={v => setAutoOtChapter(Number(v))}>
+                          <SelectTrigger className="w-20 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: OT_BOOKS.find(([n]) => n === autoOtBook)?.[1] ?? 1 }, (_, i) => i + 1).map(n => (
+                              <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground w-24">إصحاحات/يوم</Label>
+                        <Select value={String(autoOtChap)} onValueChange={v => setAutoOtChap(Number(v))}>
+                          <SelectTrigger className="w-20 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3,4,5].map(n => <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* العهد الجديد */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-blue-600">✝️ العهد الجديد</Label>
+                      <div className="flex gap-2">
+                        <Select value={autoNtBook} onValueChange={v => { setAutoNtBook(v); setAutoNtChapter(1); }}>
+                          <SelectTrigger className="flex-1 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NT_BOOKS.map(([name]) => (
+                              <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={String(autoNtChapter)} onValueChange={v => setAutoNtChapter(Number(v))}>
+                          <SelectTrigger className="w-20 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: NT_BOOKS.find(([n]) => n === autoNtBook)?.[1] ?? 1 }, (_, i) => i + 1).map(n => (
+                              <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs text-muted-foreground w-24">إصحاحات/يوم</Label>
+                        <Select value={String(autoNtChap)} onValueChange={v => setAutoNtChap(Number(v))}>
+                          <SelectTrigger className="w-20 h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1,2,3].map(n => <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => saveAutoReading(true)}
+                      disabled={autoSaving}
+                      className="w-full h-8 text-xs"
+                      variant="default"
+                    >
+                      {autoSaving ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <RotateCcw className="w-3 h-3 ml-1" />}
+                      اضبط وابدأ من اليوم
+                    </Button>
+                  </div>
+                )}
+              </div>
 
               <div className="border-t pt-4 space-y-3">
                 <div className="flex items-center gap-2">
@@ -1595,6 +2000,34 @@ export default function GroupView() {
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {linkJoinMode === 'auto' ? 'كل من يفتح الرابط ينضم فوراً بدون موافقة' : 'تصلك طلبات ويمكنك قبول أو رفض كل شخص'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">من يستطيع الإرسال في الشات</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={messagingMode === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={messagingModeLoading}
+                      onClick={() => handleToggleMessagingMode('all')}
+                      data-testid="button-messaging-all"
+                    >
+                      كل الأعضاء
+                    </Button>
+                    <Button
+                      variant={messagingMode === 'admin_only' ? 'default' : 'outline'}
+                      size="sm"
+                      className="flex-1 text-xs"
+                      disabled={messagingModeLoading}
+                      onClick={() => handleToggleMessagingMode('admin_only')}
+                      data-testid="button-messaging-admin-only"
+                    >
+                      الأدمن فقط
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {messagingMode === 'admin_only' ? 'الأعضاء يقرأون فقط، الأدمن يرسل' : 'كل الأعضاء يستطيعون إرسال الرسائل'}
                   </p>
                 </div>
               </div>

@@ -24,14 +24,14 @@ function isStandalone(): boolean {
 
 import { registerPushSubscription, unregisterPushSubscription, sendWelcomeNow } from '@/lib/push-notifications';
 
-export function DailyVerse() {
+export function DailyVerse({ date }: { date?: string } = {}) {
   const [saved, setSaved] = useState(false);
   const [generatingImage, setGeneratingImage] = useState(false);
   const [notifState, setNotifState] = useState<NotifState>('idle');
 
   const { data: dailyVerse, isLoading } = useQuery({
-    queryKey: ['dailyVerse'],
-    queryFn: api.dailyVerse.get,
+    queryKey: ['dailyVerse', date],
+    queryFn: date ? () => api.dailyVerse.getByDate(date) : api.dailyVerse.get,
   });
 
   useEffect(() => {
