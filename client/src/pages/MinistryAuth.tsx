@@ -82,7 +82,19 @@ export default function MinistryAuth() {
         toast.success('تم تسجيل الدخول بنجاح');
       }
 
-      navigate('/groups');
+      // التوجيه بعد الدخول:
+      // 1) لو فيه وجهة محفوظة (جاء من رابط/صفحة جروب) → ارجع لها
+      // 2) لو عنده مجموعة واحدة فقط → ادخلها مباشرة
+      // 3) غير ذلك → قائمة المجموعات
+      const redirectTarget = sessionStorage.getItem('postAuthRedirect');
+      if (redirectTarget) {
+        sessionStorage.removeItem('postAuthRedirect');
+        navigate(redirectTarget);
+      } else if (data.groups && data.groups.length === 1) {
+        navigate(`/group/${data.groups[0].groupCode}`);
+      } else {
+        navigate('/groups');
+      }
     } catch (err: any) {
       toast.error(err.message || 'فشل تسجيل الدخول');
     } finally {
