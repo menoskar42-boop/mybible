@@ -263,10 +263,70 @@ export const chanteVideos: Record<string, Record<number, ChanteEntry>> = {
     21: { id: "mGggNOvpVjE", start: 7826, end:  8402 },
     22: { id: "mGggNOvpVjE", start: 8403, end:  9012 },
   },
+  // ── إنجيل متّى – ترنيمة مستوحاة من الكلمة ──────────────────────────────────
+  "متى": {
+    1:  "3QQVuAmzoPg",  2:  "A6NeZmJNqTM",  3:  "eqbPceWiIGg",  4:  "CYA_WhDnN9s",
+    5:  "AoT9NJqFI9I",  6:  "IT5ul7O5ynE",  7:  "Nr6zK15gehg",  8:  "HNQMBUWWBlo",
+    9:  "S5YfADPn7wk",  10: "7Loc7mgeT7Q",  11: "SPaB0rhr660",  12: "6XK1Aw8BSps",
+    13: "bxC2L0mBhLg",  14: "xghOqcqetjc",  15: "GRX3r-zYDZ8",  16: "18G8xG-8N44",
+    17: "Pl4oGxshTCc",  18: "q1zSl4Z-2ns",  19: "wmBoR3ybc-c",  20: "le6Nam6Ca14",
+    21: "SkttoXb5uGM",  22: "5Tz30T9_R5M",  23: "o0AaRW4bygo",  24: "LiZJgziTb-c",
+    25: "-PmiU6XLmK8",  26: "ESjUX-Q-Av0",  27: "IlX4sM5CXBw",  28: "cfYINNDhCCU",
+  },
+  // ── نشيد الأنشاد – حوار النفس مع خالقها ────────────────────────────────────
+  "نشيد الأنشاد": {
+    1: "oDMxco0-s70",
+    4: "urD8a3iDT3g",
+    5: "OgOa5jSL45c",
+    7: "Gw3COiTC6XU",
+    8: "KjEdV0g2fns",
+  },
+  // ── سفر يعقوب ───────────────────────────────────────────────────────────────
+  "يعقوب": {
+    1: "Gt-vfPmbJPU",
+    2: "6xquoyLdDG8",
+    3: "dUM0ljOS__I",
+    4: "e_0gKz24b-E",
+  },
+  // ── أسفار الكمال والأنبياء (فيديو الكتاب كاملاً عند الإصحاح ١) ─────────────
+  "هوشع":             { 1: "IKbDswn1rqc"   },
+  "نحميا":            { 1: "YLUzWG8Rjk4"   },
+  "حزقيال":           { 1: "lSsfL28GBMQ"   },
+  "يشوع بن سيراخ":   { 1: "01QkuSlB36Y"   },
+  "طوبيا":            { 1: "QEDp8uq75oQ"   },
+  "يونان":            { 1: "6Wns4Om4c8c"   },
+};
+
+// ── نسخة القراءة الهادئة (Spoken) ───────────────────────────────────────────
+// أيوب فقط حالياً — لكل إصحاح له نسخة هادئة منفصلة
+export const spokenVideos: Record<string, Record<number, string>> = {
+  "أيوب": {
+    1:  "EQ7U9HjEg-s",   2:  "68a74id9BxE",   3:  "hQPLw-tGLH4",
+    4:  "D8q32yRppbw",   5:  "gOCYj7oYqck",   6:  "MKRS3SfFW4U",
+    7:  "XWnqoKbWgZY",   8:  "VopdNRi9HEs",
+    // ٩ — لا توجد نسخة هادئة منفصلة
+    10: "jm9p0eDMDSY",   11: "qnARqRZ8L20",   12: "V7ma5B0zTNY",
+    13: "UrFPp6uER4Y",   14: "rAiiGNfbBh4",   15: "nNZNER0fZ6I",
+    16: "HECHmAxnZVI",   17: "TmbmpiLf9WE",   18: "Wh4I7tPm5-c",
+    19: "L6jNr93KkeA",   20: "vhuuPIr_z0Q",   21: "JJLYXmvzChk",
+    22: "CHUFa0-WOQ8",   23: "VeSBU_jCcdM",   24: "q_U-rGDvlbE",
+    25: "huR3JTKBZgw",
+    // ٢٦ — لا توجد نسخة هادئة منفصلة
+    27: "mAOC8Iub1IY",   28: "OJpqlcXxYIo",   29: "_qd8XHy3CRg",
+    30: "CtC_IplpDac",   31: "9DGsU8SgFiI",   32: "cGd-JwdbbsM",
+    33: "JXunjvQQ6cM",   34: "v1kziBbbvNE",   35: "wfTmt528wdw",
+    36: "ufKsF0LI_II",   37: "5URIgGdz8NA",   38: "NtxZeHLV_Xc",
+    39: "wJAsvxiAiR8",   40: "ETaSEMBVlJI",   41: "D9ckPJhDnu4",
+    42: "vnKvr76RcOk",
+  },
 };
 
 export function getChanteVideoId(bookName: string, chapter: number): { id: string; start?: number; end?: number } | null {
   const val = chanteVideos[bookName]?.[chapter] ?? null;
   if (!val) return null;
   return typeof val === 'string' ? { id: val } : val;
+}
+
+export function getSpokenVideoId(bookName: string, chapter: number): string | null {
+  return spokenVideos[bookName]?.[chapter] ?? null;
 }

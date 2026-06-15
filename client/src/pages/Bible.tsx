@@ -14,7 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, type BibleBook, type BibleVerse } from '@/lib/api';
 import { fetchBookIntro, fetchChapterTafsir, fetchVerseTafsir } from '@/lib/tafsir-csv-service';
 import { getVideoId } from '@/lib/video-links-data';
-import { getChanteVideoId } from '@/lib/chanted-videos-data';
+import { getChanteVideoId, getSpokenVideoId } from '@/lib/chanted-videos-data';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { getDaoudLameiLessons, refreshDaoudLameiCache } from '@/lib/daoud-lamei-rss';
 import { getBibleChapterSEO, getTafsirSEO, getVerseTafsirSEO } from '@/lib/seo-config';
@@ -854,6 +854,26 @@ export default function Bible() {
                         );
                       })()
                   }
+                  {/* Spoken (quiet reading) button */}
+                  {(() => {
+                    const spokenId = selectedBook ? getSpokenVideoId(selectedBook.name, selectedChapter) : null;
+                    if (!spokenId) return null;
+                    return (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setIsChantedMode(true);
+                          setCurrentVideoId(spokenId);
+                          setCurrentVideoStart(undefined);
+                          setCurrentVideoEnd(undefined);
+                        }}
+                        style={{ background: 'hsl(210, 50%, 35%)', color: 'hsl(40, 30%, 97%)' }}
+                      >
+                        <Volume2 className="w-4 h-4 ml-1" />
+                        قراءة هادئة
+                      </Button>
+                    );
+                  })()}
                   <Button
                     size="sm"
                     onClick={handleLessonClick}
