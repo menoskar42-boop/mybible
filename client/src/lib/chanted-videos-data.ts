@@ -454,6 +454,14 @@ export const chanteVideos: Record<string, Record<number, ChanteEntry>> = {
 // ── نسخة القراءة الهادئة (Spoken) ───────────────────────────────────────────
 // أيوب فقط حالياً — لكل إصحاح له نسخة هادئة منفصلة
 export const spokenVideos: Record<string, Record<number, string>> = {
+  "رومية": {
+    1:  "ySUKQRqnIhc",   2:  "-K-YKbNEtI8",   3:  "F0OsvQPToWo",
+    4:  "GGIdsb2ywU4",   5:  "tA89mDiJ-nQ",   6:  "rURz6eRSBDA",
+    7:  "wDhD02UI8Nk",   8:  "WKQ5HH8PqpY",   9:  "YOngrB5eBa0",
+    10: "McPU_s9o1ps",   11: "NkCylCLbaX0",   12: "mmYOnt_a9MQ",
+    13: "XR9-a1a5PJY",   14: "e1KeRoTuB9k",   15: "e1fsPkHX9Z4",
+    16: "HKO2jxfndLw",
+  },
   "أيوب": {
     1:  "EQ7U9HjEg-s",   2:  "68a74id9BxE",   3:  "hQPLw-tGLH4",
     4:  "D8q32yRppbw",   5:  "gOCYj7oYqck",   6:  "MKRS3SfFW4U",
