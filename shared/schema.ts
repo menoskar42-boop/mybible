@@ -263,7 +263,12 @@ export const groupMembers = pgTable("group_members", {
   isAdmin: boolean("is_admin").default(false),
   isMuted: boolean("is_muted").default(false),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // منع تكرار نفس رقم الموبايل في نفس المجموعة
+  groupPhoneUniqueIdx: uniqueIndex("gm_group_phone_unique_idx")
+    .on(table.groupId, table.phone)
+    .where(sql`phone IS NOT NULL`),
+}));
 
 export const groupGuestTokens = pgTable("group_guest_tokens", {
   id: serial("id").primaryKey(),

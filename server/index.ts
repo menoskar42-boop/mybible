@@ -212,6 +212,31 @@ app.use((req, res, next) => {
         updated_at timestamp default now()
       )`).catch(e => console.warn('[migration] app_settings:', e.message));
 
+      // تنظيف الأعضاء المكررين بنفس رقم الموبايل في المجموعة الواحدة
+      // يحتفظ بالأدمن إن وُجد، وإلا بالأحدث تاريخاً
+      pgPool.query(`
+        DELETE FROM group_members gm
+        WHERE gm.phone IS NOT NULL
+          AND gm.id NOT IN (
+            SELECT DISTINCT ON (group_id, phone)
+              CASE WHEN bool_or(is_admin) OVER (PARTITION BY group_id, phone)
+                   THEN first_value(id) OVER (PARTITION BY group_id, phone ORDER BY is_admin DESC, joined_at DESC)
+                   ELSE first_value(id) OVER (PARTITION BY group_id, phone ORDER BY joined_at DESC)
+              END
+            FROM group_members
+            WHERE phone IS NOT NULL
+          )
+      `).then(r => {
+        if (r.rowCount) console.log(`[startup] removed ${r.rowCount} duplicate group member(s) with same phone`);
+      }).catch(e => console.warn('[migration] dedup group_members:', e.message));
+
+      // إضافة unique index على (group_id, phone) لمنع التكرار مستقبلاً
+      pgPool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS gm_group_phone_unique_idx
+        ON group_members (group_id, phone)
+        WHERE phone IS NOT NULL
+      `).catch(e => console.warn('[migration] gm_group_phone_unique_idx:', e.message));
+
       // Run database seeding in the background after server starts
       console.log('[startup] Starting background database seed...');
       autoSeedIfNeeded()
