@@ -377,15 +377,27 @@ export function registerGroupRoutes(app: Express) {
         return res.status(404).json({ error: 'المجموعة غير موجودة' });
       }
 
+      // البحث بالتليفون أولاً (أدق — يضمن إرجاع إنتري الأدمن الصح)
+      const normalizedJoinPhone = phone.trim().replace(/\s+/g, '');
+      const existingByPhone = await db.select().from(groupMembers)
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.phone, normalizedJoinPhone)));
+      if (existingByPhone.length > 0) {
+        const found = existingByPhone[0];
+        if (!found.userName || found.userName !== userName.trim()) {
+          await db.update(groupMembers).set({ userName: userName.trim() }).where(eq(groupMembers.id, found.id));
+        }
+        return res.json({ group, member: { ...found, userName: userName.trim() }, status: 'already_member' });
+      }
+
+      // البحث بالاسم كـ fallback
       const existing = await db.select().from(groupMembers)
         .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, userName)));
       if (existing.length > 0) {
-        // Update phone if missing
         if (!existing[0].phone && phone) {
-          await db.update(groupMembers).set({ phone: phone.trim() })
+          await db.update(groupMembers).set({ phone: normalizedJoinPhone })
             .where(eq(groupMembers.id, existing[0].id));
         }
-        return res.json({ group, member: { ...existing[0], phone: phone.trim() }, status: 'already_member' });
+        return res.json({ group, member: { ...existing[0], phone: normalizedJoinPhone }, status: 'already_member' });
       }
 
       const pendingRequest = await db.select().from(groupJoinRequests)
