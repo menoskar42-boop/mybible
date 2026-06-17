@@ -26,10 +26,25 @@ interface GroupData {
   stats: { totalMembers: number; readToday: number; chaptersRead: number };
 }
 
-function getBadge(count: number): { label: string; color: string } | null {
-  if (count >= 100) return { label: 'قارئ أمين', color: 'bg-amber-500 text-white' };
-  if (count >= 25) return { label: 'قارئ نشيط', color: 'bg-green-500 text-white' };
-  if (count >= 4) return { label: 'قارئ مبتدئ', color: 'bg-blue-500 text-white' };
+function RankStars({ count }: { count: number }) {
+  if (count >= 100) return (
+    <span className="inline-flex gap-px" title="قارئ أمين — ١٠٠ إصحاح فأكثر">
+      <span className="text-amber-400 text-base leading-none">★</span>
+      <span className="text-amber-400 text-base leading-none">★</span>
+      <span className="text-amber-400 text-base leading-none">★</span>
+    </span>
+  );
+  if (count >= 25) return (
+    <span className="inline-flex gap-px" title="قارئ نشيط — ٢٥ إصحاح فأكثر">
+      <span className="text-yellow-400 text-base leading-none">★</span>
+      <span className="text-yellow-400 text-base leading-none">★</span>
+    </span>
+  );
+  if (count >= 4) return (
+    <span className="inline-flex gap-px" title="قارئ مبتدئ — ٤ إصحاحات فأكثر">
+      <span className="text-blue-400 text-base leading-none">★</span>
+    </span>
+  );
   return null;
 }
 
@@ -1845,24 +1860,21 @@ export default function GroupView() {
               <h3 className="font-display font-bold text-foreground">ترتيب القراءة في المجموعة</h3>
             </div>
             <div className="space-y-2">
-              {leaderboard.map((entry: any, i: number) => {
-                const badge = getBadge(entry.chaptersReadCount);
-                return (
-                  <div key={entry.userName} className={`flex items-center justify-between py-2 px-3 rounded-lg ${i < 3 ? 'bg-amber-50 dark:bg-amber-950/20' : ''}`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold w-8 text-center">{getMedal(i)}</span>
-                      <span className="font-medium text-sm">{entry.userName}</span>
-                      {badge && (
-                        <Badge className={`text-xs ${badge.color}`}>
-                          <Award className="w-3 h-3 ml-0.5" />
-                          {badge.label}
-                        </Badge>
-                      )}
-                    </div>
-                    <span className="text-sm font-semibold text-muted-foreground">{entry.chaptersReadCount} إصحاح</span>
+              {leaderboard.map((entry: any, i: number) => (
+                <div key={entry.userName} className={`flex items-center justify-between py-2 px-3 rounded-lg ${i < 3 ? 'bg-amber-50 dark:bg-amber-950/20' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold w-8 text-center">{getMedal(i)}</span>
+                    <span className="font-medium text-sm">{entry.userName}</span>
+                    <RankStars count={entry.chaptersReadCount} />
                   </div>
-                );
-              })}
+                  <span className="text-sm font-semibold text-muted-foreground">{entry.chaptersReadCount} إصحاح</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-4 text-xs text-muted-foreground mt-3 pt-2 border-t border-border/50 flex-wrap justify-center">
+              <span className="flex items-center gap-1"><span className="text-blue-400">★</span> قارئ مبتدئ (٤+)</span>
+              <span className="flex items-center gap-1"><span className="text-yellow-400">★★</span> قارئ نشيط (٢٥+)</span>
+              <span className="flex items-center gap-1"><span className="text-amber-400">★★★</span> قارئ أمين (١٠٠+)</span>
             </div>
           </Card>
         )}
