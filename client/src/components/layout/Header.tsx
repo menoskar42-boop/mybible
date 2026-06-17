@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sun, Moon, Crown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getUserGroups } from '@/lib/user-groups';
 
 interface HeaderProps {
   isPremium?: boolean;
@@ -21,9 +22,22 @@ const navItems = [
   { href: '/family', label: 'ركن العائلة' },
   { href: '/service', label: 'قسم الخدمة' },
   { href: '/highlights', label: 'آياتي' },
-  { href: '/church', label: 'مجتمع مدارس الأحد' },
+  { href: '/church', label: 'مجتمع مدارس الأحد', community: true },
   { href: '/search', label: 'بحث' },
 ];
+
+// وجهة رابط "مجتمع مدارس الأحد" حسب عضوية المستخدم:
+// بدون مجموعات → تصفّح الكنائس (سلوك عام للزوار)
+// مجموعة واحدة → الدخول مباشرة للجروب (تماماً كرابط الدعوة)
+// أكثر من مجموعة → صفحة مجموعاتي للاختيار
+function resolveCommunityHref(): string {
+  try {
+    const groups = getUserGroups();
+    if (groups.length === 1) return `/group/${groups[0].groupId}`;
+    if (groups.length > 1) return '/groups';
+  } catch {}
+  return '/church';
+}
 
 export function Header({ isPremium = false, onToggleTheme, isDark = false }: HeaderProps) {
   const [location] = useLocation();
@@ -45,7 +59,7 @@ export function Header({ isPremium = false, onToggleTheme, isDark = false }: Hea
 
           <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
+              <Link key={item.href} href={item.community ? resolveCommunityHref() : item.href}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -113,7 +127,7 @@ export function Header({ isPremium = false, onToggleTheme, isDark = false }: Hea
           >
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
               {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
+                <Link key={item.href} href={item.community ? resolveCommunityHref() : item.href}>
                   <Button
                     variant="ghost"
                     className={cn(
