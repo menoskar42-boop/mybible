@@ -29,7 +29,7 @@ interface GroupData {
 function getBadge(count: number): { label: string; color: string } | null {
   if (count >= 100) return { label: 'قارئ أمين', color: 'bg-amber-500 text-white' };
   if (count >= 25) return { label: 'قارئ نشيط', color: 'bg-green-500 text-white' };
-  if (count >= 5) return { label: 'قارئ مبتدئ', color: 'bg-blue-500 text-white' };
+  if (count >= 4) return { label: 'قارئ مبتدئ', color: 'bg-blue-500 text-white' };
   return null;
 }
 
