@@ -26,6 +26,13 @@ function getTafsirDir(): string {
   return path.resolve(process.cwd(), "client", "public", "tafsir");
 }
 
+function getTafsirPartsDir(): string {
+  if (process.env.NODE_ENV === "production") {
+    return path.resolve(__dirname, "public", "tafsir-parts");
+  }
+  return path.resolve(process.cwd(), "client", "public", "tafsir-parts");
+}
+
 function parseCSV(text: string): TafsirEntry[] {
   const entries: TafsirEntry[] = [];
   const lines = text.split("\n");
@@ -108,23 +115,51 @@ function loadEntries(csvName: string): TafsirEntry[] | null {
   const tafsirDir = getTafsirDir();
   const filePath = path.join(tafsirDir, `${csvName}.csv`);
 
-  if (!fs.existsSync(filePath)) {
-    console.log(`[tafsir] File not found: ${filePath}`);
-    return null;
+  if (fs.existsSync(filePath)) {
+    try {
+      evictCache();
+      const text = fs.readFileSync(filePath, "utf-8");
+      const entries = parseCSV(text);
+      tafsirCache[csvName] = entries;
+      cacheOrder.push(csvName);
+      console.log(`[tafsir] Loaded ${entries.length} entries for ${csvName} (cache: ${cacheOrder.length})`);
+      return entries;
+    } catch (err) {
+      console.error(`[tafsir] Error reading ${filePath}:`, err);
+      return null;
+    }
   }
 
-  try {
-    evictCache();
-    const text = fs.readFileSync(filePath, "utf-8");
-    const entries = parseCSV(text);
-    tafsirCache[csvName] = entries;
-    cacheOrder.push(csvName);
-    console.log(`[tafsir] Loaded ${entries.length} entries for ${csvName} (cache: ${cacheOrder.length})`);
-    return entries;
-  } catch (err) {
-    console.error(`[tafsir] Error reading ${filePath}:`, err);
-    return null;
+  // Fallback: look for split part files in tafsir-parts/ directory
+  // e.g. مزامير_1_30.csv, مزامير_31_60.csv, ...
+  const partsDir = getTafsirPartsDir();
+  if (fs.existsSync(partsDir)) {
+    const partFiles = fs.readdirSync(partsDir)
+      .filter(f => f.startsWith(`${csvName}_`) && f.endsWith(".csv"))
+      .sort();
+
+    if (partFiles.length > 0) {
+      try {
+        evictCache();
+        const allEntries: TafsirEntry[] = [];
+        for (const partFile of partFiles) {
+          const partPath = path.join(partsDir, partFile);
+          const text = fs.readFileSync(partPath, "utf-8");
+          allEntries.push(...parseCSV(text));
+        }
+        tafsirCache[csvName] = allEntries;
+        cacheOrder.push(csvName);
+        console.log(`[tafsir] Loaded ${allEntries.length} entries for ${csvName} from ${partFiles.length} parts (cache: ${cacheOrder.length})`);
+        return allEntries;
+      } catch (err) {
+        console.error(`[tafsir] Error reading parts for ${csvName}:`, err);
+        return null;
+      }
+    }
   }
+
+  console.log(`[tafsir] File not found: ${filePath}`);
+  return null;
 }
 
 export function getBookIntro(csvName: string): string | null {
@@ -479,11 +514,24 @@ export function getVerseTafsir(
 }
 
 export function listAvailableBooks(): string[] {
-  const tafsirDir = getTafsirDir();
-  if (!fs.existsSync(tafsirDir)) return [];
+  const books = new Set<string>();
 
-  return fs
-    .readdirSync(tafsirDir)
-    .filter((f) => f.endsWith(".csv"))
-    .map((f) => f.replace(".csv", ""));
+  const tafsirDir = getTafsirDir();
+  if (fs.existsSync(tafsirDir)) {
+    fs.readdirSync(tafsirDir)
+      .filter((f) => f.endsWith(".csv"))
+      .forEach((f) => books.add(f.replace(".csv", "")));
+  }
+
+  const partsDir = getTafsirPartsDir();
+  if (fs.existsSync(partsDir)) {
+    fs.readdirSync(partsDir)
+      .filter((f) => f.endsWith(".csv"))
+      .forEach((f) => {
+        const match = f.match(/^(.+)_\d+_\d+\.csv$/);
+        if (match) books.add(match[1]);
+      });
+  }
+
+  return Array.from(books).sort();
 }
