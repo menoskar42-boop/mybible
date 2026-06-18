@@ -105,7 +105,54 @@ function parseCSV(text: string): TafsirEntry[] {
   return entries;
 }
 
-function loadEntries(csvName: string): TafsirEntry[] | null {
+// Returns the single part file in tafsir-parts/ that covers `chapter`, or null.
+function findPartFile(csvName: string, chapter: number): string | null {
+  const partsDir = getTafsirPartsDir();
+  if (!fs.existsSync(partsDir)) return null;
+  const partFiles = fs.readdirSync(partsDir)
+    .filter(f => f.startsWith(`${csvName}_`) && f.endsWith(".csv"));
+  for (const f of partFiles) {
+    const m = f.match(/_(\d+)_(\d+)\.csv$/);
+    if (!m) continue;
+    const lo = parseInt(m[1], 10);
+    const hi = parseInt(m[2], 10);
+    if (chapter >= lo && chapter <= hi) return path.join(partsDir, f);
+  }
+  return null;
+}
+
+// Cache key for a specific part (e.g. "مزامير:part:1_30")
+function partCacheKey(csvName: string, filePath: string): string {
+  return `${csvName}:part:${path.basename(filePath)}`;
+}
+
+function loadEntries(csvName: string, chapter?: number): TafsirEntry[] | null {
+  // If chapter is given and a split-parts directory exists for this book,
+  // load only the part file that covers this chapter (saves ~80% RAM).
+  if (chapter !== undefined) {
+    const partFile = findPartFile(csvName, chapter);
+    if (partFile) {
+      const key = partCacheKey(csvName, partFile);
+      if (tafsirCache[key]) {
+        const idx = cacheOrder.indexOf(key);
+        if (idx > -1) { cacheOrder.splice(idx, 1); cacheOrder.push(key); }
+        return tafsirCache[key];
+      }
+      try {
+        evictCache();
+        const text = fs.readFileSync(partFile, "utf-8");
+        const entries = parseCSV(text);
+        tafsirCache[key] = entries;
+        cacheOrder.push(key);
+        console.log(`[tafsir] Loaded ${entries.length} entries for ${key} (cache: ${cacheOrder.length})`);
+        return entries;
+      } catch (err) {
+        console.error(`[tafsir] Error reading part ${partFile}:`, err);
+        return null;
+      }
+    }
+  }
+
   if (tafsirCache[csvName]) {
     const idx = cacheOrder.indexOf(csvName);
     if (idx > -1) { cacheOrder.splice(idx, 1); cacheOrder.push(csvName); }
@@ -130,40 +177,12 @@ function loadEntries(csvName: string): TafsirEntry[] | null {
     }
   }
 
-  // Fallback: look for split part files in tafsir-parts/ directory
-  // e.g. مزامير_1_30.csv, مزامير_31_60.csv, ...
-  const partsDir = getTafsirPartsDir();
-  if (fs.existsSync(partsDir)) {
-    const partFiles = fs.readdirSync(partsDir)
-      .filter(f => f.startsWith(`${csvName}_`) && f.endsWith(".csv"))
-      .sort();
-
-    if (partFiles.length > 0) {
-      try {
-        evictCache();
-        const allEntries: TafsirEntry[] = [];
-        for (const partFile of partFiles) {
-          const partPath = path.join(partsDir, partFile);
-          const text = fs.readFileSync(partPath, "utf-8");
-          allEntries.push(...parseCSV(text));
-        }
-        tafsirCache[csvName] = allEntries;
-        cacheOrder.push(csvName);
-        console.log(`[tafsir] Loaded ${allEntries.length} entries for ${csvName} from ${partFiles.length} parts (cache: ${cacheOrder.length})`);
-        return allEntries;
-      } catch (err) {
-        console.error(`[tafsir] Error reading parts for ${csvName}:`, err);
-        return null;
-      }
-    }
-  }
-
   console.log(`[tafsir] File not found: ${filePath}`);
   return null;
 }
 
 export function getBookIntro(csvName: string): string | null {
-  const entries = loadEntries(csvName);
+  const entries = loadEntries(csvName, 1);
   if (!entries) return null;
 
   const v1Entry = entries.find((e) => e.chapter === 1 && e.verse === 1);
@@ -184,7 +203,7 @@ export function getChapterTafsir(
   csvName: string,
   chapter: number
 ): string | null {
-  const entries = loadEntries(csvName);
+  const entries = loadEntries(csvName, chapter);
   if (!entries) return null;
 
   const chapterEntries = entries.filter((e) => e.chapter === chapter);
@@ -470,7 +489,7 @@ export function getVerseTafsir(
   chapter: number,
   verse: number
 ): string | null {
-  const entries = loadEntries(csvName);
+  const entries = loadEntries(csvName, chapter);
   if (!entries) return null;
 
   const chapterEntries = entries.filter((e) => e.chapter === chapter);
