@@ -521,7 +521,7 @@ export default function GroupChat() {
 
                             {/* Message text */}
                             {m.message && (
-                              <p className="text-base whitespace-pre-wrap leading-relaxed">{m.message}</p>
+                              <p className="text-base whitespace-pre-wrap leading-relaxed">{m.message.replace(/\n{3,}/g, '\n\n')}</p>
                             )}
 
                             {/* Footer: time + admin actions */}
