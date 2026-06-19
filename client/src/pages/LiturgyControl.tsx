@@ -249,10 +249,28 @@ export default function LiturgyControl() {
     if (session.slideIndex > 0) {
       pushSession({ slideIndex: session.slideIndex - 1, deaconOverride: null });
     } else if (prevSection) {
-      const prevSlides = getSplitSlidesForSection(session.liturgyType, prevSection.sectionKey, session.occasion, session.seasonalLitany);
-      pushSession({ sectionKey: prevSection.sectionKey, slideIndex: prevSlides.length - 1, deaconOverride: null });
+      // لأقسام القراءات: نحسب عدد الشرائح الفعلي (مقدمة + قراءة + خاتمة) لا عدد kholagy
+      const prevReadingType = READINGS_SECTION_KEYS.has(prevSection.sectionKey) ? getReadingType(prevSection.sectionKey) : null;
+      const prevReadingData = prevReadingType && _activeReadings ? (_activeReadings as Record<string, { title: string; slides: string[] }>)[prevReadingType] : null;
+      let prevLastIdx: number;
+      if (prevReadingData?.slides?.length) {
+        const prevPrelude = getPreludeSlidesForSection(session.liturgyType, prevSection.sectionKey, session.occasion, session.seasonalLitany);
+        const prevPostlude = getPostludeSlidesForSection(prevSection.sectionKey, session.occasion);
+        prevLastIdx = prevPrelude.length + prevReadingData.slides.length + prevPostlude.length - 1;
+      } else {
+        const prevSlides = getSplitSlidesForSection(session.liturgyType, prevSection.sectionKey, session.occasion, session.seasonalLitany);
+        prevLastIdx = Math.max(0, prevSlides.length - 1);
+      }
+      pushSession({ sectionKey: prevSection.sectionKey, slideIndex: prevLastIdx, deaconOverride: null });
     }
   }
+
+  // إذا كان slideIndex خارج نطاق الشرائح الحالية (مثلاً بعد تحميل قراءات اليوم)، نعود للشريحة الأولى
+  useEffect(() => {
+    if (!session.deaconOverride && currentSlides.length > 0 && session.slideIndex >= currentSlides.length) {
+      pushSession({ slideIndex: 0 });
+    }
+  }, [session.sectionKey, session.slideIndex, currentSlides.length]);
 
   function injectDeacon(resp: DeaconResponse) {
     pushSession({ deaconOverride: resp });
