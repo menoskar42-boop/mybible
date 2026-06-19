@@ -122,11 +122,34 @@
   console.log('⏳ This will take about 5 minutes (30 pages × 10 seconds each)...');
 
   for (let day = 1; day <= 30; day++) {
-    const url = `${BASE}/${day}-Bawoonah.html`;
+    // Try zero-padded first (01, 02, ...), then non-padded (1, 2, ...)
+    const dayPadded = String(day).padStart(2, '0');
+    const urlPadded = `${BASE}/${dayPadded}-Bawoonah.html`;
+    const urlPlain  = `${BASE}/${day}-Bawoonah.html`;
+
+    let html = null;
+    for (const url of [urlPadded, urlPlain]) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        // Decode as Windows-1256 (Arabic Windows encoding used by st-takla.org)
+        const buffer = await res.arrayBuffer();
+        const decoded = new TextDecoder('windows-1256').decode(buffer);
+        // Verify it's the right page (not a 404 redirect)
+        if (decoded.includes('no longer exists') || decoded.includes('غير متاح')) continue;
+        html = decoded;
+        break;
+      } catch {}
+    }
+
+    if (!html) {
+      console.warn(`⚠️  بؤونة ${day}: page not found`);
+      results.push({ day, entries: [], error: 'page not found' });
+      await delay(800);
+      continue;
+    }
+
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const html = await res.text();
       const entries = parsePage(html);
       results.push({ day, entries });
 
