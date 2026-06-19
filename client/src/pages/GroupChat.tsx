@@ -39,7 +39,7 @@ function compressImage(file: File): Promise<string> {
     reader.onload = e => {
       const img = new window.Image();
       img.onload = () => {
-        const MAX = 800;
+        const MAX = 600;
         let { width, height } = img;
         if (width > MAX || height > MAX) {
           if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
@@ -48,7 +48,7 @@ function compressImage(file: File): Promise<string> {
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
         canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        resolve(canvas.toDataURL('image/jpeg', 0.5));
       };
       img.onerror = reject;
       img.src = e.target!.result as string;
@@ -516,6 +516,7 @@ export default function GroupChat() {
                                 className="rounded-lg max-w-full mb-1 cursor-pointer"
                                 style={{ maxHeight: 280 }}
                                 onClick={() => window.open(m.imageUrl!, '_blank')}
+                                onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
                             )}
 
