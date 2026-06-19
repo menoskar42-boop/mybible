@@ -292,14 +292,31 @@ export default function LiturgyControl() {
     if (q.trim().length < 2) return [];
     const lower = normalizeArabic(q).toLowerCase();
     const sections = getSectionsForLiturgy(session.liturgyType);
+    const activeReadings = session.readingsOverride as Record<string, { title: string; slides: string[] }> | null;
     const hits: SearchHit[] = [];
     for (const sec of sections) {
-      const slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion, session.seasonalLitany);
+      const readingType = READINGS_SECTION_KEYS.has(sec.sectionKey) ? getReadingType(sec.sectionKey) : null;
+      const readingData = readingType && activeReadings ? activeReadings[readingType] : null;
+
+      let slides: LiturgySlide[];
+      if (readingData?.slides?.length) {
+        const prelude = getPreludeSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion, session.seasonalLitany);
+        const postlude = getPostludeSlidesForSection(sec.sectionKey, session.occasion);
+        const readingSlides: LiturgySlide[] = readingData.slides.map((text, i) => ({
+          id: `reading-${readingType}-${i}`,
+          title: readingData.title,
+          role: 'deacon' as const,
+          text,
+        }));
+        slides = [...prelude, ...readingSlides, ...postlude];
+      } else {
+        slides = getSplitSlidesForSection(session.liturgyType, sec.sectionKey, session.occasion, session.seasonalLitany);
+      }
+
       for (let i = 0; i < slides.length; i++) {
         const s = slides[i];
         const haystack = normalizeArabic(s.text + ' ' + (s.copticText ?? '') + ' ' + (s.copticArabicText ?? '') + ' ' + s.title).toLowerCase();
         if (!haystack.includes(lower)) continue;
-        // البريفيو دائماً من النص العربي — النص القبطي للمطابقة فقط وليس للعرض
         const inArabic = normalizeArabic(s.text).toLowerCase().includes(lower);
         const pos = inArabic
           ? Math.max(0, normalizeArabic(s.text).toLowerCase().indexOf(lower))
