@@ -27,25 +27,22 @@ interface GroupData {
 }
 
 function RankStars({ count }: { count: number }) {
-  if (count >= 100) return (
-    <span className="inline-flex gap-px" title="قارئ أمين — ١٠٠ إصحاح فأكثر">
-      <span className="text-amber-400 text-base leading-none">★</span>
-      <span className="text-amber-400 text-base leading-none">★</span>
-      <span className="text-amber-400 text-base leading-none">★</span>
+  const levels = [
+    { min: 200, stars: 5, color: 'text-amber-500', label: 'قارئ متميّز — ٢٠٠ إصحاح فأكثر' },
+    { min: 100, stars: 4, color: 'text-amber-400', label: 'قارئ أمين — ١٠٠ إصحاح فأكثر' },
+    { min: 50,  stars: 3, color: 'text-yellow-400', label: 'قارئ نشيط — ٥٠ إصحاح فأكثر' },
+    { min: 15,  stars: 2, color: 'text-sky-400',    label: 'قارئ منتظم — ١٥ إصحاح فأكثر' },
+    { min: 4,   stars: 1, color: 'text-blue-400',   label: 'قارئ مبتدئ — ٤ إصحاحات فأكثر' },
+  ];
+  const level = levels.find(l => count >= l.min);
+  if (!level) return null;
+  return (
+    <span className="inline-flex gap-px" title={level.label}>
+      {Array.from({ length: level.stars }).map((_, i) => (
+        <span key={i} className={`${level.color} text-base leading-none`}>★</span>
+      ))}
     </span>
   );
-  if (count >= 25) return (
-    <span className="inline-flex gap-px" title="قارئ نشيط — ٢٥ إصحاح فأكثر">
-      <span className="text-yellow-400 text-base leading-none">★</span>
-      <span className="text-yellow-400 text-base leading-none">★</span>
-    </span>
-  );
-  if (count >= 4) return (
-    <span className="inline-flex gap-px" title="قارئ مبتدئ — ٤ إصحاحات فأكثر">
-      <span className="text-blue-400 text-base leading-none">★</span>
-    </span>
-  );
-  return null;
 }
 
 function getMedal(index: number): string {
