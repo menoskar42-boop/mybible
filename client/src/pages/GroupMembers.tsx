@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useLocation, Link } from 'wouter';
-import { Users, Search, Shield, ShieldOff, X, ArrowRight, Award, UserPlus, Loader2, Check, BookOpen } from 'lucide-react';
+import { Users, Search, Shield, ShieldOff, X, ArrowRight, UserPlus, Loader2, Check, BookOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,11 +11,23 @@ import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserGroupEntry } from '@/lib/user-groups';
 
-function getBadge(count: number): { label: string; color: string } | null {
-  if (count >= 100) return { label: 'قارئ أمين', color: 'bg-amber-500 text-white' };
-  if (count >= 25) return { label: 'قارئ نشيط', color: 'bg-green-500 text-white' };
-  if (count >= 5) return { label: 'قارئ مبتدئ', color: 'bg-blue-500 text-white' };
-  return null;
+function RankStars({ count }: { count: number }) {
+  const levels = [
+    { min: 200, stars: 5, color: 'text-amber-500', label: 'قارئ متميّز' },
+    { min: 100, stars: 4, color: 'text-amber-400', label: 'قارئ أمين' },
+    { min: 50,  stars: 3, color: 'text-yellow-400', label: 'قارئ نشيط' },
+    { min: 15,  stars: 2, color: 'text-sky-400',    label: 'قارئ منتظم' },
+    { min: 4,   stars: 1, color: 'text-blue-400',   label: 'قارئ مبتدئ' },
+  ];
+  const level = levels.find(l => count >= l.min);
+  if (!level) return null;
+  return (
+    <span className="inline-flex gap-px" title={level.label}>
+      {Array.from({ length: level.stars }).map((_, i) => (
+        <span key={i} className={`${level.color} text-base leading-none`}>★</span>
+      ))}
+    </span>
+  );
 }
 
 export default function GroupMembers() {
@@ -237,7 +249,6 @@ export default function GroupMembers() {
         ) : (
           filtered.map((m: any) => {
             const memberChapters = leaderboard.find((l: any) => l.userName === m.userName)?.chaptersReadCount || 0;
-            const badge = getBadge(memberChapters);
             return (
               <div key={m.id || m.userName} className="flex items-center justify-between px-4 py-3" data-testid={`member-row-${m.userName}`}>
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -251,14 +262,10 @@ export default function GroupMembers() {
                     </Badge>
                   )}
                   {m.isMuted && <Badge variant="destructive" className="text-xs flex-shrink-0">مكتوم</Badge>}
-                  {badge && (
-                    <Badge className={`text-xs flex-shrink-0 ${badge.color}`}>
-                      <Award className="w-2.5 h-2.5 ml-0.5" />{badge.label}
-                    </Badge>
-                  )}
-                  {memberChapters > 0 && (
-                    <span className="text-xs text-muted-foreground flex-shrink-0">{memberChapters} إصحاح</span>
-                  )}
+                  <RankStars count={memberChapters} />
+                  <span className={`text-xs flex-shrink-0 ${memberChapters > 0 ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}>
+                    {memberChapters} إصحاح
+                  </span>
                 </div>
                 <div className="flex gap-1 flex-shrink-0 mr-1">
                   {(isAdmin || m.userName === userName) && (
