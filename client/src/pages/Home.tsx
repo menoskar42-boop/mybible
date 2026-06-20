@@ -4,6 +4,7 @@ import { QuickActions } from '@/components/home/QuickActions';
 import { ReadingPlansPreview } from '@/components/home/ReadingPlansPreview';
 import { Disclaimer } from '@/components/home/Disclaimer';
 import { TrendingContent } from '@/components/home/TrendingContent';
+import { OfflineManager } from '@/components/OfflineManager';
 import { SEOHead } from '@/components/SEOHead';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
@@ -32,6 +33,7 @@ export default function Home() {
       {!opts.showCTAEarly && <QuickActions />}
 
       <TrendingContent />
+      <OfflineManager />
       <Disclaimer />
     </div>
   );
