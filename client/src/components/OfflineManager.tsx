@@ -1,4 +1,4 @@
-import { WifiOff, Download, CheckCircle, XCircle, X } from 'lucide-react';
+import { WifiOff, Download, CheckCircle, XCircle, X, PackageCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 
@@ -7,7 +7,6 @@ export function OfflineManager() {
 
   const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
-  // Estimate remaining time (assume ~80ms per request)
   const remaining = progress.total > 0
     ? Math.ceil(((progress.total - progress.done) * 80) / 1000 / 60)
     : 4;
@@ -19,9 +18,17 @@ export function OfflineManager() {
         <div>
           <p className="font-semibold text-sm text-foreground">تصفح بدون إنترنت</p>
           <p className="text-xs text-muted-foreground">
-            يُنزّل الكتاب المقدس كاملاً (66 سفراً + التفاسير) ويحفظه على جهازك
+            يُنزّل الكتاب المقدس كاملاً (٦٦ سفراً + التفاسير) ويحفظه على جهازك
           </p>
         </div>
+      </div>
+
+      {/* الأسفار القانونية الثانية مُضمَّنة دائماً في التطبيق */}
+      <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+        <PackageCheck className="h-4 w-4 text-green-500 shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">الأسفار القانونية الثانية</span> (طوبيا، يهوديت، المكابيين، حكمة سليمان، يشوع بن سيراخ، باروخ…) مُضمَّنة في التطبيق ومتاحة أوفلاين تلقائياً بدون تنزيل إضافي.
+        </p>
       </div>
 
       {status === 'idle' && (
@@ -63,7 +70,7 @@ export function OfflineManager() {
       {status === 'done' && (
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
           <CheckCircle className="h-4 w-4 shrink-0" />
-          <span>تم التنزيل! يمكنك الآن استخدام التطبيق بدون إنترنت</span>
+          <span>تم التنزيل! الكتاب المقدس كاملاً (بما فيه الأسفار القانونية الثانية) متاح الآن بدون إنترنت</span>
         </div>
       )}
 
