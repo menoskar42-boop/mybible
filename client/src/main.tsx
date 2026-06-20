@@ -4,6 +4,15 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
+// Register service worker for offline caching (push notifications handled inside sw.js)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function() {
+      // Silent — SW is an enhancement, not required
+    });
+  });
+}
+
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { error: Error | null }

@@ -1,12 +1,112 @@
-// تثبيت السيرفس ووركر وتفعيله فوراً
+const CACHE_NAME = 'mybible-v1';
+const STATIC_CACHE = 'mybible-static-v1';
+
+// App shell resources to pre-cache on install
+const APP_SHELL = [
+  '/',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+];
+
+// ─── Install: pre-cache app shell ───────────────────────────────────────────
 self.addEventListener('install', function(event) {
   self.skipWaiting();
+  event.waitUntil(
+    caches.open(STATIC_CACHE).then(function(cache) {
+      return cache.addAll(APP_SHELL).catch(function() {
+        // Don't fail install if some shell resources are unavailable
+      });
+    })
+  );
 });
 
+// ─── Activate: delete old caches ────────────────────────────────────────────
 self.addEventListener('activate', function(event) {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys
+          .filter(function(key) { return key !== CACHE_NAME && key !== STATIC_CACHE; })
+          .map(function(key) { return caches.delete(key); })
+      );
+    }).then(function() { return self.clients.claim(); })
+  );
 });
 
+// ─── Fetch strategy ─────────────────────────────────────────────────────────
+self.addEventListener('fetch', function(event) {
+  var url = new URL(event.request.url);
+
+  // Skip non-GET and cross-origin requests
+  if (event.request.method !== 'GET') return;
+  if (url.origin !== self.location.origin) return;
+
+  // API calls: network only — never serve stale data
+  if (url.pathname.startsWith('/api/')) return;
+
+  // Sitemap / robots / llms: network only
+  if (url.pathname.endsWith('.xml') || url.pathname === '/robots.txt' || url.pathname === '/llms.txt') return;
+
+  // Static assets (hashed filenames from Vite): cache-first
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/audio/')) {
+    event.respondWith(
+      caches.match(event.request).then(function(cached) {
+        if (cached) return cached;
+        return fetch(event.request).then(function(response) {
+          if (response.ok) {
+            var copy = response.clone();
+            caches.open(STATIC_CACHE).then(function(cache) { cache.put(event.request, copy); });
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Icons / images / manifest: cache-first
+  if (
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.ico') ||
+    url.pathname === '/manifest.json'
+  ) {
+    event.respondWith(
+      caches.match(event.request).then(function(cached) {
+        if (cached) return cached;
+        return fetch(event.request).then(function(response) {
+          if (response.ok) {
+            var copy = response.clone();
+            caches.open(STATIC_CACHE).then(function(cache) { cache.put(event.request, copy); });
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Navigation & HTML pages: network-first, fall back to cached shell
+  event.respondWith(
+    fetch(event.request).then(function(response) {
+      if (response.ok) {
+        var copy = response.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(event.request, copy); });
+      }
+      return response;
+    }).catch(function() {
+      return caches.match(event.request).then(function(cached) {
+        // Fall back to cached page, or to root index as last resort
+        return cached || caches.match('/');
+      });
+    })
+  );
+});
+
+// ─── Push notifications ──────────────────────────────────────────────────────
 self.addEventListener('push', function(event) {
   if (!event.data) return;
   const data = event.data.json();
