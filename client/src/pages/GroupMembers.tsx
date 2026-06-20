@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useLocation, Link } from 'wouter';
-import { Users, Search, Shield, ShieldOff, X, ArrowRight, UserPlus, Loader2, Check, BookOpen } from 'lucide-react';
+import { Users, Search, Shield, ShieldOff, X, ArrowRight, UserPlus, Loader2, Check, BookOpen, ChevronRight } from 'lucide-react';
+import { InlineChapterReader } from '@/components/InlineChapterReader';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,8 +51,10 @@ export default function GroupMembers() {
   const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
 
   const [readingsTarget, setReadingsTarget] = useState<string | null>(null);
-  const [readingsData, setReadingsData] = useState<{ book: string; chapter: number; date: string }[] | null>(null);
+  const [readingsData, setReadingsData] = useState<{ book: string; chapter: number; assignmentId: number }[] | null>(null);
+  const [readingsAssignmentId, setReadingsAssignmentId] = useState<number | null>(null);
   const [readingsLoading, setReadingsLoading] = useState(false);
+  const [activeReading, setActiveReading] = useState<{ book: string; chapter: number } | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['group', groupCode],
@@ -157,12 +160,14 @@ export default function GroupMembers() {
   const openReadings = async (targetUserName: string) => {
     setReadingsTarget(targetUserName);
     setReadingsData(null);
+    setActiveReading(null);
     setReadingsLoading(true);
     try {
       const res = await fetch(`/api/groups/${groupCode}/members/${encodeURIComponent(targetUserName)}/readings?memberKey=${encodeURIComponent(memberKey)}`);
       if (!res.ok) throw new Error();
       const d = await res.json();
       setReadingsData(d.chapters || []);
+      setReadingsAssignmentId(d.assignmentId ?? null);
     } catch {
       setReadingsData([]);
     } finally {
@@ -330,32 +335,64 @@ export default function GroupMembers() {
       )}
 
       {/* Readings Dialog */}
-      <Dialog open={!!readingsTarget} onOpenChange={(o) => { if (!o) { setReadingsTarget(null); setReadingsData(null); } }}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto" dir="rtl">
+      <Dialog open={!!readingsTarget} onOpenChange={(o) => { if (!o) { setReadingsTarget(null); setReadingsData(null); setActiveReading(null); } }}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto w-full max-w-lg" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-primary" />
-              إصحاحات {readingsTarget} المقروءة
+              {activeReading ? (
+                <>
+                  <button onClick={() => setActiveReading(null)} className="text-muted-foreground hover:text-foreground">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  {activeReading.book} — إصحاح {activeReading.chapter}
+                </>
+              ) : (
+                <>
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  الإصحاحات غير المقروءة — {readingsTarget}
+                </>
+              )}
             </DialogTitle>
           </DialogHeader>
-          {readingsLoading ? (
+
+          {activeReading && readingsData ? (
+            <InlineChapterReader
+              bookName={activeReading.book}
+              chapter={activeReading.chapter}
+              groupCode={groupCode}
+              assignmentId={readingsAssignmentId}
+              userName={readingsTarget!}
+              schedule={readingsData.map(r => ({ book: r.book, chapter: r.chapter }))}
+              onComplete={() => { setActiveReading(null); openReadings(readingsTarget!); }}
+              onChapterDone={(book, ch) => {
+                setReadingsData(prev => prev ? prev.filter(r => !(r.book === book && r.chapter === ch)) : prev);
+              }}
+            />
+          ) : readingsLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           ) : readingsData && readingsData.length === 0 ? (
-            <p className="text-center text-muted-foreground py-6">لم يقرأ أي إصحاح بعد</p>
+            <div className="text-center py-8">
+              <p className="text-2xl mb-2">🎉</p>
+              <p className="font-semibold text-foreground">أنهى كل الإصحاحات المطلوبة</p>
+              <p className="text-xs text-muted-foreground mt-1">لا توجد إصحاحات متبقية في الخطة</p>
+            </div>
           ) : readingsData ? (
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground mb-3">{readingsData.length} إصحاح مقروء</p>
+              <p className="text-xs text-muted-foreground mb-3">{readingsData.length} إصحاح متبقٍ</p>
               {readingsData.map((r, i) => (
                 <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50">
                   <div className="flex items-center gap-2">
-                    <span className="text-green-500 text-sm">✔</span>
+                    <span className="text-muted-foreground/40 text-sm">○</span>
                     <span className="text-sm font-medium">{r.book} — إصحاح {r.chapter}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(r.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
-                  </span>
+                  {readingsTarget === userName && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setActiveReading({ book: r.book, chapter: r.chapter })}>
+                      <BookOpen className="w-3 h-3" />
+                      اقرأ
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

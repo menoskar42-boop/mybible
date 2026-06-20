@@ -1080,7 +1080,7 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
-  // إصحاحات قرأها عضو معين — للعضو نفسه أو الأدمن
+  // الإصحاحات غير المقروءة لعضو معين من الـ assignments النشطة — للعضو نفسه أو الأدمن
   app.get('/api/groups/:code/members/:memberName/readings', async (req, res) => {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
@@ -1093,25 +1093,49 @@ export function registerGroupRoutes(app: Express) {
       const [requester] = await db.select().from(groupMembers)
         .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, requesterKey)));
       const isSelf = requester?.userName === targetName;
-      const isAdmin = await isAdminByLeaderKey(group, requesterKey);
-      if (!isSelf && !isAdmin) return res.status(403).json({ error: 'غير مسموح' });
+      const isAdminUser = await isAdminByLeaderKey(group, requesterKey);
+      if (!isSelf && !isAdminUser) return res.status(403).json({ error: 'غير مسموح' });
 
+      // كل الـ assignments النشطة للمجموعة
+      const assignments = await db.select().from(groupAssignments)
+        .where(and(eq(groupAssignments.groupId, group.id), eq(groupAssignments.isActive, true)));
+
+      if (assignments.length === 0) {
+        return res.json({ chapters: [], assignmentId: null });
+      }
+
+      // الإصحاحات التي أكملها العضو من الـ assignment_readings
+      const completedRows = await db.select().from(assignmentReadings)
+        .where(and(
+          eq(assignmentReadings.groupId, group.id),
+          eq(assignmentReadings.userName, targetName),
+          eq(assignmentReadings.completed, true),
+        ));
+      const completedKeys = new Set(completedRows.map(r => `${r.bookName}|${r.chapter}`));
+
+      // الإصحاحات التي قرأها العضو بشكل عام (group_reading_logs)
       const logs = await db.select().from(groupReadingLogs)
         .where(and(eq(groupReadingLogs.groupId, group.id), eq(groupReadingLogs.userName, targetName)));
+      for (const log of logs) completedKeys.add(`${log.book}|${log.chapter}`);
 
-      // اجمع الإصحاحات الفريدة مع أول تاريخ قراءة لكل منها
-      const chaptersMap: Record<string, { book: string; chapter: number; date: string }> = {};
-      for (const log of logs) {
-        const key = `${log.book}|${log.chapter}`;
-        if (!chaptersMap[key] || log.date < chaptersMap[key].date) {
-          chaptersMap[key] = { book: log.book, chapter: Number(log.chapter), date: log.date };
+      // اجمع كل إصحاحات الـ assignments غير المقروءة
+      const unread: { book: string; chapter: number; assignmentId: number }[] = [];
+      for (const a of assignments) {
+        const chapters = (a.chapters as number[]) || [];
+        for (const ch of chapters) {
+          if (!completedKeys.has(`${a.bookName}|${ch}`)) {
+            unread.push({ book: a.bookName, chapter: ch, assignmentId: a.id });
+          }
         }
       }
 
-      const chapters = Object.values(chaptersMap)
-        .sort((a, b) => a.date.localeCompare(b.date) || a.book.localeCompare(b.book) || a.chapter - b.chapter);
+      // رتّب حسب السفر ثم رقم الإصحاح
+      unread.sort((a, b) => a.book.localeCompare(b.book) || a.chapter - b.chapter);
 
-      res.json({ chapters });
+      // أول assignment id للاستخدام في تسجيل القراءة
+      const firstAssignmentId = assignments[0]?.id ?? null;
+
+      res.json({ chapters: unread, assignmentId: firstAssignmentId });
     } catch (err) {
       console.error('[groups] member readings error:', err);
       res.status(500).json({ error: 'فشل تحميل القراءات' });
