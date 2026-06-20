@@ -43,6 +43,22 @@ self.addEventListener('fetch', function(event) {
   if (event.request.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
 
+  // Group config (autoReadingConfig, etc.): network-first, fall back to cache
+  if (/^\/api\/groups\/[^/]+$/.test(url.pathname)) {
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        if (response.ok) {
+          var copy = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(event.request, copy); });
+        }
+        return response;
+      }).catch(function() {
+        return caches.match(event.request).then(function(c) { return c || Response.error(); });
+      })
+    );
+    return;
+  }
+
   // Bible verses & tafsir: cache-first (static content, never changes)
   if (
     url.pathname.startsWith('/api/verses/') ||

@@ -1159,6 +1159,7 @@ export default function GroupView() {
   });
 
   const fetchGroup = useCallback(async () => {
+    const CACHE_KEY = `group_arc_${groupCode}`;
     try {
       const res = await fetch(`/api/groups/${groupCode}`);
       if (!res.ok) throw new Error();
@@ -1171,6 +1172,8 @@ export default function GroupView() {
       // تحميل إعداد القراءات التلقائية
       const arc = d.group.autoReadingConfig;
       if (arc) {
+        // حفظ الإعداد محلياً للاستخدام أوفلاين
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(arc)); } catch {}
         setAutoEnabled(arc.enabled ?? false);
         setAutoOtChap(arc.otChaptersPerDay ?? 3);
         setAutoNtChap(arc.ntChaptersPerDay ?? 1);
@@ -1180,6 +1183,17 @@ export default function GroupView() {
         if (ntEntry) { setAutoNtBook(ntEntry.book); setAutoNtChapter(ntEntry.chapter); }
       }
     } catch {
+      // أوفلاين: استخدم الإعداد المحفوظ محلياً لحساب قراءة اليوم
+      const stored = localStorage.getItem(CACHE_KEY);
+      if (stored) {
+        try {
+          const arc = JSON.parse(stored);
+          // بناء كائن بيانات مجموعة مبسّط من المخزون المحلي
+          setData((prev: any) => prev ?? { group: { autoReadingConfig: arc }, members: [], stats: { totalMembers: 0, readToday: 0, chaptersRead: 0 } });
+        } catch {}
+        setLoading(false);
+        return;
+      }
       toast.error('فشل تحميل بيانات المجموعة');
     } finally {
       setLoading(false);
@@ -1187,6 +1201,37 @@ export default function GroupView() {
   }, [groupCode]);
 
   useEffect(() => { fetchGroup(); }, [fetchGroup]);
+
+  // Pre-cache قراءات الـ 7 أيام الجاية أوفلاين
+  useEffect(() => {
+    const arc = data?.group?.autoReadingConfig;
+    if (!arc?.enabled || !allBooks?.length || !('caches' in window)) return;
+    const controller = new AbortController();
+    (async () => {
+      const cache = await caches.open('mybible-static-v1');
+      const today = new Date();
+      const urlsToCache: string[] = [];
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() + dayOffset);
+        const dateStr = d.toISOString().slice(0, 10);
+        const dayReading = getAutoReadingForDate(arc, dateStr);
+        for (const ch of [...dayReading.ot, ...dayReading.nt]) {
+          if (DEUTEROCANONICAL_BOOKS.has(ch.book)) continue; // embedded locally
+          const book = (allBooks as any[]).find((b: any) => b.name === ch.book);
+          if (book) urlsToCache.push(`/api/verses/book/${book.id}?chapter=${ch.chapter}`);
+          const csvName = getCSVFileName(ch.book);
+          if (csvName) urlsToCache.push(`/api/tafsir/chapter/${encodeURIComponent(csvName)}/${ch.chapter}`);
+        }
+      }
+      for (const url of urlsToCache) {
+        if (controller.signal.aborted) return;
+        if (await cache.match(url)) continue;
+        try { const r = await fetch(url, { signal: controller.signal }); if (r.ok) await cache.put(url, r); } catch {}
+      }
+    })();
+    return () => controller.abort();
+  }, [data?.group?.autoReadingConfig, allBooks]);
 
   // جلب ملخص الشات لعرض عداد الرسائل الجديدة
   useEffect(() => {
