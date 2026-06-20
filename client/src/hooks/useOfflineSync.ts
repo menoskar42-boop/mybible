@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { getCSVFileName } from '@/lib/tafsir-csv-service';
+import { dailyReadings, feasts, type ReadingRef, type DayLectionary } from '@/lib/coptic-lectionary';
 
 export type SyncStatus = 'idle' | 'syncing' | 'done' | 'error';
 
@@ -24,6 +25,31 @@ async function runBatch<T>(items: T[], fn: (item: T) => Promise<void>, signal: A
   await Promise.all(workers);
 }
 
+function buildReadingTextUrl(ref: ReadingRef): string {
+  const params = new URLSearchParams({
+    bookName: ref.book,
+    fromCh: String(ref.fromCh),
+    fromVs: String(ref.fromVs),
+    toCh:   String(ref.toCh),
+    toVs:   String(ref.toVs),
+  });
+  return `/api/reading-text?${params}`;
+}
+
+function allLectionaryRefs(): ReadingRef[] {
+  const refs: ReadingRef[] = [];
+  const seen = new Set<string>();
+  const add = (day: DayLectionary) => {
+    for (const ref of [day.pauline, day.catholic, day.praxis, day.psalm, day.gospel]) {
+      const key = buildReadingTextUrl(ref);
+      if (!seen.has(key)) { seen.add(key); refs.push(ref); }
+    }
+  };
+  for (const day of Object.values(dailyReadings)) add(day);
+  for (const day of Object.values(feasts)) add(day);
+  return refs;
+}
+
 export function useOfflineSync() {
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [progress, setProgress] = useState<SyncProgress>({ done: 0, total: 0, currentBook: '' });
@@ -46,11 +72,32 @@ export function useOfflineSync() {
       // 1. Load all books
       const booksRes = await fetch('/api/books', { signal });
       if (!booksRes.ok) throw new Error();
-      // Cache books list too
-      await caches.open(CACHE_NAME).then(c => c.put('/api/books', booksRes.clone()));
+      await cache.put('/api/books', booksRes.clone());
       const books: { id: number; name: string; chaptersCount: number }[] = await booksRes.json();
 
-      // 2. Build work list: every book × every chapter
+      // 2. Semi-static endpoints (fast, do first)
+      for (const url of ['/api/daily-readings', '/api/metrics/trending', '/api/reading-plans', '/api/emotions']) {
+        if (signal.aborted) return;
+        try { const r = await fetch(url, { signal }); if (r.ok) await cache.put(url, r); } catch {}
+      }
+
+      // 3. All Kholagy / Orthodox reading-text URLs from the full-year lectionary
+      const lectionaryRefs = allLectionaryRefs();
+      setProgress({ done: 0, total: lectionaryRefs.length, currentBook: 'قراءات الخولاجي والقسم الأرثوذكسي' });
+      let lDone = 0;
+      await runBatch(lectionaryRefs, async (ref) => {
+        if (signal.aborted) return;
+        const url = buildReadingTextUrl(ref);
+        if (!(await cache.match(url))) {
+          try { const r = await fetch(url, { signal }); if (r.ok) await cache.put(url, r); } catch {}
+        }
+        lDone++;
+        setProgress({ done: lDone, total: lectionaryRefs.length, currentBook: `قراءات الكتامارس (${ref.book})` });
+      }, signal);
+
+      if (signal.aborted) return;
+
+      // 4. All Bible chapters (verses + tafsir) — the big batch
       type WorkItem = { bookId: number; bookName: string; chapter: number; csvName: string | null };
       const workItems: WorkItem[] = [];
       for (const book of books) {
@@ -60,42 +107,24 @@ export function useOfflineSync() {
         }
       }
 
-      // 3. Pre-fetch semi-static endpoints (daily readings, emotions, plans, trending)
-      const staticEndpoints = [
-        '/api/daily-readings',
-        '/api/metrics/trending',
-        '/api/reading-plans',
-        '/api/emotions',
-      ];
-      for (const url of staticEndpoints) {
-        if (signal.aborted) return;
-        try { const r = await fetch(url, { signal }); if (r.ok) await cache.put(url, r); } catch {}
-      }
-
-      // Each book/chapter item = 2 fetches (verses + tafsir)
       const total = workItems.length * 2;
       let done = 0;
       setProgress({ done: 0, total, currentBook: '' });
 
       await runBatch(workItems, async (item) => {
         if (signal.aborted) return;
-        setProgress(p => ({ ...p, done: p.done, currentBook: item.bookName }));
 
-        // Verses
         const versesUrl = `/api/verses/book/${item.bookId}?chapter=${item.chapter}`;
         if (!(await cache.match(versesUrl))) {
-          const r = await fetch(versesUrl, { signal });
-          if (r.ok) await cache.put(versesUrl, r);
+          try { const r = await fetch(versesUrl, { signal }); if (r.ok) await cache.put(versesUrl, r); } catch {}
         }
         done++;
         setProgress({ done, total, currentBook: item.bookName });
 
-        // Tafsir (if available)
         if (item.csvName) {
           const tafsirUrl = `/api/tafsir/chapter/${encodeURIComponent(item.csvName)}/${item.chapter}`;
           if (!(await cache.match(tafsirUrl))) {
-            const r = await fetch(tafsirUrl, { signal });
-            if (r.ok) await cache.put(tafsirUrl, r);
+            try { const r = await fetch(tafsirUrl, { signal }); if (r.ok) await cache.put(tafsirUrl, r); } catch {}
           }
         }
         done++;

@@ -612,4 +612,4 @@ export function getLectionaryForDate(date: Date): { reading: DayLectionary; labe
   return { reading: defaultReading, label: copticDate, copticDate };
 }
 
-export { feasts };
+export { feasts, dailyReadings };
