@@ -18,6 +18,11 @@ import { setupVapid, scheduleDailyNotification } from "./push-notifications";
 const app = express();
 const httpServer = createServer({ maxHeaderSize: 65536 }, app);
 
+const SERVER_START_TIME = Date.now();
+app.get('/api/app-version', (_req, res) => {
+  res.json({ version: SERVER_START_TIME });
+});
+
 // Trust the proxy in production (Replit's reverse proxy)
 app.set('trust proxy', 1);
 

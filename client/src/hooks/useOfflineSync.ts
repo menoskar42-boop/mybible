@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { getCSVFileName } from '@/lib/tafsir-csv-service';
 import { dailyReadings, feasts, type ReadingRef, type DayLectionary } from '@/lib/coptic-lectionary';
 
 export type SyncStatus = 'idle' | 'syncing' | 'done' | 'error';
+export type UpdateAvailability = 'unknown' | 'checking' | 'up-to-date' | 'update-available';
 
 export interface SyncProgress {
   done: number;
@@ -12,6 +13,8 @@ export interface SyncProgress {
 
 const CACHE_NAME = 'mybible-static-v1';
 const CONCURRENCY = 6;
+const STORED_VERSION_KEY  = 'offline_app_version';
+const STORED_SYNC_DATE_KEY = 'offline_last_sync';
 
 async function runBatch<T>(items: T[], fn: (item: T) => Promise<void>, signal: AbortSignal) {
   let i = 0;
@@ -50,17 +53,62 @@ function allLectionaryRefs(): ReadingRef[] {
   return refs;
 }
 
+async function fetchCurrentVersion(): Promise<number | null> {
+  try {
+    const res = await fetch('/api/app-version', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.version === 'number' ? data.version : null;
+  } catch {
+    return null;
+  }
+}
+
+async function runLectionarySync(cache: Cache, signal: AbortSignal, onProgress: (done: number, total: number, book: string) => void) {
+  // Clear old reading-text entries before re-downloading
+  const keys = await cache.keys();
+  for (const req of keys) {
+    if (new URL(req.url).pathname.startsWith('/api/reading-text')) {
+      await cache.delete(req);
+    }
+  }
+
+  const refs = allLectionaryRefs();
+  let done = 0;
+  onProgress(0, refs.length, 'قراءات الخولاجي والقسم الأرثوذكسي');
+  await runBatch(refs, async (ref) => {
+    if (signal.aborted) return;
+    const url = buildReadingTextUrl(ref);
+    try { const r = await fetch(url, { signal }); if (r.ok) await cache.put(url, r); } catch {}
+    done++;
+    onProgress(done, refs.length, `قراءات الكتامارس (${ref.book})`);
+  }, signal);
+}
+
 export function useOfflineSync() {
-  const [status, setStatus] = useState<SyncStatus>('idle');
+  const [status, setStatus]     = useState<SyncStatus>('idle');
   const [progress, setProgress] = useState<SyncProgress>({ done: 0, total: 0, currentBook: '' });
+  const [updateAvail, setUpdateAvail] = useState<UpdateAvailability>('unknown');
+  const [lastSyncDate, setLastSyncDate] = useState<Date | null>(() => {
+    const s = localStorage.getItem(STORED_SYNC_DATE_KEY);
+    return s ? new Date(Number(s)) : null;
+  });
   const abortRef = useRef<AbortController | null>(null);
 
-  const startSync = useCallback(async () => {
-    if (!('caches' in window)) {
-      setStatus('error');
-      return;
-    }
+  // Check for updates when hook mounts (if we have a previous sync)
+  useEffect(() => {
+    if (!lastSyncDate) return;
+    setUpdateAvail('checking');
+    fetchCurrentVersion().then(serverVersion => {
+      if (serverVersion === null) { setUpdateAvail('unknown'); return; }
+      const storedVersion = Number(localStorage.getItem(STORED_VERSION_KEY) || '0');
+      setUpdateAvail(serverVersion > storedVersion ? 'update-available' : 'up-to-date');
+    });
+  }, []);
 
+  // ── Full offline download ─────────────────────────────────────────────────
+  const startSync = useCallback(async () => {
+    if (!('caches' in window)) { setStatus('error'); return; }
     abortRef.current = new AbortController();
     const signal = abortRef.current.signal;
     setStatus('syncing');
@@ -69,35 +117,25 @@ export function useOfflineSync() {
     try {
       const cache = await caches.open(CACHE_NAME);
 
-      // 1. Load all books
+      // Books list
       const booksRes = await fetch('/api/books', { signal });
       if (!booksRes.ok) throw new Error();
       await cache.put('/api/books', booksRes.clone());
       const books: { id: number; name: string; chaptersCount: number }[] = await booksRes.json();
 
-      // 2. Semi-static endpoints (fast, do first)
+      // Semi-static endpoints
       for (const url of ['/api/daily-readings', '/api/metrics/trending', '/api/reading-plans', '/api/emotions']) {
         if (signal.aborted) return;
         try { const r = await fetch(url, { signal }); if (r.ok) await cache.put(url, r); } catch {}
       }
 
-      // 3. All Kholagy / Orthodox reading-text URLs from the full-year lectionary
-      const lectionaryRefs = allLectionaryRefs();
-      setProgress({ done: 0, total: lectionaryRefs.length, currentBook: 'قراءات الخولاجي والقسم الأرثوذكسي' });
-      let lDone = 0;
-      await runBatch(lectionaryRefs, async (ref) => {
-        if (signal.aborted) return;
-        const url = buildReadingTextUrl(ref);
-        if (!(await cache.match(url))) {
-          try { const r = await fetch(url, { signal }); if (r.ok) await cache.put(url, r); } catch {}
-        }
-        lDone++;
-        setProgress({ done: lDone, total: lectionaryRefs.length, currentBook: `قراءات الكتامارس (${ref.book})` });
-      }, signal);
-
+      // Lectionary reading texts (Kholagy + Orthodox)
+      await runLectionarySync(cache, signal, (done, total, book) =>
+        setProgress({ done, total, currentBook: book })
+      );
       if (signal.aborted) return;
 
-      // 4. All Bible chapters (verses + tafsir) — the big batch
+      // All Bible chapters: verses + tafsir
       type WorkItem = { bookId: number; bookName: string; chapter: number; csvName: string | null };
       const workItems: WorkItem[] = [];
       for (const book of books) {
@@ -106,14 +144,12 @@ export function useOfflineSync() {
           workItems.push({ bookId: book.id, bookName: book.name, chapter: ch, csvName });
         }
       }
-
       const total = workItems.length * 2;
       let done = 0;
       setProgress({ done: 0, total, currentBook: '' });
 
       await runBatch(workItems, async (item) => {
         if (signal.aborted) return;
-
         const versesUrl = `/api/verses/book/${item.bookId}?chapter=${item.chapter}`;
         if (!(await cache.match(versesUrl))) {
           try { const r = await fetch(versesUrl, { signal }); if (r.ok) await cache.put(versesUrl, r); } catch {}
@@ -131,7 +167,59 @@ export function useOfflineSync() {
         setProgress({ done, total, currentBook: item.bookName });
       }, signal);
 
-      if (!signal.aborted) setStatus('done');
+      if (!signal.aborted) {
+        const serverVersion = await fetchCurrentVersion();
+        if (serverVersion) localStorage.setItem(STORED_VERSION_KEY, String(serverVersion));
+        const now = Date.now();
+        localStorage.setItem(STORED_SYNC_DATE_KEY, String(now));
+        setLastSyncDate(new Date(now));
+        setUpdateAvail('up-to-date');
+        setStatus('done');
+      }
+    } catch {
+      if (!abortRef.current?.signal.aborted) setStatus('error');
+    }
+  }, []);
+
+  // ── Smart update: only re-sync changed content ────────────────────────────
+  const startUpdate = useCallback(async () => {
+    if (!('caches' in window)) { setStatus('error'); return; }
+    abortRef.current = new AbortController();
+    const signal = abortRef.current.signal;
+    setStatus('syncing');
+    setProgress({ done: 0, total: 0, currentBook: 'جاري التحديث...' });
+
+    try {
+      const cache = await caches.open(CACHE_NAME);
+
+      // 1. Re-download semi-static endpoints
+      for (const url of ['/api/daily-readings', '/api/metrics/trending', '/api/reading-plans', '/api/emotions']) {
+        if (signal.aborted) return;
+        try {
+          const r = await fetch(url, { signal, cache: 'no-store' });
+          if (r.ok) await cache.put(url, r);
+        } catch {}
+      }
+
+      // 2. Clear + re-download all reading-text (lectionary may have changed)
+      await runLectionarySync(cache, signal, (done, total, book) =>
+        setProgress({ done, total, currentBook: book })
+      );
+      if (signal.aborted) return;
+
+      // 3. Force SW to pick up new JS/CSS bundle
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update().catch(() => {});
+      }
+
+      const serverVersion = await fetchCurrentVersion();
+      if (serverVersion) localStorage.setItem(STORED_VERSION_KEY, String(serverVersion));
+      const now = Date.now();
+      localStorage.setItem(STORED_SYNC_DATE_KEY, String(now));
+      setLastSyncDate(new Date(now));
+      setUpdateAvail('up-to-date');
+      setStatus('done');
     } catch {
       if (!abortRef.current?.signal.aborted) setStatus('error');
     }
@@ -143,5 +231,5 @@ export function useOfflineSync() {
     setProgress({ done: 0, total: 0, currentBook: '' });
   }, []);
 
-  return { status, progress, startSync, cancelSync };
+  return { status, progress, startSync, startUpdate, cancelSync, updateAvail, lastSyncDate };
 }
