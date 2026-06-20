@@ -60,7 +60,19 @@ export function useOfflineSync() {
         }
       }
 
-      // Each item = 2 fetches (verses + tafsir), so total = workItems.length * 2
+      // 3. Pre-fetch semi-static endpoints (daily readings, emotions, plans, trending)
+      const staticEndpoints = [
+        '/api/daily-readings',
+        '/api/metrics/trending',
+        '/api/reading-plans',
+        '/api/emotions',
+      ];
+      for (const url of staticEndpoints) {
+        if (signal.aborted) return;
+        try { const r = await fetch(url, { signal }); if (r.ok) await cache.put(url, r); } catch {}
+      }
+
+      // Each book/chapter item = 2 fetches (verses + tafsir)
       const total = workItems.length * 2;
       let done = 0;
       setProgress({ done: 0, total, currentBook: '' });

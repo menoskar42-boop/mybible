@@ -59,11 +59,15 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
-  // Bible verses & tafsir: cache-first (static content, never changes)
+  // Bible verses & tafsir & single verse: cache-first (static content, never changes)
   if (
     url.pathname.startsWith('/api/verses/') ||
+    url.pathname.startsWith('/api/verse/') ||
     url.pathname.startsWith('/api/tafsir/') ||
-    url.pathname.startsWith('/api/books')
+    url.pathname.startsWith('/api/books') ||
+    url.pathname.startsWith('/api/reading-text') ||
+    url.pathname.startsWith('/api/emotions') ||
+    url.pathname.startsWith('/api/topics')
   ) {
     event.respondWith(
       caches.open(STATIC_CACHE).then(function(cache) {
@@ -81,7 +85,28 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
-  // All other API calls: network only — never serve stale data
+  // Semi-static data: network-first + cache fallback (changes occasionally)
+  if (
+    url.pathname === '/api/daily-readings' ||
+    url.pathname === '/api/metrics/trending' ||
+    url.pathname.startsWith('/api/reading-plans') ||
+    url.pathname.startsWith('/api/user/highlights')
+  ) {
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        if (response.ok) {
+          var copy = response.clone();
+          caches.open(CACHE_NAME).then(function(cache) { cache.put(event.request, copy); });
+        }
+        return response;
+      }).catch(function() {
+        return caches.match(event.request).then(function(c) { return c || Response.error(); });
+      })
+    );
+    return;
+  }
+
+  // All other API calls: network only
   if (url.pathname.startsWith('/api/')) return;
 
   // Sitemap / robots / llms: network only
