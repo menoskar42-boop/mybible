@@ -19,6 +19,7 @@ import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getUserGroupEntry, addUserGroup, removeUserGroup } from '@/lib/user-groups';
 import { fetchBookIntro, fetchVerseTafsir, fetchChapterTafsir, getCSVFileName } from '@/lib/tafsir-csv-service';
+import { OfflineManager } from '@/components/OfflineManager';
 
 interface GroupData {
   group: any;
@@ -208,18 +209,34 @@ function InlineChapterReader({ bookName: initialBookName, chapter: initialChapte
   const condScrolls = scrollCount >= MIN_SCROLLS;
   const condDepth = scrollDepth >= MIN_DEPTH;
 
+  const QUEUE_KEY = 'offline_reading_queue';
   const recordReading = async (chap: number, timeSpent: number) => {
     if (assignmentId !== null) {
-      const res = await fetch(`/api/groups/${groupCode}/assignments/${assignmentId}/read`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName, bookName: currentBook, chapter: chap, timeSpent, scrollCount, scrollDepth }),
-      });
-      return res.ok ? await res.json() : {};
+      const url = `/api/groups/${groupCode}/assignments/${assignmentId}/read`;
+      const body = { userName, bookName: currentBook, chapter: chap, timeSpent, scrollCount, scrollDepth };
+      try {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        return res.ok ? await res.json() : {};
+      } catch {
+        try {
+          const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+          q.push({ url, body });
+          localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+        } catch {}
+        return {};
+      }
     } else {
-      await fetch(`/api/groups/${groupCode}/reading`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName, book: currentBook, chapter: chap, timeSpent, scrollPercent: scrollDepth }),
-      });
+      const url = `/api/groups/${groupCode}/reading`;
+      const body = { userName, book: currentBook, chapter: chap, timeSpent, scrollPercent: scrollDepth };
+      try {
+        await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      } catch {
+        try {
+          const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+          q.push({ url, body });
+          localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+        } catch {}
+      }
       return {};
     }
   };
@@ -1202,6 +1219,33 @@ export default function GroupView() {
 
   useEffect(() => { fetchGroup(); }, [fetchGroup]);
 
+  // مزامنة تقدم القراءة المخزّن أوفلاين فور رجوع الاتصال
+  useEffect(() => {
+    const QUEUE_KEY = 'offline_reading_queue';
+    const flush = async () => {
+      try {
+        const queue: { url: string; body: object }[] = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+        if (!queue.length) return;
+        const failed: typeof queue = [];
+        for (const item of queue) {
+          try {
+            const res = await fetch(item.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.body) });
+            if (!res.ok) failed.push(item);
+          } catch { failed.push(item); }
+        }
+        localStorage.setItem(QUEUE_KEY, JSON.stringify(failed));
+        if (failed.length < queue.length) {
+          toast.success('تم مزامنة تقدم القراءة مع السيرفر');
+          fetchGroup();
+        }
+      } catch {}
+    };
+    window.addEventListener('online', flush);
+    // محاولة فور التحميل لو كان النت شغّال
+    if (navigator.onLine) flush();
+    return () => window.removeEventListener('online', flush);
+  }, [fetchGroup]);
+
   // Pre-cache قراءات الـ 7 أيام الجاية أوفلاين
   useEffect(() => {
     const arc = data?.group?.autoReadingConfig;
@@ -1955,6 +1999,10 @@ export default function GroupView() {
             </div>
           </Card>
         )}
+
+        <div className="mb-6">
+          <OfflineManager />
+        </div>
 
         {isAdminFinal && joinRequests.length > 0 && (
           <Card className="p-5 mb-4 border-amber-200 dark:border-amber-800/30 bg-amber-50/50 dark:bg-amber-900/10" data-testid="card-join-requests">
