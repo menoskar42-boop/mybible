@@ -67,7 +67,7 @@ const bookNameToCSV: Record<string, string> = {
   "رؤيا يوحنا": "رؤيا",
 };
 
-function getCSVFileName(bookName: string): string | null {
+export function getCSVFileName(bookName: string): string | null {
   if (bookNameToCSV[bookName]) return bookNameToCSV[bookName];
 
   for (const [dbName, csvName] of Object.entries(bookNameToCSV)) {

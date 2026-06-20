@@ -18,7 +18,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { getUserGroupEntry, addUserGroup, removeUserGroup } from '@/lib/user-groups';
-import { fetchBookIntro, fetchVerseTafsir, fetchChapterTafsir } from '@/lib/tafsir-csv-service';
+import { fetchBookIntro, fetchVerseTafsir, fetchChapterTafsir, getCSVFileName } from '@/lib/tafsir-csv-service';
 
 interface GroupData {
   group: any;
@@ -398,6 +398,41 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
       return changed ? next : (prev ?? next);
     });
   }, [assignments]);
+
+  // Pre-warm offline cache: fetch verses + tafsir for all assignment chapters in background
+  useEffect(() => {
+    if (!assignments.length || !allBooks.length) return;
+    if (!('caches' in window)) return;
+    const controller = new AbortController();
+    (async () => {
+      const cache = await caches.open('mybible-static-v1');
+      for (const a of assignments) {
+        const chapters: number[] = (a.chapters as number[]) || [];
+        const book = allBooks.find((b: any) => b.name === a.bookName);
+        const csvName = getCSVFileName(a.bookName);
+        for (const ch of chapters) {
+          if (controller.signal.aborted) return;
+          // Verses
+          if (book) {
+            const versesUrl = `/api/verses/book/${book.id}?chapter=${ch}`;
+            if (!(await cache.match(versesUrl))) {
+              try { const r = await fetch(versesUrl, { signal: controller.signal }); if (r.ok) await cache.put(versesUrl, r); } catch {}
+            }
+          }
+          // Tafsir
+          if (csvName) {
+            const tafsirUrl = `/api/tafsir/chapter/${encodeURIComponent(csvName)}/${ch}`;
+            if (!(await cache.match(tafsirUrl))) {
+              try { const r = await fetch(tafsirUrl, { signal: controller.signal }); if (r.ok) await cache.put(tafsirUrl, r); } catch {}
+            }
+          }
+          // Small delay to avoid hammering the server
+          await new Promise(res => setTimeout(res, 120));
+        }
+      }
+    })();
+    return () => controller.abort();
+  }, [assignments, allBooks]);
 
   const currentExpandedIds = expandedIds ?? new Set<number>();
 

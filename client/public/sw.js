@@ -43,7 +43,29 @@ self.addEventListener('fetch', function(event) {
   if (event.request.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
 
-  // API calls: network only — never serve stale data
+  // Bible verses & tafsir: cache-first (static content, never changes)
+  if (
+    url.pathname.startsWith('/api/verses/') ||
+    url.pathname.startsWith('/api/tafsir/') ||
+    url.pathname.startsWith('/api/books')
+  ) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(function(cache) {
+        return cache.match(event.request).then(function(cached) {
+          if (cached) return cached;
+          return fetch(event.request).then(function(response) {
+            if (response.ok) {
+              cache.put(event.request, response.clone());
+            }
+            return response;
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  // All other API calls: network only — never serve stale data
   if (url.pathname.startsWith('/api/')) return;
 
   // Sitemap / robots / llms: network only
