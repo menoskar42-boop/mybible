@@ -1080,6 +1080,44 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  // إصحاحات قرأها عضو معين — للعضو نفسه أو الأدمن
+  app.get('/api/groups/:code/members/:memberName/readings', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const requesterKey = req.query.memberKey as string || '';
+      const targetName = decodeURIComponent(req.params.memberName);
+
+      // مسموح للعضو نفسه أو الأدمن
+      const [requester] = await db.select().from(groupMembers)
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, requesterKey)));
+      const isSelf = requester?.userName === targetName;
+      const isAdmin = await isAdminByLeaderKey(group, requesterKey);
+      if (!isSelf && !isAdmin) return res.status(403).json({ error: 'غير مسموح' });
+
+      const logs = await db.select().from(groupReadingLogs)
+        .where(and(eq(groupReadingLogs.groupId, group.id), eq(groupReadingLogs.userName, targetName)));
+
+      // اجمع الإصحاحات الفريدة مع أول تاريخ قراءة لكل منها
+      const chaptersMap: Record<string, { book: string; chapter: number; date: string }> = {};
+      for (const log of logs) {
+        const key = `${log.book}|${log.chapter}`;
+        if (!chaptersMap[key] || log.date < chaptersMap[key].date) {
+          chaptersMap[key] = { book: log.book, chapter: Number(log.chapter), date: log.date };
+        }
+      }
+
+      const chapters = Object.values(chaptersMap)
+        .sort((a, b) => a.date.localeCompare(b.date) || a.book.localeCompare(b.book) || a.chapter - b.chapter);
+
+      res.json({ chapters });
+    } catch (err) {
+      console.error('[groups] member readings error:', err);
+      res.status(500).json({ error: 'فشل تحميل القراءات' });
+    }
+  });
+
   app.get('/api/groups/:code/leader-report', async (req, res) => {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useParams, useLocation, Link } from 'wouter';
-import { Users, Search, Shield, ShieldOff, X, ArrowRight, Award, UserPlus, Loader2, Check } from 'lucide-react';
+import { Users, Search, Shield, ShieldOff, X, ArrowRight, Award, UserPlus, Loader2, Check, BookOpen } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,10 @@ export default function GroupMembers() {
   const [addAdminPhone, setAddAdminPhone] = useState('');
   const [addAdminLoading, setAddAdminLoading] = useState(false);
   const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
+
+  const [readingsTarget, setReadingsTarget] = useState<string | null>(null);
+  const [readingsData, setReadingsData] = useState<{ book: string; chapter: number; date: string }[] | null>(null);
+  const [readingsLoading, setReadingsLoading] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['group', groupCode],
@@ -135,6 +139,22 @@ export default function GroupMembers() {
       toast.error(err.message || 'فشل إضافة الأدمن');
     } finally {
       setAddAdminLoading(false);
+    }
+  };
+
+  const openReadings = async (targetUserName: string) => {
+    setReadingsTarget(targetUserName);
+    setReadingsData(null);
+    setReadingsLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/members/${encodeURIComponent(targetUserName)}/readings?memberKey=${encodeURIComponent(memberKey)}`);
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      setReadingsData(d.chapters || []);
+    } catch {
+      setReadingsData([]);
+    } finally {
+      setReadingsLoading(false);
     }
   };
 
@@ -240,6 +260,20 @@ export default function GroupMembers() {
                     <span className="text-xs text-muted-foreground flex-shrink-0">{memberChapters} إصحاح</span>
                   )}
                 </div>
+                <div className="flex gap-1 flex-shrink-0 mr-1">
+                  {(isAdmin || m.userName === userName) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      title="الإصحاحات المقروءة"
+                      onClick={() => openReadings(m.userName)}
+                      data-testid={`button-readings-${m.userName}`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-primary" />
+                    </Button>
+                  )}
+                </div>
                 {isAdmin && m.userName !== userName && (
                   <div className="flex gap-1 flex-shrink-0 mr-1">
                     <Button
@@ -287,6 +321,40 @@ export default function GroupMembers() {
           {filtered.length} من {members.length} عضو
         </p>
       )}
+
+      {/* Readings Dialog */}
+      <Dialog open={!!readingsTarget} onOpenChange={(o) => { if (!o) { setReadingsTarget(null); setReadingsData(null); } }}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-primary" />
+              إصحاحات {readingsTarget} المقروءة
+            </DialogTitle>
+          </DialogHeader>
+          {readingsLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : readingsData && readingsData.length === 0 ? (
+            <p className="text-center text-muted-foreground py-6">لم يقرأ أي إصحاح بعد</p>
+          ) : readingsData ? (
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground mb-3">{readingsData.length} إصحاح مقروء</p>
+              {readingsData.map((r, i) => (
+                <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-500 text-sm">✔</span>
+                    <span className="text-sm font-medium">{r.book} — إصحاح {r.chapter}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(r.date).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       {/* Add Admin Dialog */}
       <Dialog open={addAdminOpen} onOpenChange={(o) => { setAddAdminOpen(o); if (!o) setAddAdminResult(null); }}>
