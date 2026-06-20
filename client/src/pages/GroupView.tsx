@@ -928,7 +928,7 @@ function AssignmentSection({ groupCode, isAdmin, memberKey, userName, allBooks, 
 }
 
 // ── كارت القراءة الموحّد مع التقويم ──────────────────────────────────────────
-function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeTotal, groupCode, userName, onReadComplete }: {
+function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeTotal, groupCode, userName, memberKey, onReadComplete }: {
   autoReading: import('@/lib/group-auto-reading').DayAutoReading;
   autoConfig: import('@/lib/group-auto-reading').AutoReadingConfig;
   stats: { totalMembers: number; readToday: number; chaptersRead: number };
@@ -936,11 +936,35 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
   challengeTotal: number;
   groupCode: string;
   userName: string;
+  memberKey: string;
   onReadComplete: () => void;
 }) {
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [showCalendar, setShowCalendar] = useState(false);
-  const [reading, setReading] = useState<{ book: string; chapter: number; schedule: {book: string; chapter: number}[] } | null>(null);
+  const [reading, setReading] = useState<{ book: string; chapter: number; schedule: {book: string; chapter: number}[]; assignmentId?: number | null } | null>(null);
+
+  // ── الإصحاحات غير المقروءة ─────────────────────────────────────────────
+  const [unreadOpen, setUnreadOpen] = useState(false);
+  const [unreadChapters, setUnreadChapters] = useState<{ book: string; chapter: number; assignmentId: number }[] | null>(null);
+  const [unreadAssignmentId, setUnreadAssignmentId] = useState<number | null>(null);
+  const [unreadLoading, setUnreadLoading] = useState(false);
+
+  const openUnread = async () => {
+    setUnreadOpen(true);
+    if (unreadChapters !== null) return; // مخزّن مسبقاً
+    setUnreadLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/members/${encodeURIComponent(userName)}/readings?memberKey=${encodeURIComponent(memberKey)}`);
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      setUnreadChapters(d.chapters || []);
+      setUnreadAssignmentId(d.assignmentId ?? null);
+    } catch {
+      setUnreadChapters([]);
+    } finally {
+      setUnreadLoading(false);
+    }
+  };
   // إصحاحات منتهية اليوم — مخزّنة في localStorage
   const [doneChs, setDoneChs] = useState<Set<string>>(() => {
     try {
@@ -988,7 +1012,7 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
           bookName={reading.book}
           chapter={reading.chapter}
           groupCode={groupCode}
-          assignmentId={null}
+          assignmentId={reading.assignmentId ?? null}
           userName={userName}
           schedule={reading.schedule}
           onComplete={() => { setReading(null); onReadComplete(); }}
@@ -1010,6 +1034,14 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
               {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}
             </Badge>
           )}
+          <Button
+            variant="outline" size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={openUnread}
+            title="الإصحاحات المتبقية"
+          >
+            📋 {unreadChapters !== null ? `${unreadChapters.length} متبقٍ` : 'المتبقي'}
+          </Button>
           <Button
             variant="outline" size="sm"
             className="h-7 text-xs gap-1"
@@ -1099,6 +1131,50 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
           <Progress value={Math.min(progress, 100)} className="h-1.5" />
         </div>
       )}
+
+      {/* ── Dialog الإصحاحات المتبقية ─────────────────────────────────── */}
+      <Dialog open={unreadOpen} onOpenChange={(o) => { setUnreadOpen(o); if (!o) setUnreadChapters(null); }}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto w-full max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-primary" />
+              إصحاحاتي غير المقروءة
+            </DialogTitle>
+          </DialogHeader>
+          {unreadLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+          ) : unreadChapters && unreadChapters.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-3xl mb-2">🎉</p>
+              <p className="font-semibold">أنهيت كل الإصحاحات المطلوبة</p>
+            </div>
+          ) : unreadChapters ? (
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground mb-3">{unreadChapters.length} إصحاح متبقٍ</p>
+              {unreadChapters.map((r, i) => (
+                <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground/40">○</span>
+                    <span className="text-sm font-medium">{r.book} — إصحاح {r.chapter}</span>
+                  </div>
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
+                    setUnreadOpen(false);
+                    setReading({
+                      book: r.book,
+                      chapter: r.chapter,
+                      schedule: unreadChapters.map(c => ({ book: c.book, chapter: c.chapter })),
+                      assignmentId: unreadAssignmentId,
+                    });
+                  }}>
+                    <Play className="w-3 h-3" />
+                    اقرأ
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -1890,6 +1966,7 @@ export default function GroupView() {
             challengeTotal={group.challengeTotal}
             groupCode={groupCode}
             userName={userName}
+            memberKey={memberKey}
             onReadComplete={() => fetchGroup()}
           />
         )}
