@@ -515,13 +515,14 @@ export function registerGroupRoutes(app: Express) {
         [group.id, today]
       );
       const readTodayNames = new Set<string>(readTodayResult.rows.map((r: any) => r.user_name));
-      const readTodayCount: number = readTodayNames.size;
 
       const membersWithStatus = members.map((m: any) => ({
         ...m,
         readToday: readTodayNames.has(m.userName),
         log: null,
       }));
+
+      const readTodayCount = membersWithStatus.filter((m: any) => m.readToday).length;
 
       const allLogs = await db.select().from(groupReadingLogs)
         .where(eq(groupReadingLogs.groupId, group.id));
