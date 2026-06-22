@@ -947,6 +947,7 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
   const [unreadOpen, setUnreadOpen] = useState(false);
   const [unreadChapters, setUnreadChapters] = useState<{ book: string; chapter: number; assignmentId: number }[] | null>(null);
   const [unreadAssignmentId, setUnreadAssignmentId] = useState<number | null>(null);
+  const [unreadHasAssignment, setUnreadHasAssignment] = useState<boolean | null>(null);
   const [unreadLoading, setUnreadLoading] = useState(false);
 
   const openUnread = async () => {
@@ -957,6 +958,7 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
       const res = await fetch(`/api/groups/${groupCode}/members/${encodeURIComponent(userName)}/readings?memberKey=${encodeURIComponent(memberKey)}`);
       if (!res.ok) throw new Error();
       const d = await res.json();
+      setUnreadHasAssignment(d.hasAssignment !== false);
       setUnreadChapters(d.chapters || []);
       setUnreadAssignmentId(d.assignmentId ?? null);
     } catch {
@@ -1145,8 +1147,18 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
             <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
           ) : unreadChapters && unreadChapters.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-3xl mb-2">🎉</p>
-              <p className="font-semibold">أنهيت كل الإصحاحات المطلوبة</p>
+              {unreadHasAssignment === false ? (
+                <>
+                  <p className="text-3xl mb-2">📋</p>
+                  <p className="font-semibold">لا توجد مهام قراءة محددة لك حالياً</p>
+                  <p className="text-sm text-muted-foreground mt-1">تواصل مع الخادم لإضافة مهمة قراءة</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl mb-2">🎉</p>
+                  <p className="font-semibold">أنهيت كل الإصحاحات المطلوبة</p>
+                </>
+              )}
             </div>
           ) : unreadChapters ? (
             <div className="space-y-1">

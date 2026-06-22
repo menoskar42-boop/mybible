@@ -1101,7 +1101,7 @@ export function registerGroupRoutes(app: Express) {
         .where(and(eq(groupAssignments.groupId, group.id), eq(groupAssignments.isActive, true)));
 
       if (assignments.length === 0) {
-        return res.json({ chapters: [], assignmentId: null });
+        return res.json({ chapters: [], assignmentId: null, hasAssignment: false });
       }
 
       // الإصحاحات التي أكملها العضو من الـ assignment_readings
@@ -1135,7 +1135,7 @@ export function registerGroupRoutes(app: Express) {
       // أول assignment id للاستخدام في تسجيل القراءة
       const firstAssignmentId = assignments[0]?.id ?? null;
 
-      res.json({ chapters: unread, assignmentId: firstAssignmentId });
+      res.json({ chapters: unread, assignmentId: firstAssignmentId, hasAssignment: true });
     } catch (err) {
       console.error('[groups] member readings error:', err);
       res.status(500).json({ error: 'فشل تحميل القراءات' });
