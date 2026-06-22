@@ -1265,11 +1265,14 @@ export default function GroupView() {
 
   const fetchGroup = useCallback(async () => {
     const CACHE_KEY = `group_arc_${groupCode}`;
+    const DATA_CACHE_KEY = `group_data_${groupCode}`;
     try {
       const res = await fetch(`/api/groups/${groupCode}`);
       if (!res.ok) throw new Error();
       const d = await res.json();
       setData(d);
+      // حفظ بيانات الجروب كاملةً للاستخدام أوفلاين
+      try { localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(d)); } catch {}
       setChallengeTotal(d.group.challengeTotal?.toString() || '');
       setLinkJoinMode((d.group.linkJoinMode as 'approval' | 'auto') || 'approval');
       setMessagingMode((d.group.messagingMode as 'all' | 'admin_only') || 'all');
@@ -1277,7 +1280,6 @@ export default function GroupView() {
       // تحميل إعداد القراءات التلقائية
       const arc = d.group.autoReadingConfig;
       if (arc) {
-        // حفظ الإعداد محلياً للاستخدام أوفلاين
         try { localStorage.setItem(CACHE_KEY, JSON.stringify(arc)); } catch {}
         setAutoEnabled(arc.enabled ?? false);
         setAutoOtChap(arc.otChaptersPerDay ?? 3);
@@ -1288,12 +1290,31 @@ export default function GroupView() {
         if (ntEntry) { setAutoNtBook(ntEntry.book); setAutoNtChapter(ntEntry.chapter); }
       }
     } catch {
-      // أوفلاين: استخدم الإعداد المحفوظ محلياً لحساب قراءة اليوم
+      // أوفلاين: استخدم بيانات الجروب المحفوظة كاملةً
+      const cachedData = localStorage.getItem(DATA_CACHE_KEY);
+      if (cachedData) {
+        try {
+          const d = JSON.parse(cachedData);
+          setData((prev: any) => prev ?? d);
+          const arc = d.group?.autoReadingConfig;
+          if (arc) {
+            setAutoEnabled(arc.enabled ?? false);
+            setAutoOtChap(arc.otChaptersPerDay ?? 3);
+            setAutoNtChap(arc.ntChaptersPerDay ?? 1);
+            const otEntry = OT_FLAT[arc.otStartIndex ?? 0];
+            const ntEntry = NT_FLAT[arc.ntStartIndex ?? 0];
+            if (otEntry) { setAutoOtBook(otEntry.book); setAutoOtChapter(otEntry.chapter); }
+            if (ntEntry) { setAutoNtBook(ntEntry.book); setAutoNtChapter(ntEntry.chapter); }
+          }
+        } catch {}
+        setLoading(false);
+        return;
+      }
+      // fallback: arc فقط
       const stored = localStorage.getItem(CACHE_KEY);
       if (stored) {
         try {
           const arc = JSON.parse(stored);
-          // بناء كائن بيانات مجموعة مبسّط من المخزون المحلي
           setData((prev: any) => prev ?? { group: { autoReadingConfig: arc }, members: [], stats: { totalMembers: 0, readToday: 0, chaptersRead: 0 } });
         } catch {}
         setLoading(false);
@@ -1325,6 +1346,8 @@ export default function GroupView() {
         if (failed.length < queue.length) {
           toast.success('تم مزامنة تقدم القراءة مع السيرفر');
           fetchGroup();
+          // تحديث الـ leaderboard وبيانات الأعضاء بعد المزامنة
+          queryClient.invalidateQueries({ queryKey: ['leaderboard', groupCode] });
         }
       } catch {}
     };
