@@ -962,6 +962,7 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
       setUnreadChapters(d.chapters || []);
       setUnreadAssignmentId(d.assignmentId ?? null);
     } catch {
+      setUnreadHasAssignment(false);
       setUnreadChapters([]);
     } finally {
       setUnreadLoading(false);
