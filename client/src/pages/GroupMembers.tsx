@@ -66,10 +66,10 @@ export default function GroupMembers() {
     enabled: !!groupCode,
   });
 
-  const { data: leaderboardData } = useQuery({
-    queryKey: ['leaderboard', groupCode],
+  const { data: memberStatsData } = useQuery({
+    queryKey: ['member-stats', groupCode],
     queryFn: async () => {
-      const res = await fetch(`/api/groups/${groupCode}/leaderboard`);
+      const res = await fetch(`/api/groups/${groupCode}/member-stats`);
       if (!res.ok) throw new Error();
       return res.json();
     },
@@ -77,7 +77,7 @@ export default function GroupMembers() {
   });
 
   const members: any[] = data?.members || [];
-  const leaderboard: any[] = leaderboardData?.leaderboard || [];
+  const memberStats: Record<string, number> = memberStatsData?.stats || {};
 
   const filtered = useMemo(() => {
     if (!search.trim()) return members;
@@ -253,7 +253,7 @@ export default function GroupMembers() {
           </div>
         ) : (
           filtered.map((m: any) => {
-            const memberChapters = leaderboard.find((l: any) => l.userName === m.userName)?.chaptersReadCount || 0;
+            const memberChapters = memberStats[m.userName] || 0;
             return (
               <div key={m.id || m.userName} className="flex items-center justify-between px-4 py-3" data-testid={`member-row-${m.userName}`}>
                 <div className="flex items-center gap-2 flex-wrap min-w-0">

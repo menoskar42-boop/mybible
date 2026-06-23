@@ -1119,6 +1119,37 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  // إحصاءات جميع الأعضاء (الإصحاحات المقروءة بدون حد أعلى) من كلا الجدولين
+  app.get('/api/groups/:code/member-stats', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const result = await pool.query(
+        `SELECT user_name, COUNT(DISTINCT book || '|' || chapter::text) AS chapters
+         FROM (
+           SELECT user_name, book, chapter::text AS chapter
+           FROM group_reading_logs WHERE group_id = $1
+           UNION ALL
+           SELECT user_name, book_name AS book, chapter::text AS chapter
+           FROM assignment_readings WHERE group_id = $1 AND completed = true
+         ) t
+         GROUP BY user_name`,
+        [group.id]
+      );
+
+      const stats: Record<string, number> = {};
+      for (const row of result.rows) {
+        stats[row.user_name] = parseInt(row.chapters) || 0;
+      }
+
+      res.json({ stats });
+    } catch (err) {
+      console.error('[groups] member-stats error:', err);
+      res.status(500).json({ error: 'فشل تحميل الإحصاءات' });
+    }
+  });
+
   // الإصحاحات غير المقروءة لعضو معين من الـ assignments النشطة — للعضو نفسه أو الأدمن
   app.get('/api/groups/:code/members/:memberName/readings', async (req, res) => {
     try {
