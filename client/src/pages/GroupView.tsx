@@ -1468,22 +1468,25 @@ export default function GroupView() {
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
+      // لو كان اسمه موجوداً كعضو حقيقي (أدمن مثلاً) → استخدم مفتاحه الأصلي
+      const realMemberKey = d.memberKey || memberKey;
+      const realIsAdmin = d.isAdmin || false;
       // تحديث localStorage باسم حقيقي وإلغاء وضع الضيف
       localStorage.setItem(`group_${groupCode}`, JSON.stringify({
-        userName: d.userName, memberKey, isLeader: false, isGuest: false,
+        userName: d.userName, memberKey: realMemberKey, isLeader: realIsAdmin, isGuest: false,
       }));
       addUserGroup({
         groupId: groupCode,
         groupName: (data as any)?.group?.name || '',
         churchName: (data as any)?.group?.churchName || '',
-        role: 'member',
+        role: realIsAdmin ? 'admin' : 'member',
         userName: d.userName,
-        memberKey,
+        memberKey: realMemberKey,
       });
-      setGuestCreds({ userName: d.userName, memberKey });
+      setGuestCreds({ userName: d.userName, memberKey: realMemberKey });
       setIsGuest(false);
       setGuestRegisterOpen(false);
-      toast.success('تم تسجيل اسمك بنجاح');
+      toast.success(d.merged ? 'تم استعادة حسابك بنجاح!' : 'تم تسجيل اسمك بنجاح');
       fetchGroup();
     } catch (err: any) {
       toast.error(err.message || 'فشل التسجيل');

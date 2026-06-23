@@ -69,12 +69,25 @@ export function registerGroupRoutes(app: Express) {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, code));
       if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
 
-      // هل هو عضو بالفعل؟
+      const normalizedPhone = phone.trim().replace(/\s+/g, '');
+
+      // هل هو عضو بالفعل؟ — ابحث بالتليفون أولاً (يضمن إرجاع الأدمن الصحيح)
+      const existingByPhone = await db.select().from(groupMembers)
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.phone, normalizedPhone)));
+      if (existingByPhone.length > 0) {
+        const found = existingByPhone[0];
+        if (found.userName !== userName.trim()) {
+          await db.update(groupMembers).set({ userName: userName.trim() }).where(eq(groupMembers.id, found.id));
+        }
+        return res.json({ group, member: { ...found, userName: userName.trim() }, status: 'already_member' });
+      }
+
+      // البحث بالاسم كـ fallback
       const [existing] = await db.select().from(groupMembers)
         .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, userName.trim())));
       if (existing) {
-        if (!existing.phone && phone) {
-          await db.update(groupMembers).set({ phone: phone.trim() }).where(eq(groupMembers.id, existing.id));
+        if (!existing.phone && normalizedPhone) {
+          await db.update(groupMembers).set({ phone: normalizedPhone }).where(eq(groupMembers.id, existing.id));
         }
         return res.json({ group, member: existing, status: 'already_member' });
       }
@@ -92,11 +105,14 @@ export function registerGroupRoutes(app: Express) {
              SELECT 1 FROM group_members WHERE group_id = $1 AND (user_name = $2 OR phone = $4)
            )
            RETURNING *`,
-          [group.id, userName.trim(), memberKey, phone.trim()]
+          [group.id, userName.trim(), memberKey, normalizedPhone]
         );
         if (result.rows.length === 0) {
-          const [dup] = await db.select().from(groupMembers)
-            .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, userName.trim())));
+          // ابحث بالتليفون أولاً ثم بالاسم للإرجاع الصحيح
+          const dupPhone = await db.select().from(groupMembers)
+            .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.phone, normalizedPhone)));
+          const dup = dupPhone[0] || (await db.select().from(groupMembers)
+            .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, userName.trim()))))[0];
           return res.json({ group, member: dup, status: 'already_member' });
         }
         return res.json({ group, member: result.rows[0], status: 'joined', memberKey });
@@ -238,11 +254,33 @@ export function registerGroupRoutes(app: Express) {
       // احفظ الاسم القديم (عضو X) لنقل سجلات القراءة
       const [currentMember] = await db.select().from(groupMembers)
         .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, memberKey)));
-      const oldName = currentMember?.userName;
+      if (!currentMember) return res.status(404).json({ error: 'العضو غير موجود' });
+      const oldName = currentMember.userName;
+
+      // هل يوجد عضو آخر بنفس الاسم الجديد؟ (حالة الأدمن يسجّل دخوله من حساب ضيف)
+      const normalizedRegPhone = phone?.trim().replace(/\s+/g, '') || '';
+      const nameConflict = await db.select().from(groupMembers)
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, newName.trim())));
+      const existingReal = nameConflict.find(m => m.memberKey !== memberKey);
+
+      if (existingReal) {
+        // العضو الحقيقي موجود — احذف حساب الضيف وأعد مفتاح العضو الأصلي
+        await db.delete(groupMembers)
+          .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, memberKey)));
+        await db.delete(groupGuestTokens)
+          .where(and(eq(groupGuestTokens.groupCode, code), eq(groupGuestTokens.memberKey, memberKey)));
+        return res.json({
+          success: true,
+          userName: existingReal.userName,
+          memberKey: existingReal.memberKey,
+          isAdmin: existingReal.isAdmin || false,
+          merged: true,
+        });
+      }
 
       // تحديث اسم العضو في group_members
       await db.update(groupMembers)
-        .set({ userName: newName.trim(), ...(phone ? { phone: phone.trim() } : {}) })
+        .set({ userName: newName.trim(), ...(normalizedRegPhone ? { phone: normalizedRegPhone } : {}) })
         .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, memberKey)));
 
       // نقل كل السجلات التاريخية للاسم الجديد (يحافظ على الترتيب والتقدم)
@@ -258,13 +296,13 @@ export function registerGroupRoutes(app: Express) {
       }
 
       // تحديث التليفون في guest_tokens
-      if (phone) {
+      if (normalizedRegPhone) {
         await db.update(groupGuestTokens)
-          .set({ phone: phone.trim() })
+          .set({ phone: normalizedRegPhone })
           .where(and(eq(groupGuestTokens.groupCode, code), eq(groupGuestTokens.memberKey, memberKey)));
       }
 
-      res.json({ success: true, userName: newName.trim(), oldName });
+      res.json({ success: true, userName: newName.trim(), memberKey, isAdmin: false, oldName });
     } catch (err) {
       console.error('[groups] guest-register error:', err);
       res.status(500).json({ error: 'فشل التسجيل' });
