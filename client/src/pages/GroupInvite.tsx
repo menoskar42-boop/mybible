@@ -21,8 +21,6 @@ export default function GroupInvite() {
   const [groupInfo, setGroupInfo] = useState<{ name: string; churchName?: string; leaderName: string; linkJoinMode: string; guestAccessEnabled?: boolean } | null>(null);
   const [infoLoading, setInfoLoading] = useState(true);
   const [infoError, setInfoError] = useState('');
-  const [showMemberForm, setShowMemberForm] = useState(false);
-  const [guestJoining, setGuestJoining] = useState(false);
 
   const [userName, setUserName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
@@ -50,33 +48,30 @@ export default function GroupInvite() {
       .then(data => {
         if (!data.group) { setInfoError('المجموعة غير موجودة أو الرابط غير صحيح'); return; }
         setGroupInfo(data.group);
-        // لو الدخول الضيف مفعّل → أظهر خيار "ادخل كضيف" بدل الدخول التلقائي
-        // حتى يتمكن العضو المسجّل من استعادة حسابه بالاسم والتليفون
+        // لو الدخول الضيف مفعّل → ادخل تلقائياً كضيف
+        if (data.group.guestAccessEnabled) {
+          fetch(`/api/groups/${groupCode}/guest-join`, { method: 'POST', credentials: 'include' })
+            .then(r => r.json())
+            .then(d => {
+              if (d.userName && d.memberKey) {
+                localStorage.setItem(`group_${groupCode}`, JSON.stringify({
+                  userName: d.userName, memberKey: d.memberKey, isLeader: false, isGuest: true,
+                }));
+                addUserGroup({
+                  groupId: groupCode, groupName: data.group.name,
+                  churchName: data.group.churchName || '', role: 'member',
+                  userName: d.userName, memberKey: d.memberKey,
+                });
+                navigate(`/group/${groupCode}`, { replace: true });
+              }
+            })
+            .catch(() => setInfoLoading(false));
+          return;
+        }
       })
       .catch(() => setInfoError('فشل تحميل بيانات المجموعة'))
       .finally(() => setInfoLoading(false));
   }, [groupCode]);
-
-  const handleGuestJoin = () => {
-    setGuestJoining(true);
-    fetch(`/api/groups/${groupCode}/guest-join`, { method: 'POST', credentials: 'include' })
-      .then(r => r.json())
-      .then(d => {
-        if (d.userName && d.memberKey) {
-          localStorage.setItem(`group_${groupCode}`, JSON.stringify({
-            userName: d.userName, memberKey: d.memberKey, isLeader: false, isGuest: true,
-          }));
-          addUserGroup({
-            groupId: groupCode, groupName: groupInfo?.name || '',
-            churchName: groupInfo?.churchName || '', role: 'member',
-            userName: d.userName, memberKey: d.memberKey,
-          });
-          navigate(`/group/${groupCode}`, { replace: true });
-        }
-      })
-      .catch(() => toast.error('فشل الدخول كضيف'))
-      .finally(() => setGuestJoining(false));
-  };
 
   const handleJoin = async () => {
     if (!userName.trim()) { toast.error('اكتب اسمك'); return; }
@@ -179,27 +174,6 @@ export default function GroupInvite() {
             <p className="text-sm text-muted-foreground mb-6">ستُضاف للمجموعة بعد الموافقة</p>
             <Button variant="outline" onClick={() => navigate('/groups')} data-testid="button-back-to-groups">العودة لمجموعاتي</Button>
           </Card>
-        ) : groupInfo?.guestAccessEnabled && !showMemberForm ? (
-          /* وضع الدخول الضيف — يعرض خيارين */
-          <Card className="p-6 space-y-4">
-            <div className="text-center p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/30">
-              <p className="text-sm text-indigo-700 dark:text-indigo-300">
-                يمكنك الدخول كضيف مباشرةً أو بالاسم ورقم الموبايل
-              </p>
-            </div>
-            <Button onClick={handleGuestJoin} disabled={guestJoining} className="w-full" size="lg">
-              {guestJoining ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Users className="w-4 h-4 ml-2" />}
-              ادخل كضيف
-            </Button>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground">أو</span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-            <Button variant="outline" onClick={() => setShowMemberForm(true)} className="w-full">
-              أنا عضو مسجل — ادخل باسمي ورقمي
-            </Button>
-          </Card>
         ) : (
           <Card className="p-6">
             <div className="mb-4 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 text-center">
@@ -247,12 +221,6 @@ export default function GroupInvite() {
                 {loading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Check className="w-4 h-4 ml-2" />}
                 {groupInfo?.linkJoinMode === 'auto' ? 'انضمام فوري' : 'طلب الانضمام'}
               </Button>
-
-              {groupInfo?.guestAccessEnabled && (
-                <button onClick={() => setShowMemberForm(false)} className="text-xs text-muted-foreground underline w-full text-center">
-                  رجوع — ادخل كضيف
-                </button>
-              )}
             </div>
           </Card>
         )}
