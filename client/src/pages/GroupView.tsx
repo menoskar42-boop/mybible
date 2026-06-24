@@ -1486,8 +1486,14 @@ export default function GroupView() {
       setGuestCreds({ userName: d.userName, memberKey: realMemberKey });
       setIsGuest(false);
       setGuestRegisterOpen(false);
-      toast.success(d.merged ? 'تم استعادة حسابك بنجاح!' : 'تم تسجيل اسمك بنجاح');
-      fetchGroup();
+      if (d.merged) {
+        // أعد تحميل الصفحة لتفعيل الأدمن status من localStorage الجديد
+        toast.success('تم استعادة حسابك بنجاح!');
+        setTimeout(() => window.location.reload(), 800);
+      } else {
+        toast.success('تم تسجيل اسمك بنجاح');
+        fetchGroup();
+      }
     } catch (err: any) {
       toast.error(err.message || 'فشل التسجيل');
     } finally {
