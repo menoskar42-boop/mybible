@@ -264,11 +264,58 @@ export function registerGroupRoutes(app: Express) {
       const existingReal = nameConflict.find(m => m.memberKey !== memberKey);
 
       if (existingReal) {
-        // العضو الحقيقي موجود — احذف حساب الضيف وأعد مفتاح العضو الأصلي
+        // العضو الحقيقي موجود — انقل قراءات الضيف (عضو X) لاسمه الحقيقي أولاً
+        // حتى لا يفقد الإصحاحات التي قرأها أثناء ظهوره كضيف
+        if (oldName && oldName !== existingReal.userName) {
+          // انقل سجلات القراءة مع تجنّب التكرار (احذف المكرر ثم حدّث)
+          await pool.query(
+            `DELETE FROM group_reading_logs g
+             WHERE g.group_id = $1 AND g.user_name = $2
+               AND EXISTS (
+                 SELECT 1 FROM group_reading_logs r
+                 WHERE r.group_id = $1 AND r.user_name = $3
+                   AND r.book = g.book AND r.chapter = g.chapter
+               )`,
+            [group.id, oldName, existingReal.userName]
+          );
+          await pool.query(
+            `UPDATE group_reading_logs SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+            [existingReal.userName, group.id, oldName]
+          );
+          // انقل قراءات assignment_readings كذلك
+          await pool.query(
+            `DELETE FROM assignment_readings g
+             WHERE g.group_id = $1 AND g.user_name = $2
+               AND EXISTS (
+                 SELECT 1 FROM assignment_readings r
+                 WHERE r.group_id = $1 AND r.user_name = $3
+                   AND r.book_name = g.book_name AND r.chapter = g.chapter
+               )`,
+            [group.id, oldName, existingReal.userName]
+          );
+          await pool.query(
+            `UPDATE assignment_readings SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+            [existingReal.userName, group.id, oldName]
+          );
+          await pool.query(
+            `UPDATE group_messages SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+            [existingReal.userName, group.id, oldName]
+          );
+        }
+
+        // احذف حساب الضيف وأعد مفتاح العضو الأصلي
         await db.delete(groupMembers)
           .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.memberKey, memberKey)));
         await db.delete(groupGuestTokens)
           .where(and(eq(groupGuestTokens.groupCode, code), eq(groupGuestTokens.memberKey, memberKey)));
+
+        // حدّث تليفون العضو الأصلي لو لم يكن مسجلاً
+        if (normalizedRegPhone && !existingReal.phone) {
+          await db.update(groupMembers)
+            .set({ phone: normalizedRegPhone })
+            .where(eq(groupMembers.id, existingReal.id));
+        }
+
         return res.json({
           success: true,
           userName: existingReal.userName,
