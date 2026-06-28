@@ -833,6 +833,80 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  // ── تعديل/دمج اسم عضو (أدمن فقط) — يصحّح الأسماء الخاطئة ويجمع القراءات ──
+  app.put('/api/groups/:code/members/:memberName/rename', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const { leaderKey, newName } = req.body;
+      const authorized = await isAdminByLeaderKey(group, leaderKey);
+      if (!authorized) return res.status(403).json({ error: 'غير مسموح' });
+
+      const fromName = decodeURIComponent(req.params.memberName);
+      const toName = (newName || '').trim();
+      if (!toName) return res.status(400).json({ error: 'الاسم الجديد مطلوب' });
+      if (fromName === toName) return res.json({ success: true, userName: toName, unchanged: true });
+
+      const [source] = await db.select().from(groupMembers)
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, fromName)));
+      if (!source) return res.status(404).json({ error: 'العضو غير موجود' });
+
+      // هل يوجد عضو آخر بالاسم الجديد؟ → دمج
+      const [target] = await db.select().from(groupMembers)
+        .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, toName)));
+
+      const merged = !!target && target.memberKey !== source.memberKey;
+
+      // انقل قراءات fromName إلى toName مع تجنّب التكرار (يعمل للحالتين)
+      await pool.query(
+        `DELETE FROM group_reading_logs g
+         WHERE g.group_id = $1 AND g.user_name = $2
+           AND EXISTS (SELECT 1 FROM group_reading_logs r
+             WHERE r.group_id = $1 AND r.user_name = $3 AND r.book = g.book AND r.chapter = g.chapter)`,
+        [group.id, fromName, toName]
+      );
+      await pool.query(
+        `UPDATE group_reading_logs SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+        [toName, group.id, fromName]
+      );
+      await pool.query(
+        `DELETE FROM assignment_readings g
+         WHERE g.group_id = $1 AND g.user_name = $2
+           AND EXISTS (SELECT 1 FROM assignment_readings r
+             WHERE r.group_id = $1 AND r.user_name = $3 AND r.book_name = g.book_name AND r.chapter = g.chapter)`,
+        [group.id, fromName, toName]
+      );
+      await pool.query(
+        `UPDATE assignment_readings SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+        [toName, group.id, fromName]
+      );
+      await pool.query(
+        `UPDATE group_messages SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+        [toName, group.id, fromName]
+      );
+
+      if (merged) {
+        // العضو الجديد موجود — احذف الصف المكرر (مع نقل صلاحية الأدمن لو لزم)
+        if (source.isAdmin && !target.isAdmin) {
+          await db.update(groupMembers).set({ isAdmin: true }).where(eq(groupMembers.id, target.id));
+        }
+        if (source.phone && !target.phone) {
+          await db.update(groupMembers).set({ phone: source.phone }).where(eq(groupMembers.id, target.id));
+        }
+        await db.delete(groupMembers).where(eq(groupMembers.id, source.id));
+      } else {
+        // مجرد إعادة تسمية
+        await db.update(groupMembers).set({ userName: toName }).where(eq(groupMembers.id, source.id));
+      }
+
+      res.json({ success: true, userName: toName, merged });
+    } catch (err) {
+      console.error('[groups] rename member error:', err);
+      res.status(500).json({ error: 'فشل تعديل الاسم' });
+    }
+  });
+
   app.post('/api/groups/:code/add-admin', async (req, res) => {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));

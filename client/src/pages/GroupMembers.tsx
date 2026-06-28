@@ -50,6 +50,10 @@ export default function GroupMembers() {
   const [addAdminLoading, setAddAdminLoading] = useState(false);
   const [addAdminResult, setAddAdminResult] = useState<string | null>(null);
 
+  const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameLoading, setRenameLoading] = useState(false);
+
   const [readingsTarget, setReadingsTarget] = useState<string | null>(null);
   const [readingsData, setReadingsData] = useState<{ book: string; chapter: number; assignmentId: number }[] | null>(null);
   const [readingsAssignmentId, setReadingsAssignmentId] = useState<number | null>(null);
@@ -154,6 +158,29 @@ export default function GroupMembers() {
       toast.error(err.message || 'فشل إضافة الأدمن');
     } finally {
       setAddAdminLoading(false);
+    }
+  };
+
+  const handleRename = async () => {
+    if (!renameTarget || !renameValue.trim()) return;
+    setRenameLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/members/${encodeURIComponent(renameTarget)}/rename`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, newName: renameValue.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      toast.success(d.merged ? 'تم دمج العضو ونقل قراءاته' : 'تم تعديل الاسم');
+      setRenameTarget(null);
+      setRenameValue('');
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['member-stats', groupCode] });
+    } catch (err: any) {
+      toast.error(err.message || 'فشل تعديل الاسم');
+    } finally {
+      setRenameLoading(false);
     }
   };
 
@@ -292,6 +319,16 @@ export default function GroupMembers() {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
+                      title="تعديل / تصحيح الاسم"
+                      onClick={() => { setRenameTarget(m.userName); setRenameValue(m.userName); }}
+                      data-testid={`button-rename-${m.userName}`}
+                    >
+                      <span className="text-sm">✏️</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
                       title={m.isAdmin ? 'إزالة أدمن' : 'تعيين كأدمن'}
                       onClick={() => toggleAdmin(m.userName, !m.isAdmin)}
                       data-testid={`button-toggle-admin-${m.userName}`}
@@ -397,6 +434,28 @@ export default function GroupMembers() {
               ))}
             </div>
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename / Merge Member Dialog */}
+      <Dialog open={!!renameTarget} onOpenChange={(o) => { if (!o) { setRenameTarget(null); setRenameValue(''); } }}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل اسم العضو</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rename-input">الاسم الصحيح</Label>
+              <Input id="rename-input" value={renameValue} onChange={e => setRenameValue(e.target.value)} placeholder="اكتب الاسم الصحيح" />
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              لو الاسم الجديد موجود بالفعل لعضو آخر، سيتم <span className="font-semibold text-foreground">دمج الحسابين</span> ونقل كل القراءات للاسم الصحيح بدون تكرار.
+            </p>
+            <Button onClick={handleRename} disabled={renameLoading || !renameValue.trim()} className="w-full">
+              {renameLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Check className="w-4 h-4 ml-2" />}
+              حفظ
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
