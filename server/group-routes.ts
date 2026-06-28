@@ -332,8 +332,34 @@ export function registerGroupRoutes(app: Express) {
 
       // نقل كل السجلات التاريخية للاسم الجديد (يحافظ على الترتيب والتقدم)
       if (oldName && oldName !== newName.trim()) {
+        // group_reading_logs مع تجنّب التكرار
+        await pool.query(
+          `DELETE FROM group_reading_logs g
+           WHERE g.group_id = $1 AND g.user_name = $2
+             AND EXISTS (
+               SELECT 1 FROM group_reading_logs r
+               WHERE r.group_id = $1 AND r.user_name = $3
+                 AND r.book = g.book AND r.chapter = g.chapter
+             )`,
+          [group.id, oldName, newName.trim()]
+        );
         await pool.query(
           `UPDATE group_reading_logs SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+          [newName.trim(), group.id, oldName]
+        );
+        // assignment_readings مع تجنّب التكرار
+        await pool.query(
+          `DELETE FROM assignment_readings g
+           WHERE g.group_id = $1 AND g.user_name = $2
+             AND EXISTS (
+               SELECT 1 FROM assignment_readings r
+               WHERE r.group_id = $1 AND r.user_name = $3
+                 AND r.book_name = g.book_name AND r.chapter = g.chapter
+             )`,
+          [group.id, oldName, newName.trim()]
+        );
+        await pool.query(
+          `UPDATE assignment_readings SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
           [newName.trim(), group.id, oldName]
         );
         await pool.query(
