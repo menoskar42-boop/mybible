@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
+import { bibleCache, setStaticCacheHeaders } from "./bible-cache";
 import { ensureSessionUser, getCurrentUser, checkPremiumStatus, checkAiUsageLimit } from "./auth";
 import { processAiQuery, enhanceSearchWithGroq } from "./ai-service";
 import { insertHighlightedVerseSchema, insertUserReadingProgressSchema } from "@shared/schema";
@@ -587,7 +588,8 @@ export async function registerRoutes(
 
   app.get('/api/books', async (_req, res) => {
     try {
-      const books = await storage.getAllBooks();
+      const books = await bibleCache.getAllBooks();
+      setStaticCacheHeaders(res);
       res.json(books);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch books' });
@@ -601,7 +603,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: 'Invalid testament' });
       }
 
-      const books = await storage.getBooksByTestament(testament);
+      const books = await bibleCache.getBooksByTestament(testament);
+      setStaticCacheHeaders(res);
       res.json(books);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch books' });
@@ -613,7 +616,8 @@ export async function registerRoutes(
       const bookId = parseInt(req.params.bookId);
       const chapter = req.query.chapter ? parseInt(req.query.chapter as string) : undefined;
 
-      const verses = await storage.getVersesByBook(bookId, chapter);
+      const verses = await bibleCache.getVersesByBook(bookId, chapter);
+      setStaticCacheHeaders(res);
       res.json(verses);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch verses' });
@@ -623,7 +627,8 @@ export async function registerRoutes(
   app.get('/api/books/:bookId/chapters', async (req, res) => {
     try {
       const bookId = parseInt(req.params.bookId);
-      const chapters = await storage.getChaptersForBook(bookId);
+      const chapters = await bibleCache.getChaptersForBook(bookId);
+      setStaticCacheHeaders(res);
       res.json(chapters);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch chapters' });
@@ -637,14 +642,15 @@ export async function registerRoutes(
       if (!bookName || !fromCh || !fromVs || !toCh || !toVs) {
         return res.status(400).json({ message: 'bookName, fromCh, fromVs, toCh, toVs required' });
       }
-      const book = await storage.getBookByName(bookName);
+      const book = await bibleCache.getBookByName(bookName);
       if (!book) return res.status(404).json({ message: `Book not found: ${bookName}` });
+      setStaticCacheHeaders(res);
 
       const fCh = parseInt(fromCh), fVs = parseInt(fromVs), tCh = parseInt(toCh), tVs = parseInt(toVs);
       const verses: { chapter: number; verse: number; text: string }[] = [];
 
       for (let ch = fCh; ch <= tCh; ch++) {
-        const chVerses = await storage.getVersesByBook(book.id, ch);
+        const chVerses = await bibleCache.getVersesByBook(book.id, ch);
         for (const v of chVerses) {
           const inRange =
             (ch === fCh && ch === tCh) ? (v.verse >= fVs && v.verse <= tVs) :
