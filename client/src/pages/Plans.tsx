@@ -365,7 +365,6 @@ export default function Plans() {
     setSelectedDay(selectedDay + 1);
     setCurrentReadingIndex(0);
     setShowDayComplete(false);
-    setChapterSubView('verses');
     setViewMode('reading');
   };
 
