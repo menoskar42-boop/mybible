@@ -1062,14 +1062,15 @@ ${excludedStr}
       const month = d.getMonth() + 1;
       const day = d.getDate();
 
-      const calendarVerse = await storage.getCalendarDailyVerse(month, day);
+      const calendarVerse = await bibleCache.getCalendarDailyVerse(month, day);
       if (calendarVerse) {
         const refParts = calendarVerse.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
         const bookName = refParts ? refParts[1].trim() : calendarVerse.verseReference;
         const chapter = refParts ? parseInt(refParts[2]) : 1;
         const verseNum = refParts ? parseInt(refParts[3]) : 1;
-        const dbVerse = await storage.getVerseByReference(bookName, chapter, verseNum);
+        const dbVerse = await bibleCache.getVerseByReference(bookName, chapter, verseNum);
         const verseText = dbVerse?.text ?? calendarVerse.verseText;
+        setStaticCacheHeaders(res);
         return res.json({
           id: calendarVerse.id,
           verseId: calendarVerse.id,
@@ -1091,16 +1092,17 @@ ${excludedStr}
       const month = today.getMonth() + 1;
       const day = today.getDate();
       
-      const calendarVerse = await storage.getCalendarDailyVerse(month, day);
-      
+      const calendarVerse = await bibleCache.getCalendarDailyVerse(month, day);
+
       if (calendarVerse) {
         const refParts = calendarVerse.verseReference.match(/^(.+?)\s*(\d+):(\d+)$/);
         const bookName = refParts ? refParts[1].trim() : calendarVerse.verseReference;
         const chapter = refParts ? parseInt(refParts[2]) : 1;
         const verseNum = refParts ? parseInt(refParts[3]) : 1;
 
-        const dbVerse = await storage.getVerseByReference(bookName, chapter, verseNum);
+        const dbVerse = await bibleCache.getVerseByReference(bookName, chapter, verseNum);
         const verseText = dbVerse?.text ?? calendarVerse.verseText;
+        setStaticCacheHeaders(res);
 
         return res.json({
           id: calendarVerse.id,
@@ -1211,7 +1213,8 @@ ${excludedStr}
 
   app.get('/api/reading-plans', async (_req, res) => {
     try {
-      const plans = await storage.getAllReadingPlans();
+      const plans = await bibleCache.getAllReadingPlans();
+      setStaticCacheHeaders(res);
       res.json(plans);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch reading plans' });
@@ -1221,11 +1224,12 @@ ${excludedStr}
   app.get('/api/reading-plans/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const plan = await storage.getReadingPlanById(id);
+      const plan = await bibleCache.getReadingPlanById(id);
 
       if (!plan) {
         return res.status(404).json({ message: 'Plan not found' });
       }
+      setStaticCacheHeaders(res);
 
       res.json(plan);
     } catch (error) {
@@ -1329,7 +1333,8 @@ ${excludedStr}
 
   app.get('/api/emotions', async (_req, res) => {
     try {
-      const emotions = await storage.getAllEmotions();
+      const emotions = await bibleCache.getAllEmotions();
+      setStaticCacheHeaders(res);
       res.json(emotions);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch emotions' });
@@ -1339,7 +1344,8 @@ ${excludedStr}
   app.get('/api/emotions/:id/verses', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const verses = await storage.getVersesByEmotion(id);
+      const verses = await bibleCache.getVersesByEmotion(id);
+      setStaticCacheHeaders(res);
 
       const flatVerses = verses.map((verse) => ({
         id: verse.id,
@@ -1357,7 +1363,8 @@ ${excludedStr}
 
   app.get('/api/topics', async (_req, res) => {
     try {
-      const topics = await storage.getAllTopics();
+      const topics = await bibleCache.getAllTopics();
+      setStaticCacheHeaders(res);
       res.json(topics);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch topics' });
@@ -1367,7 +1374,8 @@ ${excludedStr}
   app.get('/api/topics/:id/verses', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const verses = await storage.getVersesByTopic(id);
+      const verses = await bibleCache.getVersesByTopic(id);
+      setStaticCacheHeaders(res);
 
       const flatVerses = verses.map((verse) => ({
         id: verse.id,
@@ -1385,7 +1393,8 @@ ${excludedStr}
 
   app.get('/api/child-stories', async (_req, res) => {
     try {
-      const stories = await storage.getAllChildStories();
+      const stories = await bibleCache.getAllChildStories();
+      setStaticCacheHeaders(res);
       res.json(stories);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch stories' });
@@ -1395,11 +1404,12 @@ ${excludedStr}
   app.get('/api/child-stories/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const story = await storage.getChildStoryById(id);
+      const story = await bibleCache.getChildStoryById(id);
 
       if (!story) {
         return res.status(404).json({ message: 'Story not found' });
       }
+      setStaticCacheHeaders(res);
 
       res.json(story);
     } catch (error) {
