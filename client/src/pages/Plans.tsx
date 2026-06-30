@@ -336,6 +336,7 @@ export default function Plans() {
     setSelectedDay(dayNumber);
     setCurrentReadingIndex(0);
     setShowDayComplete(false);
+    setChapterSubView('verses');
     setViewMode('reading');
   };
 
@@ -364,12 +365,14 @@ export default function Plans() {
     setSelectedDay(selectedDay + 1);
     setCurrentReadingIndex(0);
     setShowDayComplete(false);
+    setChapterSubView('verses');
     setViewMode('reading');
   };
 
   const openChapterInline = (index: number) => {
     setCurrentReadingIndex(index);
     setPlanChapterOverride(null);
+    setChapterSubView('verses');
     setViewMode('chapter');
   };
 
@@ -420,6 +423,7 @@ export default function Plans() {
   const openCustomReading = (index: number) => {
     setCustomReadingIndex(index);
     setCustomChapterOverride(null);
+    setChapterSubView('verses');
     setShowCustomChapter(true);
   };
 
@@ -1512,7 +1516,7 @@ export default function Plans() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <Tabs value={activeTab} onValueChange={(v) => { setChapterSubView('verses'); setActiveTab(v); }} className="mb-6">
           <TabsList className="w-full grid grid-cols-2 h-12">
             <TabsTrigger value="plans" className="text-base" data-testid="tab-plans">
               <CalendarDays className="w-4 h-4 ml-2" />
