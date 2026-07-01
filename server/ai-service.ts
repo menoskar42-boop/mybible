@@ -282,7 +282,7 @@ async function classifyEmotionWithGroq(
         'Authorization': `Bearer ${groqApiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-20b',
         messages: [
           { role: 'user', content: prompt }
         ],
@@ -1234,7 +1234,7 @@ ${candidatesContext}
         'Authorization': `Bearer ${groqApiKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-20b',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 800,
         temperature: 0.2,
