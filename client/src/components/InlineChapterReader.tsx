@@ -9,10 +9,17 @@ import { DEUTEROCANONICAL_BOOKS } from '@/lib/group-auto-reading';
 import { apocryphaBooks } from '@/lib/apocrypha-content';
 import { fetchBookIntro, fetchVerseTafsir, fetchChapterTafsir } from '@/lib/tafsir-csv-service';
 
-const MIN_SECONDS = 40;
+const MAX_MIN_SECONDS = 40;
 const MIN_SCROLLS = 5;
 const MIN_DEPTH = 80;
 const QUEUE_KEY = 'offline_reading_queue';
+
+// عتبة الوقت تتناسب مع حجم الإصحاح: الإصحاح الصغير لا يتطلب ٤٠ ثانية كاملة.
+// ~٢ ثانية لكل آية، بحد أدنى ١٠ ثوانٍ وحد أقصى ٤٠ ثانية.
+function minSecondsFor(verseCount: number): number {
+  if (!verseCount) return MAX_MIN_SECONDS;
+  return Math.max(10, Math.min(MAX_MIN_SECONDS, verseCount * 2));
+}
 
 function formatTime(seconds: number): string {
   if (seconds < 60) return `${seconds} ثانية`;
@@ -157,9 +164,25 @@ export function InlineChapterReader({ bookName: initialBookName, chapter: initia
     return () => window.removeEventListener('scroll', handleScroll);
   }, [loading]);
 
-  const condTime = elapsed >= MIN_SECONDS;
+  const minSeconds = minSecondsFor(verses.length);
+  const condTime = elapsed >= minSeconds;
   const condScrolls = scrollCount >= MIN_SCROLLS;
   const condDepth = scrollDepth >= MIN_DEPTH;
+
+  // تسجيل تلقائي بمجرد أن يقرأ العضو الإصحاح فعلاً (وقت مناسب + وصل لنهايته)
+  // حتى لا تضيع القراءة إذا نسي الضغط على زر "اكتملت" — يعمل مرة واحدة لكل إصحاح.
+  const recordedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (loading) return;
+    if (!(condTime && condDepth)) return;
+    const key = `${currentBook}|${currentChapter}`;
+    if (recordedRef.current.has(key)) return;
+    recordedRef.current.add(key);
+    const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
+    recordReading(currentChapter, timeSpent)
+      .then(() => onChapterDone?.(currentBook, currentChapter))
+      .catch(() => { recordedRef.current.delete(key); });
+  }, [condTime, condDepth, loading, currentBook, currentChapter]);
 
   const recordReading = async (chap: number, timeSpent: number) => {
     if (assignmentId !== null) {
@@ -221,7 +244,7 @@ export function InlineChapterReader({ bookName: initialBookName, chapter: initia
       <div className="grid grid-cols-3 gap-2">
         <div className={`flex flex-col items-center p-2 rounded-lg text-sm font-semibold border transition-colors ${condTime ? 'bg-green-50 dark:bg-green-950/30 border-green-300 text-green-700' : 'bg-muted/50 border-border text-muted-foreground'}`}>
           <Clock className="w-4 h-4 mb-1" />
-          <span>{elapsed >= MIN_SECONDS ? '✓' : `${elapsed}/${MIN_SECONDS}`} ث</span>
+          <span>{elapsed >= minSeconds ? '✓' : `${elapsed}/${minSeconds}`} ث</span>
           <span className="text-[10px] font-normal">وقت القراءة</span>
         </div>
         <div className={`flex flex-col items-center p-2 rounded-lg text-xs font-semibold border transition-colors ${condScrolls ? 'bg-green-50 dark:bg-green-950/30 border-green-300 text-green-700' : 'bg-muted/50 border-border text-muted-foreground'}`}>
