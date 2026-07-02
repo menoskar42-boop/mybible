@@ -1904,12 +1904,12 @@ export default function GroupView() {
 
   const { group, members, stats } = data;
   // الضيف يُعتبر عضو مباشرة (حتى لو في تأخير DB بعد أول دخول)
-  const isMember = (isGuest && !!memberKey) || members.some((m: any) =>
-    (m.userName === userName && m.memberKey === memberKey) ||
-    (m.userName === userName && m.isAdmin === true && !memberKey)
-  );
+  // العضوية تُطابَق بالمفتاح (memberKey) وحده — لا تتأثر بتغيير الاسم أو تأخّر تحديث القائمة
+  const isMember = (isGuest && !!memberKey) ||
+    (!!memberKey && members.some((m: any) => m.memberKey === memberKey)) ||
+    members.some((m: any) => m.userName === userName && m.isAdmin === true && !memberKey);
 
-  const serverMember = members.find((m: any) => m.userName === userName && m.memberKey === memberKey);
+  const serverMember = members.find((m: any) => (memberKey && m.memberKey === memberKey) || (m.userName === userName && m.memberKey === memberKey));
   // Fallback: if memberKey is missing but name matches leader name
   const serverMemberByName = !serverMember && userName ? members.find((m: any) => m.userName === userName && m.isAdmin === true) : null;
   const isAdminFinal = isAdmin || serverMember?.isAdmin === true || group.leaderKey === memberKey || !!serverMemberByName;
