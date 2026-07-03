@@ -1101,7 +1101,8 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
               </span>
             </>
           );
-          return isToday ? (
+          // يفتح دائماً القارئ المُتتبَّع داخل الجروب (عداد الوقت/العمق) — حتى لأيام سابقة
+          return (
             <button
               key={`${c.testament}-${i}`}
               onClick={() => openReading(c.book, c.chapter)}
@@ -1110,12 +1111,6 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
             >
               {inner}
             </button>
-          ) : (
-            <Link key={`${c.testament}-${i}`} href={`/bible/${encodeURIComponent(c.book)}/${c.chapter}`}>
-              <div className={`flex items-center gap-3 p-3 rounded-xl border ${cardCls} transition-colors cursor-pointer shadow-sm`}>
-                {inner}
-              </div>
-            </Link>
           );
         })}
       </div>
