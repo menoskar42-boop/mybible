@@ -955,6 +955,43 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
     if (unreadChapters !== null) return; // مخزّن مسبقاً
     setUnreadLoading(true);
     try {
+      // القراءة التلقائية مفعّلة → احسب المتبقّي من خطة القراءة نفسها (من تاريخ البدء حتى اليوم)
+      if (autoConfig?.enabled && autoConfig?.baseDate) {
+        // إصحاحات قرأها العضو
+        const readSet = new Set<string>();
+        try {
+          const rc = await fetch(`/api/groups/${groupCode}/members/${encodeURIComponent(userName)}/read-chapters`);
+          if (rc.ok) {
+            const rd = await rc.json();
+            for (const c of (rd.chapters || [])) readSet.add(`${c.book}|${c.chapter}`);
+          }
+        } catch {}
+
+        // ولّد إصحاحات الخطة من تاريخ البدء حتى اليوم (بدون تكرار)
+        const today = todayStr();
+        const seen = new Set<string>();
+        const scheduled: { book: string; chapter: number }[] = [];
+        let cursor = autoConfig.baseDate;
+        for (let i = 0; i <= 400; i++) {
+          const dr = getAutoReadingForDate(autoConfig, cursor);
+          for (const c of [...dr.ot, ...dr.nt]) {
+            const key = `${c.book}|${c.chapter}`;
+            if (!seen.has(key)) { seen.add(key); scheduled.push({ book: c.book, chapter: c.chapter }); }
+          }
+          if (cursor >= today) break;
+          const nd = new Date(cursor + 'T00:00:00');
+          nd.setDate(nd.getDate() + 1);
+          cursor = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
+        }
+
+        const remaining = scheduled.filter(c => !readSet.has(`${c.book}|${c.chapter}`));
+        setUnreadHasAssignment(true);
+        setUnreadAssignmentId(null);
+        setUnreadChapters(remaining.map(c => ({ ...c, assignmentId: 0 })));
+        return;
+      }
+
+      // غير ذلك → المهام اليدوية (assignments)
       const res = await fetch(`/api/groups/${groupCode}/members/${encodeURIComponent(userName)}/readings?memberKey=${encodeURIComponent(memberKey)}`);
       if (!res.ok) throw new Error();
       const d = await res.json();

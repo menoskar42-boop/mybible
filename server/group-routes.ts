@@ -1290,6 +1290,29 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  // الإصحاحات التي قرأها عضو (من group_reading_logs و assignment_readings) — للقراءة فقط
+  app.get('/api/groups/:code/members/:memberName/read-chapters', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const targetName = decodeURIComponent(req.params.memberName);
+      const result = await pool.query(
+        `SELECT DISTINCT book, chapter FROM (
+           SELECT book, chapter FROM group_reading_logs WHERE group_id = $1 AND user_name = $2
+           UNION
+           SELECT book_name AS book, chapter FROM assignment_readings
+           WHERE group_id = $1 AND user_name = $2 AND completed = true
+         ) t`,
+        [group.id, targetName]
+      );
+      res.json({ chapters: result.rows.map((r: any) => ({ book: r.book, chapter: r.chapter })) });
+    } catch (err) {
+      console.error('[groups] read-chapters error:', err);
+      res.status(500).json({ error: 'فشل تحميل القراءات' });
+    }
+  });
+
   app.get('/api/groups/:code/leaderboard', async (req, res) => {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
