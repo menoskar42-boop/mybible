@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
-import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw, Play } from 'lucide-react';
+import { Users, BookOpen, BarChart3, MessageCircle, Settings, Check, X, Copy, Loader2, LogOut, Shield, ShieldOff, Trophy, Award, Target, Share2, AlertTriangle, ArrowRight, Clock, Plus, Eye, Trash2, ChevronDown, ChevronUp, ScrollText, UserPlus, Link2, Zap, RotateCcw, Play, Search } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { OT_BOOKS, NT_BOOKS, OT_FLAT, NT_FLAT, getAutoReadingForDate, todayStr, findFlatIndex, DEUTEROCANONICAL_BOOKS, type AutoReadingConfig } from '@/lib/group-auto-reading';
@@ -1245,6 +1245,7 @@ export default function GroupView() {
   const [messagingMode, setMessagingMode] = useState<'all' | 'admin_only'>('all');
   const [messagingModeLoading, setMessagingModeLoading] = useState(false);
   const [reportActiveOpen, setReportActiveOpen] = useState(false);
+  const [reportActiveSearch, setReportActiveSearch] = useState('');
   const [reportInactiveOpen, setReportInactiveOpen] = useState(false);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [chatLastMsg, setChatLastMsg] = useState<{ senderName: string; text: string } | null>(null);
@@ -2278,13 +2279,26 @@ export default function GroupView() {
         </div>
 
         {/* ── تقرير: الأعضاء الذين قرأوا ── */}
-        <Dialog open={reportActiveOpen} onOpenChange={setReportActiveOpen}>
+        <Dialog open={reportActiveOpen} onOpenChange={(o) => { setReportActiveOpen(o); if (!o) setReportActiveSearch(''); }}>
           <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-green-700">الأعضاء الذين قرأوا هذا الأسبوع ({leaderReport?.activeMembers?.length || 0})</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-2">
-              {(leaderReport?.activeMembers || []).map((m: any) => {
+            {/* بحث بالاسم — خاص بالأعضاء الذين قرأوا */}
+            <div className="relative mt-2">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                value={reportActiveSearch}
+                onChange={e => setReportActiveSearch(e.target.value)}
+                placeholder="ابحث باسم العضو..."
+                className="w-full bg-muted/40 rounded-lg pr-9 pl-3 py-2 text-sm border-0 focus:outline-none focus:ring-1 focus:ring-primary"
+                dir="rtl"
+              />
+            </div>
+            <div className="space-y-4 mt-3">
+              {(leaderReport?.activeMembers || [])
+                .filter((m: any) => !reportActiveSearch.trim() || (m.userName || '').toLowerCase().includes(reportActiveSearch.trim().toLowerCase()))
+                .map((m: any) => {
                 const totalTime = (m.chapters || []).reduce((s: number, c: any) => s + (c.timeSpent || 0), 0);
                 const avgDepth = m.chapters?.length ? Math.round((m.chapters || []).reduce((s: number, c: any) => s + (c.scrollDepth || 0), 0) / m.chapters.length) : 0;
                 const genuineCount = (m.chapters || []).filter((c: any) => (c.scrollDepth || 0) >= 80 && (c.timeSpent || 0) >= 60).length;
@@ -2329,6 +2343,11 @@ export default function GroupView() {
               })}
               {(!leaderReport?.activeMembers?.length) && (
                 <p className="text-center text-muted-foreground py-4">لا يوجد أعضاء قرأوا هذا الأسبوع</p>
+              )}
+              {leaderReport?.activeMembers?.length > 0 &&
+                reportActiveSearch.trim() &&
+                !(leaderReport.activeMembers || []).some((m: any) => (m.userName || '').toLowerCase().includes(reportActiveSearch.trim().toLowerCase())) && (
+                <p className="text-center text-muted-foreground py-4">لا يوجد عضو بهذا الاسم</p>
               )}
             </div>
           </DialogContent>

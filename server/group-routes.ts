@@ -1510,14 +1510,17 @@ export function registerGroupRoutes(app: Express) {
       let activeMembers: any[] = [];
 
       if (activeUserNames.length > 0) {
-        const placeholders = activeUserNames.map((_: any, i: number) => `$${i + 2}`).join(',');
+        // التفاصيل من group_reading_logs — وهو السجل الشامل لكل القراءات هذا الأسبوع
+        // (قراءات المهام والقراءة التلقائية كلها تُسجَّل فيه)، حتى لا يظهر القارئ بـ"٠ إصحاح"
+        const placeholders = activeUserNames.map((_: any, i: number) => `$${i + 3}`).join(',');
         const detailsResult = await pool.query(
-          `SELECT user_name, book_name, chapter, time_spent, scroll_count, scroll_depth,
-                  COALESCE(completed_date, TO_CHAR(completed_at, 'YYYY-MM-DD')) AS read_date
-           FROM assignment_readings
-           WHERE group_id = $1 AND completed = true AND user_name IN (${placeholders})
-           ORDER BY user_name, COALESCE(completed_at, created_at) DESC NULLS LAST`,
-          [group.id, ...activeUserNames]
+          `SELECT user_name, book AS book_name, chapter,
+                  time_spent, COALESCE(scroll_percent, 0) AS scroll_depth,
+                  date AS read_date
+           FROM group_reading_logs
+           WHERE group_id = $1 AND date >= $2 AND user_name IN (${placeholders})
+           ORDER BY user_name, date DESC, id DESC`,
+          [group.id, weekAgo, ...activeUserNames]
         );
 
         const activeMembersMap: Record<string, any[]> = {};
@@ -1527,15 +1530,15 @@ export function registerGroupRoutes(app: Express) {
             bookName: row.book_name,
             chapter: row.chapter,
             timeSpent: row.time_spent || 0,
-            scrollCount: row.scroll_count || 0,
+            scrollCount: 0,
             scrollDepth: row.scroll_depth || 0,
             readDate: row.read_date || '',
           });
         }
-        activeMembers = activeUserNames.map(userName => ({
-          userName,
-          chapters: activeMembersMap[userName] || [],
-        }));
+        // اعرض فقط من له إصحاح واحد على الأقل فعلاً هذا الأسبوع
+        activeMembers = activeUserNames
+          .map(userName => ({ userName, chapters: activeMembersMap[userName] || [] }))
+          .filter(m => m.chapters.length > 0);
       }
 
       res.json({
