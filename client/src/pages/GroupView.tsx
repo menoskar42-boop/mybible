@@ -969,16 +969,17 @@ function DailyReadingCard({ autoReading, autoConfig, stats, progress, challengeT
 
         // ولّد إصحاحات الخطة من تاريخ البدء حتى اليوم (بدون تكرار)
         const today = todayStr();
+        const allChapters = OT_FLAT.length + NT_FLAT.length; // بعد جمعها كلها لا جديد
         const seen = new Set<string>();
         const scheduled: { book: string; chapter: number }[] = [];
         let cursor = autoConfig.baseDate;
-        for (let i = 0; i <= 400; i++) {
+        for (let i = 0; i <= 2000; i++) {
           const dr = getAutoReadingForDate(autoConfig, cursor);
           for (const c of [...dr.ot, ...dr.nt]) {
             const key = `${c.book}|${c.chapter}`;
             if (!seen.has(key)) { seen.add(key); scheduled.push({ book: c.book, chapter: c.chapter }); }
           }
-          if (cursor >= today) break;
+          if (cursor >= today || seen.size >= allChapters) break;
           const nd = new Date(cursor + 'T00:00:00');
           nd.setDate(nd.getDate() + 1);
           cursor = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, '0')}-${String(nd.getDate()).padStart(2, '0')}`;
