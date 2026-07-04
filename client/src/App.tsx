@@ -129,7 +129,8 @@ function App() {
   const [isPremium, setIsPremium] = useState(false);
   const [location] = useLocation();
 
-  const isFullScreen = FULL_SCREEN_ROUTES.some(r => location.startsWith(r));
+  const isFullScreen = FULL_SCREEN_ROUTES.some(r => location.startsWith(r))
+    || /^\/group\/[^/]+\/chat$/.test(location); // الشات ملء الشاشة (رأس + شريط كتابة ثابتان)
 
   useEffect(() => {
     try {

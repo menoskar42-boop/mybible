@@ -353,11 +353,11 @@ export default function GroupChat() {
   }
 
   return (
-    <div className="flex flex-col text-[17px]" style={{ height: 'calc(100dvh - 64px - 64px - env(safe-area-inset-bottom, 0px))' }}>
+    <div className="flex flex-col text-[17px] bg-background" style={{ height: '100dvh' }}>
       <SEOHead />
 
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background z-10 shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background z-10 shrink-0" style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md">
           <MessageCircle className="w-5 h-5 text-white" />
         </div>
@@ -713,14 +713,14 @@ export default function GroupChat() {
 
       {/* Locked banner when admin_only mode and user is not admin */}
       {messagingMode === 'admin_only' && !isLeader && (
-        <div className="flex items-center justify-center gap-2 px-4 py-2.5 border-t bg-muted/50 shrink-0">
+        <div className="flex items-center justify-center gap-2 px-4 py-2.5 border-t bg-muted/50 shrink-0" style={{ paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))' }}>
           <span className="text-sm text-muted-foreground">🔒 الإرسال للأدمن فقط حالياً</span>
         </div>
       )}
 
       {/* Input bar */}
       {(messagingMode === 'all' || isLeader) && (
-      <div className="flex items-end gap-1.5 px-3 py-2.5 border-t bg-background shrink-0">
+      <div className="flex items-end gap-1.5 px-3 py-2.5 border-t bg-background shrink-0" style={{ paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))' }}>
         <input
           ref={fileInputRef}
           type="file"
