@@ -789,7 +789,7 @@ export function registerGroupRoutes(app: Express) {
              SELECT 1 FROM group_reading_logs
              WHERE group_id=$1 AND user_name=$2 AND book=$3 AND chapter=$4
            )`,
-          [group.id, targetName, c.book, c.chapter]
+          [group.id, targetName, c.book, c.chapter, today]
         );
         // علّم صف الـ assignment كمكتمل إن وُجد assignmentId
         if (c.assignmentId) {
