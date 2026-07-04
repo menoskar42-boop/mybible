@@ -109,7 +109,11 @@ export default function GroupChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const firstUnreadRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const autoGrow = (el: HTMLTextAreaElement) => {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stored = JSON.parse(localStorage.getItem(`group_${groupCode}`) || '{}');
@@ -271,6 +275,7 @@ export default function GroupChat() {
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       setNewMessage('');
+      if (inputRef.current) inputRef.current.style.height = 'auto';
       setImagePreview(null);
       setReplyTo(null);
       setShowEmoji(false);
@@ -480,14 +485,14 @@ export default function GroupChat() {
                           </button>
                         )}
 
-                        <div className={`max-w-[78%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div className={`max-w-[78%] min-w-0 flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                           {/* Sender name (for others) */}
                           {!isMe && (
                             <span className="text-xs font-semibold text-primary px-1 mb-0.5">{m.userName}</span>
                           )}
 
                           <div
-                            className={`rounded-2xl px-3 py-2 shadow-sm ${
+                            className={`rounded-2xl px-3 py-2 shadow-sm max-w-full min-w-0 ${
                               isMe
                                 ? 'bg-primary text-primary-foreground rounded-tr-sm'
                                 : 'bg-muted dark:bg-muted/80 text-foreground rounded-tl-sm'
@@ -513,8 +518,8 @@ export default function GroupChat() {
                               <img
                                 src={m.imageUrl}
                                 alt="صورة"
-                                className="rounded-lg max-w-full mb-1 cursor-pointer"
-                                style={{ maxHeight: 280 }}
+                                className="rounded-lg max-w-full w-auto h-auto mb-1 cursor-pointer"
+                                style={{ maxHeight: 280, maxWidth: 260 }}
                                 onClick={() => window.open(m.imageUrl!, '_blank')}
                                 onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
@@ -522,7 +527,7 @@ export default function GroupChat() {
 
                             {/* Message text */}
                             {m.message && (
-                              <p className="text-base whitespace-pre-wrap leading-relaxed">{m.message.replace(/\n{3,}/g, '\n\n')}</p>
+                              <p className="text-base whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed">{m.message.replace(/\n{3,}/g, '\n\n')}</p>
                             )}
 
                             {/* Footer: time + admin actions */}
@@ -715,7 +720,7 @@ export default function GroupChat() {
 
       {/* Input bar */}
       {(messagingMode === 'all' || isLeader) && (
-      <div className="flex items-center gap-1.5 px-3 py-2.5 border-t bg-background shrink-0">
+      <div className="flex items-end gap-1.5 px-3 py-2.5 border-t bg-background shrink-0">
         <input
           ref={fileInputRef}
           type="file"
@@ -742,13 +747,14 @@ export default function GroupChat() {
           <BookOpen className="w-5 h-5" />
         </button>
 
-        <input
+        <textarea
           ref={inputRef}
           value={newMessage}
-          onChange={e => handleInput(e.target.value)}
+          rows={1}
+          onChange={e => { handleInput(e.target.value); autoGrow(e.target); }}
           placeholder="اكتب رسالة..."
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-          className="flex-1 bg-muted/40 rounded-full px-4 py-2 text-sm border-0 focus:outline-none focus:ring-1 focus:ring-primary"
+          className="flex-1 min-w-0 resize-none bg-muted/40 rounded-2xl px-4 py-2 text-sm border-0 focus:outline-none focus:ring-1 focus:ring-primary max-h-32 leading-relaxed"
           dir="rtl"
           data-testid="input-chat-message"
         />
