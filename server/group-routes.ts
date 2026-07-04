@@ -762,6 +762,67 @@ export function registerGroupRoutes(app: Express) {
     }
   });
 
+  // ── احتساب إصحاحات كمقروءة لعضو (أدمن فقط) — لحالات العذر مثل تعطل الجهاز ──
+  app.post('/api/groups/:code/members/:memberName/credit-readings', async (req, res) => {
+    try {
+      const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));
+      if (!group) return res.status(404).json({ error: 'المجموعة غير موجودة' });
+
+      const { leaderKey, chapters } = req.body as { leaderKey: string; chapters: { book: string; chapter: number; assignmentId?: number | null }[] };
+      const authorized = await isAdminByLeaderKey(group, leaderKey);
+      if (!authorized) return res.status(403).json({ error: 'غير مسموح' });
+
+      const targetName = decodeURIComponent(req.params.memberName);
+      if (!Array.isArray(chapters) || chapters.length === 0) {
+        return res.status(400).json({ error: 'لا توجد إصحاحات للاحتساب' });
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      let credited = 0;
+      for (const c of chapters) {
+        if (!c?.book || !c?.chapter) continue;
+        // سجّل في group_reading_logs (يُحتسب في كل الإحصاءات) مع تجنّب التكرار
+        await pool.query(
+          `INSERT INTO group_reading_logs (group_id, user_name, book, chapter, date, time_spent)
+           SELECT $1,$2,$3,$4,$5,0
+           WHERE NOT EXISTS (
+             SELECT 1 FROM group_reading_logs
+             WHERE group_id=$1 AND user_name=$2 AND book=$3 AND chapter=$4
+           )`,
+          [group.id, targetName, c.book, c.chapter]
+        );
+        // علّم صف الـ assignment كمكتمل إن وُجد assignmentId
+        if (c.assignmentId) {
+          const existing = await db.select().from(assignmentReadings).where(and(
+            eq(assignmentReadings.assignmentId, c.assignmentId),
+            eq(assignmentReadings.groupId, group.id),
+            eq(assignmentReadings.userName, targetName),
+            eq(assignmentReadings.chapter, c.chapter),
+          ));
+          if (existing.length > 0) {
+            await pool.query(
+              `UPDATE assignment_readings SET completed=true, completed_at=NOW(), completed_date=$2 WHERE id=$1`,
+              [existing[0].id, today]
+            );
+          } else {
+            await pool.query(
+              `INSERT INTO assignment_readings
+                 (assignment_id, group_id, user_name, book_name, chapter, completed, completed_at, completed_date, created_at)
+               VALUES ($1,$2,$3,$4,$5,true,NOW(),$6,NOW())`,
+              [c.assignmentId, group.id, targetName, c.book, c.chapter, today]
+            );
+          }
+        }
+        credited++;
+      }
+
+      res.json({ success: true, credited });
+    } catch (err) {
+      console.error('[groups] credit-readings error:', err);
+      res.status(500).json({ error: 'فشل احتساب القراءات' });
+    }
+  });
+
   app.put('/api/groups/:code/today', async (req, res) => {
     try {
       const [group] = await db.select().from(readingGroups).where(eq(readingGroups.groupCode, req.params.code.toUpperCase()));

@@ -59,6 +59,7 @@ export default function GroupMembers() {
   const [readingsAssignmentId, setReadingsAssignmentId] = useState<number | null>(null);
   const [readingsLoading, setReadingsLoading] = useState(false);
   const [activeReading, setActiveReading] = useState<{ book: string; chapter: number } | null>(null);
+  const [creditLoading, setCreditLoading] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['group', groupCode],
@@ -199,6 +200,30 @@ export default function GroupMembers() {
       setReadingsData([]);
     } finally {
       setReadingsLoading(false);
+    }
+  };
+
+  const creditReadings = async (chapters: { book: string; chapter: number; assignmentId?: number | null }[]) => {
+    if (!readingsTarget || chapters.length === 0) return;
+    setCreditLoading(true);
+    try {
+      const res = await fetch(`/api/groups/${groupCode}/members/${encodeURIComponent(readingsTarget)}/credit-readings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderKey: memberKey, chapters }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      toast.success(`تم احتساب ${d.credited} إصحاح كمقروء`);
+      // أزل المُحتسَبة من قائمة المتبقي
+      const done = new Set(chapters.map(c => `${c.book}|${c.chapter}`));
+      setReadingsData(prev => prev ? prev.filter(r => !done.has(`${r.book}|${r.chapter}`)) : prev);
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['member-stats', groupCode] });
+    } catch (err: any) {
+      toast.error(err.message || 'فشل الاحتساب');
+    } finally {
+      setCreditLoading(false);
     }
   };
 
@@ -417,17 +442,42 @@ export default function GroupMembers() {
             </div>
           ) : readingsData ? (
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground mb-3">{readingsData.length} إصحاح متبقٍ</p>
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <p className="text-xs text-muted-foreground">{readingsData.length} إصحاح متبقٍ</p>
+                {isAdmin && readingsTarget !== userName && readingsData.length > 0 && (
+                  <Button
+                    size="sm" variant="outline"
+                    className="h-7 text-xs gap-1 border-green-300 text-green-700"
+                    disabled={creditLoading}
+                    onClick={() => creditReadings(readingsData.map(r => ({ book: r.book, chapter: r.chapter, assignmentId: r.assignmentId })))}
+                    title="احتساب كل المتبقي كمقروء (لحالات العذر مثل تعطل الجهاز)"
+                  >
+                    {creditLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                    احتسِب الكل كمقروء
+                  </Button>
+                )}
+              </div>
               {readingsData.map((r, i) => (
                 <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground/40 text-sm">○</span>
                     <span className="text-sm font-medium">{r.book} — إصحاح {r.chapter}</span>
                   </div>
-                  {readingsTarget === userName && (
+                  {readingsTarget === userName ? (
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setActiveReading({ book: r.book, chapter: r.chapter })}>
                       <BookOpen className="w-3 h-3" />
                       اقرأ
+                    </Button>
+                  ) : isAdmin && (
+                    <Button
+                      size="sm" variant="ghost"
+                      className="h-7 text-xs gap-1 text-green-700"
+                      disabled={creditLoading}
+                      onClick={() => creditReadings([{ book: r.book, chapter: r.chapter, assignmentId: r.assignmentId }])}
+                      title="احتساب كمقروء"
+                    >
+                      <Check className="w-3 h-3" />
+                      احتسِب
                     </Button>
                   )}
                 </div>
