@@ -105,7 +105,7 @@ export default function Emotions() {
           </div>
         </div>
 
-        <Tabs defaultValue="emotions" className="mb-6">
+        <Tabs defaultValue="free" className="mb-6">
           <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="emotions" data-testid="tab-emotions">حسب المشاعر</TabsTrigger>
             <TabsTrigger value="topics" data-testid="tab-topics">حسب الموضوع</TabsTrigger>
