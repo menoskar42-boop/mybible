@@ -191,7 +191,7 @@ export default function Emotions() {
             <Card className="p-4 mb-4">
               <div className="flex items-center gap-2 mb-3 text-sm text-amber-600 dark:text-amber-400">
                 <Sparkles className="w-4 h-4" />
-                <span>ميزة متقدمة {!user?.isPremium && '- تتطلب الاشتراك'}</span>
+                <span>اكتب ما في قلبك، وكلمة الله تُعزّيك وتُرشدك 🕊️</span>
               </div>
               <Textarea
                 placeholder="اكتب ما تشعر به بحرية... (مثال: أشعر بالإرهاق من العمل ولا أجد وقتًا لعائلتي)"
