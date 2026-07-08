@@ -775,7 +775,7 @@ export async function registerRoutes(
           'Authorization': `Bearer ${groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-20b',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 4000,
           temperature: 0.5,
@@ -859,7 +859,7 @@ export async function registerRoutes(
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-20b',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7,
           max_tokens: 1200,
@@ -909,7 +909,7 @@ ${excludedStr}
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-20b',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 3000,
           temperature: 0.3,
@@ -986,7 +986,7 @@ ${excludedStr}
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-20b',
           messages: [{ role: 'user', content: aiPrompt }],
           max_tokens: 6000,
           temperature: 0.2,
