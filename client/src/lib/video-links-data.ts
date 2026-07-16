@@ -1214,9 +1214,9 @@ export const videoLinks: VideoLinksMap = {
     1: "lBK6qWoVCG4",
   },
   "يوئيل": {
-    1: "7FRFq1GnHx8",
-    2: "i0BVVO2X9sw",
-    3: "G3PB9yxDz_M",
+    1: "KXAxVtEb9Bk",
+    2: "FAXBGbJBuNo",
+    3: "-G6wYavKXMA",
   },
   "يوحنا": {
     1: "J4XqYgDEg5w",
