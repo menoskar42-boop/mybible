@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { usePageTracker } from '@/hooks/usePageTracker';
 import { useExitTracker } from '@/hooks/useExitTracker';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle, Compass, RotateCcw, Users, Printer, Mic } from 'lucide-react';
+import { Baby, ChevronLeft, ChevronRight, Star, BookOpen, Volume2, VolumeX, Pause, Play, Video, Search, X, ListMusic, SkipForward, SkipBack, Music, Heart, Trophy, GraduationCap, CheckCircle2, XCircle, Compass, RotateCcw, Users, Printer, Mic, School } from 'lucide-react';
 import { memorizationVerses, kidsBadges, computeEarnedBadges, LEVEL_LABELS, type AgeGroup, type MemorizationVerse } from '@/lib/kids-memorization-data';
 import { interactiveStories, type InteractiveStory } from '@/lib/interactive-stories-data';
 import { weeklyFamilyGuide, parentTips } from '@/lib/kids-parents-data';
@@ -12,6 +12,7 @@ import { getRandomQuiz, QUIZ_LENGTH, type QuizQuestion } from '@/lib/kids-quiz-d
 import KidsPuzzle from '@/components/kids/KidsPuzzle';
 import KidsJigsawPuzzle from '@/components/kids/KidsJigsawPuzzle';
 import KidsSnakesLadders from '@/components/kids/KidsSnakesLadders';
+import KidsCourses from '@/components/kids/KidsCourses';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -519,6 +520,7 @@ export default function Kids() {
   const [location, navigate] = useLocation();
   const activeTab = location.includes('/kids/hymns') ? 'hymns'
     : location.includes('/kids/videos') ? 'videos'
+    : location.includes('/kids/courses') ? 'courses'
     : location.includes('/kids/stories') ? 'stories'
     : location.includes('/kids/memorize') ? 'memorize'
     : location.includes('/kids/games') ? 'games'
@@ -821,6 +823,10 @@ export default function Kids() {
 
         <Tabs value={activeTab} onValueChange={(v) => navigate('/kids/' + v)} className="w-full">
           <TabsList className="w-full grid grid-cols-4 mb-6 h-auto gap-0.5 p-1">
+            <TabsTrigger value="courses" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-courses">
+              <School className="w-5 h-5" />
+              الدروس
+            </TabsTrigger>
             <TabsTrigger value="videos" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-videos">
               <Video className="w-5 h-5" />
               قصص الكتاب
@@ -845,11 +851,15 @@ export default function Kids() {
               <Compass className="w-5 h-5" />
               مغامرات
             </TabsTrigger>
-            <TabsTrigger value="parents" className="flex-col gap-0.5 text-xs py-2 px-1 h-14 col-span-2" data-testid="tab-parents">
+            <TabsTrigger value="parents" className="flex-col gap-0.5 text-xs py-2 px-1 h-14" data-testid="tab-parents">
               <Users className="w-5 h-5" />
               للآباء
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="courses">
+            <KidsCourses />
+          </TabsContent>
 
           <TabsContent value="stories">
             <AnimatePresence mode="wait">

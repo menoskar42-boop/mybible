@@ -70,6 +70,7 @@ function Router() {
       <Route path="/plans" component={Plans} />
       <Route path="/emotions/:type" component={Emotions} />
       <Route path="/emotions" component={Emotions} />
+      <Route path="/kids/courses" component={Kids} />
       <Route path="/kids/hymns" component={Kids} />
       <Route path="/kids/videos" component={Kids} />
       <Route path="/kids/stories" component={Kids} />
