@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { eq, and, desc, sql, inArray, avg, count, sum } from "drizzle-orm";
+import { eq, and, or, desc, sql, inArray, avg, count, sum } from "drizzle-orm";
 import { normalizeArabicText } from "./utils/arabic-normalize";
 import { expandQuery, calculateRelevanceScore, type SmartSearchResult } from "./utils/smart-search";
 import type {
@@ -551,6 +551,108 @@ export class DatabaseStorage implements IStorage {
         eq(schema.highlightedVerses.id, id),
         eq(schema.highlightedVerses.userId, userId)
       ));
+  }
+
+  // ─── طبقة مزامنة بيانات المستخدم ──────────────────────────────────────────
+  // كل GET يدمج صفوف الـ session user مع أي صفوف بنفس memberKey (لاسترجاع من جهاز آخر)
+  private userOrMember(col: any, mkCol: any, userId: string, memberKey?: string | null) {
+    return memberKey ? or(eq(col, userId), eq(mkCol, memberKey)) : eq(col, userId);
+  }
+
+  // الآيات المحفوظة/المظلّلة (المعتمدة على المرجع)
+  async getSavedVerses(userId: string, memberKey?: string | null): Promise<schema.SavedVerseRow[]> {
+    return this.db.select().from(schema.savedVerses)
+      .where(this.userOrMember(schema.savedVerses.userId, schema.savedVerses.memberKey, userId, memberKey))
+      .orderBy(desc(schema.savedVerses.createdAt));
+  }
+  async upsertSavedVerse(v: { userId: string; memberKey?: string | null; verseRef: string; verseText?: string | null; kind?: string; color?: string | null }): Promise<void> {
+    await this.db.insert(schema.savedVerses)
+      .values({ userId: v.userId, memberKey: v.memberKey ?? null, verseRef: v.verseRef, verseText: v.verseText ?? null, kind: v.kind ?? 'saved', color: v.color ?? null })
+      .onConflictDoUpdate({
+        target: [schema.savedVerses.userId, schema.savedVerses.verseRef, schema.savedVerses.kind],
+        set: { color: v.color ?? null, verseText: v.verseText ?? null, memberKey: v.memberKey ?? null },
+      });
+  }
+  async deleteSavedVerse(userId: string, verseRef: string, kind: string): Promise<void> {
+    await this.db.delete(schema.savedVerses).where(and(
+      eq(schema.savedVerses.userId, userId), eq(schema.savedVerses.verseRef, verseRef), eq(schema.savedVerses.kind, kind)));
+  }
+
+  // آيات الحفظ (أطفال)
+  async getMemorized(userId: string, memberKey?: string | null): Promise<schema.MemorizedVerseRow[]> {
+    return this.db.select().from(schema.memorizedVerses)
+      .where(this.userOrMember(schema.memorizedVerses.userId, schema.memorizedVerses.memberKey, userId, memberKey))
+      .orderBy(desc(schema.memorizedVerses.createdAt));
+  }
+  async addMemorized(v: { userId: string; memberKey?: string | null; verseRef: string }): Promise<void> {
+    await this.db.insert(schema.memorizedVerses)
+      .values({ userId: v.userId, memberKey: v.memberKey ?? null, verseRef: v.verseRef })
+      .onConflictDoUpdate({ target: [schema.memorizedVerses.userId, schema.memorizedVerses.verseRef], set: { memberKey: v.memberKey ?? null } });
+  }
+  async deleteMemorized(userId: string, verseRef: string): Promise<void> {
+    await this.db.delete(schema.memorizedVerses).where(and(
+      eq(schema.memorizedVerses.userId, userId), eq(schema.memorizedVerses.verseRef, verseRef)));
+  }
+
+  // الترانيم المفضّلة
+  async getFavoriteHymns(userId: string, memberKey?: string | null): Promise<schema.FavoriteHymnRow[]> {
+    return this.db.select().from(schema.favoriteHymns)
+      .where(this.userOrMember(schema.favoriteHymns.userId, schema.favoriteHymns.memberKey, userId, memberKey))
+      .orderBy(desc(schema.favoriteHymns.createdAt));
+  }
+  async addFavoriteHymn(v: { userId: string; memberKey?: string | null; hymnId: string; title?: string | null }): Promise<void> {
+    await this.db.insert(schema.favoriteHymns)
+      .values({ userId: v.userId, memberKey: v.memberKey ?? null, hymnId: v.hymnId, title: v.title ?? null })
+      .onConflictDoUpdate({ target: [schema.favoriteHymns.userId, schema.favoriteHymns.hymnId], set: { title: v.title ?? null, memberKey: v.memberKey ?? null } });
+  }
+  async deleteFavoriteHymn(userId: string, hymnId: string): Promise<void> {
+    await this.db.delete(schema.favoriteHymns).where(and(
+      eq(schema.favoriteHymns.userId, userId), eq(schema.favoriteHymns.hymnId, hymnId)));
+  }
+
+  // قراءاتي اليومية المخصّصة (JSON كامل)
+  async getUserDailyReadings(userId: string, memberKey?: string | null): Promise<any> {
+    const rows = await this.db.select().from(schema.userDailyReadings)
+      .where(this.userOrMember(schema.userDailyReadings.userId, schema.userDailyReadings.memberKey, userId, memberKey))
+      .orderBy(desc(schema.userDailyReadings.updatedAt)).limit(1);
+    return rows[0]?.data ?? null;
+  }
+  async setUserDailyReadings(v: { userId: string; memberKey?: string | null; data: any }): Promise<void> {
+    await this.db.insert(schema.userDailyReadings)
+      .values({ userId: v.userId, memberKey: v.memberKey ?? null, data: v.data, updatedAt: new Date() })
+      .onConflictDoUpdate({ target: schema.userDailyReadings.userId, set: { data: v.data, memberKey: v.memberKey ?? null, updatedAt: new Date() } });
+  }
+
+  // upsert تقدّم الخطة لكل planId (بدون تكرار صفوف) — بحث ثم تحديث/إدراج
+  async upsertProgress(v: { userId: string; memberKey?: string | null; planId: number; currentDay: number; completedDays: number[] }): Promise<void> {
+    const existing = await this.db.select().from(schema.userReadingProgress)
+      .where(and(eq(schema.userReadingProgress.userId, v.userId), eq(schema.userReadingProgress.planId, v.planId))).limit(1);
+    if (existing[0]) {
+      await this.db.update(schema.userReadingProgress)
+        .set({ currentDay: v.currentDay, completedDays: v.completedDays, memberKey: v.memberKey ?? existing[0].memberKey ?? null, lastReadAt: new Date() })
+        .where(eq(schema.userReadingProgress.id, existing[0].id));
+    } else {
+      await this.db.insert(schema.userReadingProgress)
+        .values({ userId: v.userId, memberKey: v.memberKey ?? null, planId: v.planId, currentDay: v.currentDay, completedDays: v.completedDays });
+    }
+  }
+  async getAllProgressMerged(userId: string, memberKey?: string | null): Promise<schema.UserReadingProgress[]> {
+    return this.db.select().from(schema.userReadingProgress)
+      .where(this.userOrMember(schema.userReadingProgress.userId, schema.userReadingProgress.memberKey, userId, memberKey))
+      .orderBy(desc(schema.userReadingProgress.lastReadAt));
+  }
+
+  // تقدّم خطط القراءة (JSON — planId نصّي في الواجهة)
+  async getPlanProgress(userId: string, memberKey?: string | null): Promise<any> {
+    const rows = await this.db.select().from(schema.userPlanProgress)
+      .where(this.userOrMember(schema.userPlanProgress.userId, schema.userPlanProgress.memberKey, userId, memberKey))
+      .orderBy(desc(schema.userPlanProgress.updatedAt)).limit(1);
+    return rows[0]?.data ?? null;
+  }
+  async setPlanProgress(v: { userId: string; memberKey?: string | null; data: any }): Promise<void> {
+    await this.db.insert(schema.userPlanProgress)
+      .values({ userId: v.userId, memberKey: v.memberKey ?? null, data: v.data, updatedAt: new Date() })
+      .onConflictDoUpdate({ target: schema.userPlanProgress.userId, set: { data: v.data, memberKey: v.memberKey ?? null, updatedAt: new Date() } });
   }
 
   // Emotions

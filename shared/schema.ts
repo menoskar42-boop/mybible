@@ -68,6 +68,7 @@ export const readingPlans = pgTable("reading_plans", {
 export const userReadingProgress = pgTable("user_reading_progress", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  memberKey: text("member_key"), // nullable — يربط التقدّم بعضو مجموعة لاسترجاعه من جهاز آخر
   planId: integer("plan_id").notNull().references(() => readingPlans.id),
   currentDay: integer("current_day").notNull().default(0),
   completedDays: jsonb("completed_days").notNull().default([]), // Array of completed day numbers
@@ -75,18 +76,21 @@ export const userReadingProgress = pgTable("user_reading_progress", {
   lastReadAt: timestamp("last_read_at"),
 }, (table) => ({
   userPlanIdx: index("user_plan_idx").on(table.userId, table.planId),
+  memberKeyIdx: index("urp_member_key_idx").on(table.memberKey),
 }));
 
 // Highlighted verses
 export const highlightedVerses = pgTable("highlighted_verses", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  memberKey: text("member_key"), // nullable — لاسترجاع تظليلات عضو المجموعة من جهاز آخر
   verseId: integer("verse_id").notNull().references(() => bibleVerses.id),
   color: text("color").notNull(), // 'yellow', 'green', 'blue', 'pink', 'orange'
   note: text("note"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   userVerseIdx: index("user_verse_idx").on(table.userId, table.verseId),
+  hvMemberKeyIdx: index("hv_member_key_idx").on(table.memberKey),
 }));
 
 // Emotions catalog
@@ -680,3 +684,89 @@ export const appSettings = pgTable("app_settings", {
   value: text("value").notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ─── طبقة مزامنة بيانات المستخدم (شفافة) ──────────────────────────────────────
+// كل الجداول: userId مطلوب (يوجد صف users لكل زائر)، memberKey اختياري لاسترجاع
+// أعضاء المجموعة من جهاز آخر. كل الأعمدة nullable/آمنة لـ db:push.
+
+// الآيات المحفوظة + المظلّلة (المعتمدة على المرجع النصي) — من saved-verses.ts
+export const savedVerses = pgTable("saved_verses", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  memberKey: text("member_key"),
+  verseRef: text("verse_ref").notNull(),
+  verseText: text("verse_text"),
+  kind: text("kind").notNull().default("saved"), // 'saved' | 'highlight'
+  color: text("color"),                          // للمظلّلة فقط
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  svUniq: uniqueIndex("saved_verses_uniq").on(t.userId, t.verseRef, t.kind),
+  svMemberIdx: index("saved_verses_member_idx").on(t.memberKey),
+}));
+
+// آيات الحفظ (للأطفال) — من Kids.tsx memorized-verses
+export const memorizedVerses = pgTable("memorized_verses", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  memberKey: text("member_key"),
+  verseRef: text("verse_ref").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  mvUniq: uniqueIndex("memorized_verses_uniq").on(t.userId, t.verseRef),
+  mvMemberIdx: index("memorized_verses_member_idx").on(t.memberKey),
+}));
+
+// الترانيم المفضّلة — من Kids.tsx favorite-hymns
+export const favoriteHymns = pgTable("favorite_hymns", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  memberKey: text("member_key"),
+  hymnId: text("hymn_id").notNull(),
+  title: text("title"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  fhUniq: uniqueIndex("favorite_hymns_uniq").on(t.userId, t.hymnId),
+  fhMemberIdx: index("favorite_hymns_member_idx").on(t.memberKey),
+}));
+
+// قراءاتي اليومية المخصّصة — من Plans.tsx my-daily-readings (JSON كامل)
+export const userDailyReadings = pgTable("user_daily_readings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  memberKey: text("member_key"),
+  data: jsonb("data").notNull().default([]),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  udrMemberIdx: index("udr_member_idx").on(t.memberKey),
+}));
+
+// تقدّم خطط القراءة — JSON كامل (planId في الواجهة نصّي، ليس FK) — من reading-plan-progress
+export const userPlanProgress = pgTable("user_plan_progress", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  memberKey: text("member_key"),
+  data: jsonb("data").notNull().default([]),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => ({
+  uppMemberIdx: index("upp_member_idx").on(t.memberKey),
+}));
+
+export type SavedVerseRow = typeof savedVerses.$inferSelect;
+export type MemorizedVerseRow = typeof memorizedVerses.$inferSelect;
+export type FavoriteHymnRow = typeof favoriteHymns.$inferSelect;
+export type UserDailyReadingsRow = typeof userDailyReadings.$inferSelect;
+export type UserPlanProgressRow = typeof userPlanProgress.$inferSelect;
+
+// ─── كاش ردود Groq (مشترك بين كل المستخدمين) ─────────────────────────────────
+export const aiResponseCache = pgTable("ai_response_cache", {
+  id: serial("id").primaryKey(),
+  kind: text("kind").notNull(),        // اسم الـendpoint، مثلاً 'service/outline'
+  ckey: text("ckey").notNull(),        // SHA-256 لِـ (kind + المدخل المطبَّع + الموديل)
+  response: jsonb("response").notNull(),
+  hits: integer("hits").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  aiCacheUniq: uniqueIndex("ai_response_cache_uniq").on(t.kind, t.ckey),
+}));
+
+export type AiResponseCacheRow = typeof aiResponseCache.$inferSelect;

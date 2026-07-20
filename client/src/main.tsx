@@ -3,6 +3,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { initUserDataSync } from "./lib/user-data-sync";
 
 // Register service worker for offline caching (push notifications handled inside sw.js)
 if ('serviceWorker' in navigator) {
@@ -12,6 +13,9 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+// مزامنة بيانات المستخدم بصمت في الخلفية (لا تعطّل العرض)
+try { initUserDataSync(); } catch { /* اختياري تماماً */ }
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },

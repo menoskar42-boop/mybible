@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import { bibleCache, setStaticCacheHeaders } from "./bible-cache";
+import { getCached, putCached } from "./ai-cache";
 import { ensureSessionUser, getCurrentUser, checkPremiumStatus, checkAiUsageLimit } from "./auth";
 import { processAiQuery, enhanceSearchWithGroq } from "./ai-service";
 import { insertHighlightedVerseSchema, insertUserReadingProgressSchema } from "@shared/schema";
@@ -716,23 +717,28 @@ export async function registerRoutes(
       const user = await getCurrentUser(req);
       if (!user) return res.status(401).json({ message: 'Unauthorized' });
 
-      const usageCheck = await checkAiUsageLimit(user);
-      if (!usageCheck.allowed) {
-        return res.status(429).json({ message: 'بلغت الحد اليومي لاستخدام الذكاء الاصطناعي' });
-      }
-
       const { topic, audience, type, duration: durationRaw } = req.body as { topic?: string; audience?: string; type?: 'sermon' | 'lesson'; duration?: number };
       if (!topic || !type || (type !== 'sermon' && type !== 'lesson')) {
         return res.status(400).json({ message: 'topic and type (sermon|lesson) required' });
       }
 
-      const groqApiKey = process.env.GROQ_API_KEY;
-      if (!groqApiKey) return res.status(503).json({ message: 'AI provider not configured' });
-
       const aud = (audience || (type === 'lesson' ? 'أطفال' : 'عام')).trim();
       const duration = Math.max(10, Math.min(120, durationRaw || 30));
       // كل نقطة ~5 دقائق، المقدمة والخاتمة ~5 دق لكل منهما
       const pointsCount = Math.max(2, Math.round((duration - 10) / 5));
+
+      // كاش: مفتاح من كل المدخلات المؤثّرة (الموضوع + الجمهور + النوع + المدة + الموديل)
+      const OUTLINE_MODEL = 'openai/gpt-oss-20b';
+      const cachedOutline = await getCached('service/outline', [topic, aud, type, duration, OUTLINE_MODEL]);
+      if (cachedOutline) return res.json(cachedOutline);
+
+      const usageCheck = await checkAiUsageLimit(user);
+      if (!usageCheck.allowed) {
+        return res.status(429).json({ message: 'بلغت الحد اليومي لاستخدام الذكاء الاصطناعي' });
+      }
+
+      const groqApiKey = process.env.GROQ_API_KEY;
+      if (!groqApiKey) return res.status(503).json({ message: 'AI provider not configured' });
 
       const prompt = type === 'sermon'
         ? `أنت مساعد لاهوتي قبطي أرثوذكسي خبير. اقترح هيكلاً لعظة كنسية أرثوذكسية.
@@ -775,7 +781,7 @@ export async function registerRoutes(
           'Authorization': `Bearer ${groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'openai/gpt-oss-20b',
+          model: OUTLINE_MODEL,
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 4000,
           temperature: 0.5,
@@ -819,7 +825,9 @@ export async function registerRoutes(
         }
       }
 
-      return res.json({ outline, type, outlineVerses: fetchedVerses });
+      const outlineResult = { outline, type, outlineVerses: fetchedVerses };
+      await putCached('service/outline', [topic, aud, type, duration, OUTLINE_MODEL], outlineResult);
+      return res.json(outlineResult);
     } catch (e) {
       console.error('[service/outline] error:', e);
       res.status(500).json({ message: 'فشل توليد الهيكل' });
@@ -831,11 +839,16 @@ export async function registerRoutes(
     try {
       const user = await getCurrentUser(req);
       if (!user) return res.status(401).json({ message: 'Unauthorized' });
-      const usageCheck = await checkAiUsageLimit(user);
-      if (!usageCheck.allowed) return res.status(429).json({ message: 'بلغت الحد اليومي' });
 
       const { point, topic, type } = req.body as { point?: string; topic?: string; type?: 'sermon' | 'lesson' };
       if (!point) return res.status(400).json({ message: 'point required' });
+
+      const EXPAND_MODEL = 'openai/gpt-oss-20b';
+      const cachedExpand = await getCached('service/expand-point', [point, topic, type, EXPAND_MODEL]);
+      if (cachedExpand) return res.json(cachedExpand);
+
+      const usageCheck = await checkAiUsageLimit(user);
+      if (!usageCheck.allowed) return res.status(429).json({ message: 'بلغت الحد اليومي' });
 
       const groqApiKey = process.env.GROQ_API_KEY;
       if (!groqApiKey) return res.status(503).json({ message: 'AI not configured' });
@@ -859,7 +872,7 @@ export async function registerRoutes(
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
         body: JSON.stringify({
-          model: 'openai/gpt-oss-20b',
+          model: EXPAND_MODEL,
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7,
           max_tokens: 1200,
@@ -869,7 +882,9 @@ export async function registerRoutes(
       const data = await response.json() as { choices?: { message?: { content?: string } }[] };
       const text = data.choices?.[0]?.message?.content?.trim() || '';
       if (!text) return res.status(500).json({ message: 'Empty response' });
-      res.json({ text });
+      const expandResult = { text };
+      await putCached('service/expand-point', [point, topic, type, EXPAND_MODEL], expandResult);
+      res.json(expandResult);
     } catch (e) {
       console.error('[service/expand-point] error:', e);
       res.status(500).json({ message: 'فشل التوسيع' });
@@ -885,10 +900,15 @@ export async function registerRoutes(
       const { topic, excludeRefs } = req.body as { topic?: string; excludeRefs?: string[] };
       if (!topic || !topic.trim()) return res.status(400).json({ message: 'topic required' });
 
+      const excluded = Array.isArray(excludeRefs) ? excludeRefs.slice(0, 300) : [];
+
+      // كاش: مفتاح من الموضوع + الآيات المستبعَدة (مرتّبة) + الموديل
+      const MORE_MODEL = 'openai/gpt-oss-20b';
+      const cachedMore = await getCached('verses/more-on-topic', [topic.trim(), [...excluded].sort().join('|'), MORE_MODEL]);
+      if (cachedMore) return res.json(cachedMore);
+
       const groqApiKey = process.env.GROQ_API_KEY;
       if (!groqApiKey) return res.status(503).json({ message: 'AI provider not configured' });
-
-      const excluded = Array.isArray(excludeRefs) ? excludeRefs.slice(0, 300) : [];
       const excludedStr = excluded.length ? excluded.join('، ') : '(لا شيء بعد)';
 
       const prompt = `أنت خبير لاهوتي في الكتاب المقدس العربي نسخة فان دايك.
@@ -909,7 +929,7 @@ ${excludedStr}
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
         body: JSON.stringify({
-          model: 'openai/gpt-oss-20b',
+          model: MORE_MODEL,
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 3000,
           temperature: 0.3,
@@ -951,7 +971,9 @@ ${excludedStr}
 
       // "done" if AI returned no new refs or very few — signals we've likely exhausted the topic
       const done = verses.length < 5;
-      return res.json({ verses, done });
+      const moreResult = { verses, done };
+      await putCached('verses/more-on-topic', [topic.trim(), [...excluded].sort().join('|'), MORE_MODEL], moreResult);
+      return res.json(moreResult);
     } catch (e) {
       console.error('[verses/more-on-topic] error:', e);
       res.status(500).json({ message: 'Failed' });
@@ -965,6 +987,11 @@ ${excludedStr}
       if (!query || typeof query !== 'string' || !query.trim()) {
         return res.status(400).json({ message: 'Query required' });
       }
+
+      // كاش: مفتاح من الاستعلام الكامل المطبّع + الموديل
+      const SEARCH_MODEL = 'openai/gpt-oss-20b';
+      const cachedSearch = await getCached('search/ai-enhanced', [query.trim(), SEARCH_MODEL]);
+      if (cachedSearch) return res.json(cachedSearch);
 
       const groqApiKey = process.env.GROQ_API_KEY;
       if (!groqApiKey) {
@@ -986,7 +1013,7 @@ ${excludedStr}
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqApiKey}` },
         body: JSON.stringify({
-          model: 'openai/gpt-oss-20b',
+          model: SEARCH_MODEL,
           messages: [{ role: 'user', content: aiPrompt }],
           max_tokens: 6000,
           temperature: 0.2,
@@ -1038,13 +1065,18 @@ ${excludedStr}
         storage.upsertSeoTopic(title, slug, keywords).catch(() => {});
       }
 
-      return res.json({
+      const searchResult = {
         exactResults: [],
         semanticResults,
         results: semanticResults,
         enhanced: true,
         topicSlug: isTopicWorthy(query) ? toSlug(query.trim()) : undefined,
-      });
+      };
+      // خزّن فقط عند وجود نتائج فعلية (لا نكاش نتيجة فاضية ناتجة عن خطأ عابر)
+      if (semanticResults.length > 0) {
+        await putCached('search/ai-enhanced', [query.trim(), SEARCH_MODEL], searchResult);
+      }
+      return res.json(searchResult);
     } catch (error) {
       console.error('[ai-enhanced-search] Error:', error);
       res.status(500).json({ message: 'Search failed' });
@@ -1243,28 +1275,31 @@ ${excludedStr}
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-
-      const progress = await storage.getAllUserProgress(user.id);
+      const memberKey = (req.query.memberKey as string) || null;
+      const progress = await storage.getAllProgressMerged(user.id, memberKey);
       res.json(progress);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch progress' });
     }
   });
 
+  // upsert لكل planId (لا يكرّر صفوف) — يقبل memberKey اختياري
   app.post('/api/user/progress', async (req, res) => {
     try {
       const user = await getCurrentUser(req);
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-
-      const validated = insertUserReadingProgressSchema.parse({
-        ...req.body,
+      const { planId, currentDay, completedDays, memberKey } = req.body as { planId?: number; currentDay?: number; completedDays?: number[]; memberKey?: string };
+      if (!planId) return res.status(400).json({ message: 'planId required' });
+      await storage.upsertProgress({
         userId: user.id,
+        memberKey: memberKey || null,
+        planId,
+        currentDay: currentDay ?? 0,
+        completedDays: Array.isArray(completedDays) ? completedDays : [],
       });
-
-      const progress = await storage.createUserProgress(validated);
-      res.json(progress);
+      res.json({ ok: true });
     } catch (error) {
       res.status(400).json({ message: 'Invalid request data' });
     }
@@ -1328,6 +1363,179 @@ ${excludedStr}
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: 'Failed to delete highlight' });
+    }
+  });
+
+  // ─── مزامنة بيانات المستخدم الشخصية (تشتغل للمجهول عبر getCurrentUser) ──────
+
+  // الآيات المحفوظة / المظلّلة (المعتمدة على المرجع)
+  app.get('/api/user/saved-verses', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.json([]);
+      const rows = await storage.getSavedVerses(user.id, (req.query.memberKey as string) || null);
+      res.json(rows);
+    } catch { res.status(500).json({ message: 'Failed' }); }
+  });
+  app.post('/api/user/saved-verses', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const { verseRef, verseText, kind, color, memberKey } = req.body as any;
+      if (!verseRef) return res.status(400).json({ message: 'verseRef required' });
+      await storage.upsertSavedVerse({ userId: user.id, memberKey: memberKey || null, verseRef, verseText, kind: kind || 'saved', color });
+      res.json({ ok: true });
+    } catch { res.status(400).json({ message: 'Invalid' }); }
+  });
+  app.delete('/api/user/saved-verses', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const { verseRef, kind } = req.body as any;
+      if (!verseRef) return res.status(400).json({ message: 'verseRef required' });
+      await storage.deleteSavedVerse(user.id, verseRef, kind || 'saved');
+      res.json({ ok: true });
+    } catch { res.status(400).json({ message: 'Invalid' }); }
+  });
+
+  // آيات الحفظ (أطفال)
+  app.get('/api/user/memorized-verses', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.json([]);
+      const rows = await storage.getMemorized(user.id, (req.query.memberKey as string) || null);
+      res.json(rows);
+    } catch { res.status(500).json({ message: 'Failed' }); }
+  });
+  app.post('/api/user/memorized-verses', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const { verseRef, memberKey } = req.body as any;
+      if (!verseRef) return res.status(400).json({ message: 'verseRef required' });
+      await storage.addMemorized({ userId: user.id, memberKey: memberKey || null, verseRef });
+      res.json({ ok: true });
+    } catch { res.status(400).json({ message: 'Invalid' }); }
+  });
+  app.delete('/api/user/memorized-verses', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const { verseRef } = req.body as any;
+      if (!verseRef) return res.status(400).json({ message: 'verseRef required' });
+      await storage.deleteMemorized(user.id, verseRef);
+      res.json({ ok: true });
+    } catch { res.status(400).json({ message: 'Invalid' }); }
+  });
+
+  // الترانيم المفضّلة
+  app.get('/api/user/favorite-hymns', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.json([]);
+      const rows = await storage.getFavoriteHymns(user.id, (req.query.memberKey as string) || null);
+      res.json(rows);
+    } catch { res.status(500).json({ message: 'Failed' }); }
+  });
+  app.post('/api/user/favorite-hymns', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const { hymnId, title, memberKey } = req.body as any;
+      if (!hymnId) return res.status(400).json({ message: 'hymnId required' });
+      await storage.addFavoriteHymn({ userId: user.id, memberKey: memberKey || null, hymnId: String(hymnId), title });
+      res.json({ ok: true });
+    } catch { res.status(400).json({ message: 'Invalid' }); }
+  });
+  app.delete('/api/user/favorite-hymns', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const { hymnId } = req.body as any;
+      if (!hymnId) return res.status(400).json({ message: 'hymnId required' });
+      await storage.deleteFavoriteHymn(user.id, String(hymnId));
+      res.json({ ok: true });
+    } catch { res.status(400).json({ message: 'Invalid' }); }
+  });
+
+  // قراءاتي اليومية المخصّصة (JSON كامل)
+  app.get('/api/user/daily-readings', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.json(null);
+      const data = await storage.getUserDailyReadings(user.id, (req.query.memberKey as string) || null);
+      res.json(data);
+    } catch { res.status(500).json({ message: 'Failed' }); }
+  });
+  app.post('/api/user/daily-readings', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const { data, memberKey } = req.body as any;
+      await storage.setUserDailyReadings({ userId: user.id, memberKey: memberKey || null, data: data ?? [] });
+      res.json({ ok: true });
+    } catch { res.status(400).json({ message: 'Invalid' }); }
+  });
+
+  // تقدّم خطط القراءة (JSON — planId نصّي)
+  app.get('/api/user/plan-progress', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.json(null);
+      const data = await storage.getPlanProgress(user.id, (req.query.memberKey as string) || null);
+      res.json(data);
+    } catch { res.status(500).json({ message: 'Failed' }); }
+  });
+  app.post('/api/user/plan-progress', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const { data, memberKey } = req.body as any;
+      await storage.setPlanProgress({ userId: user.id, memberKey: memberKey || null, data: data ?? [] });
+      res.json({ ok: true });
+    } catch { res.status(400).json({ message: 'Invalid' }); }
+  });
+
+  // ترحيل لمرة واحدة: snapshot كامل من المتصفّح → upsert idempotent للكل
+  app.post('/api/user/sync', async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(404).json({ message: 'no user' });
+      const b = req.body as any;
+      const memberKey = b.memberKey || null;
+
+      if (Array.isArray(b.savedVerses)) {
+        for (const v of b.savedVerses) {
+          if (v?.reference) await storage.upsertSavedVerse({ userId: user.id, memberKey, verseRef: v.reference, verseText: v.text, kind: 'saved' });
+        }
+      }
+      if (Array.isArray(b.highlightedVerses)) {
+        for (const v of b.highlightedVerses) {
+          if (v?.reference) await storage.upsertSavedVerse({ userId: user.id, memberKey, verseRef: v.reference, verseText: v.text, kind: 'highlight', color: v.color });
+        }
+      }
+      if (Array.isArray(b.memorizedVerses)) {
+        for (const ref of b.memorizedVerses) {
+          if (ref) await storage.addMemorized({ userId: user.id, memberKey, verseRef: String(ref) });
+        }
+      }
+      if (Array.isArray(b.favoriteHymns)) {
+        for (const h of b.favoriteHymns) {
+          const hid = typeof h === 'string' ? h : h?.hymnId;
+          if (hid) await storage.addFavoriteHymn({ userId: user.id, memberKey, hymnId: String(hid), title: typeof h === 'object' ? h?.title : null });
+        }
+      }
+      if (Array.isArray(b.readingPlanProgress)) {
+        await storage.setPlanProgress({ userId: user.id, memberKey, data: b.readingPlanProgress });
+      }
+      if (b.dailyReadings !== undefined && b.dailyReadings !== null) {
+        await storage.setUserDailyReadings({ userId: user.id, memberKey, data: b.dailyReadings });
+      }
+
+      res.json({ ok: true });
+    } catch (e) {
+      console.error('[user/sync] error:', e);
+      res.status(500).json({ message: 'sync failed' });
     }
   });
 

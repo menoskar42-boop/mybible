@@ -1,3 +1,5 @@
+import { dataSync } from './user-data-sync';
+
 const SAVED_KEY = 'savedVerses';
 const HIGHLIGHT_KEY = 'highlightedVerses';
 
@@ -54,12 +56,14 @@ export function saveVerse(text: string, reference: string): boolean {
   const today = new Date().toISOString().split('T')[0];
   verses.unshift({ text, reference, date: today });
   localStorage.setItem(SAVED_KEY, JSON.stringify(verses));
+  dataSync.savedVerse(reference, text);
   return true;
 }
 
 export function removeVerse(reference: string): void {
   const verses = getSavedVerses().filter(v => v.reference !== reference);
   localStorage.setItem(SAVED_KEY, JSON.stringify(verses));
+  dataSync.removeSavedVerse(reference);
 }
 
 export function saveHighlightedVerse(text: string, reference: string, color: string): boolean {
@@ -70,12 +74,14 @@ export function saveHighlightedVerse(text: string, reference: string, color: str
   const today = new Date().toISOString().split('T')[0];
   verses.unshift({ text, reference, color, date: today });
   localStorage.setItem(HIGHLIGHT_KEY, JSON.stringify(verses));
+  dataSync.highlight(reference, text, color);
   return true;
 }
 
 export function removeHighlightedVerse(reference: string): void {
   const verses = getHighlightedVerses().filter(v => v.reference !== reference);
   localStorage.setItem(HIGHLIGHT_KEY, JSON.stringify(verses));
+  dataSync.removeHighlight(reference);
 }
 
 export function getMergedVerses(): MergedVerse[] {

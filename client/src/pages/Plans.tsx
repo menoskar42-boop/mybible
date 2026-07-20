@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { dataSync } from '@/lib/user-data-sync';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight, BookOpen, CheckCircle2, Circle, Play, ArrowLeft, ArrowRight, Plus, Trash2, Star, PartyPopper, Volume2, BookText, Loader2, GraduationCap, Music } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -310,11 +311,13 @@ export default function Plans() {
   const saveProgress = (progress: UserPlanProgress[]) => {
     setUserProgress(progress);
     localStorage.setItem('reading-plan-progress', JSON.stringify(progress));
+    dataSync.planProgress(progress);
   };
 
   const saveCustomReadings = (readings: CustomReading[]) => {
     setCustomReadings(readings);
     localStorage.setItem('my-daily-readings', JSON.stringify(readings));
+    dataSync.dailyReadings(readings);
   };
 
   const getProgressForPlan = (planId: string): UserPlanProgress | undefined => {

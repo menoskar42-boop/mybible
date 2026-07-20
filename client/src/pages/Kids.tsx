@@ -13,6 +13,7 @@ import KidsPuzzle from '@/components/kids/KidsPuzzle';
 import KidsJigsawPuzzle from '@/components/kids/KidsJigsawPuzzle';
 import KidsSnakesLadders from '@/components/kids/KidsSnakesLadders';
 import KidsCourses from '@/components/kids/KidsCourses';
+import { dataSync } from '@/lib/user-data-sync';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -285,8 +286,10 @@ function useFavoriteHymns() {
   });
   const toggle = (id: string) => {
     setFavorites(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      const has = prev.includes(id);
+      const next = has ? prev.filter(x => x !== id) : [...prev, id];
       localStorage.setItem('favorite-hymns', JSON.stringify(next));
+      if (has) dataSync.removeFavoriteHymn(id); else dataSync.favoriteHymn(id);
       return next;
     });
   };
@@ -299,8 +302,10 @@ function useMemorization() {
   });
   const toggle = (id: string) => {
     setMemorized(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      const has = prev.includes(id);
+      const next = has ? prev.filter(x => x !== id) : [...prev, id];
       localStorage.setItem('memorized-verses', JSON.stringify(next));
+      if (has) dataSync.removeMemorized(id); else dataSync.memorized(id);
       return next;
     });
   };
