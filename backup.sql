@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 8vKLeZim9qX3fE7Kei34UV8U3SsEbVClzKy54E7ERaqeq56VwzX9LICyY5MQpVb
+\restrict JNvhphzUMu9xx7l0ecAggiDgs8D7wZdLVFPJdA56TZq6DK3jyVzmHmPCBsZeoJt
 
 -- Dumped from database version 16.10
 -- Dumped by pg_dump version 16.10
@@ -56081,7 +56081,7 @@ lC8wpZC8C3dQ2CkW-pElH6s27lvUSgSm	{"cookie":{"originalMaxAge":31536000000,"expire
 E4-CK5bX0wUIgt_xVmgfURwbRC5lNZF0	{"cookie":{"originalMaxAge":31536000000,"expires":"2027-01-14T20:03:00.316Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":"b2406b05-1c62-4714-8d3a-06dfcccd4441"}	2027-01-14 20:03:01
 LSTs5HJ49WlPGCXqPlmU6KwQhQP0lMVC	{"cookie":{"originalMaxAge":31536000000,"expires":"2027-01-14T20:03:00.319Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":"75d132bb-f1d7-40f9-a774-f5aa5d0ac869"}	2027-01-14 20:03:01
 _z9Di23K1lzt3ElJbcmeEoWnnjfgbmIc	{"cookie":{"originalMaxAge":31536000000,"expires":"2027-02-12T05:58:03.636Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":"04ed5b6c-0081-4bbd-943e-d83b54e3b904"}	2027-07-08 20:32:57
-WPJ2w7Ic98-jVC4lOctYWBqExPP5muQT	{"cookie":{"originalMaxAge":31536000000,"expires":"2027-01-14T09:02:28.496Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":"7fe5e211-023c-47ed-9023-9b13c84f4b21"}	2027-07-20 08:50:28
+WPJ2w7Ic98-jVC4lOctYWBqExPP5muQT	{"cookie":{"originalMaxAge":31536000000,"expires":"2027-01-14T09:02:28.496Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":"7fe5e211-023c-47ed-9023-9b13c84f4b21"}	2027-07-20 09:37:42
 t7azSydQlTlNgoQ2VSecp7NYSKhY1kle	{"cookie":{"originalMaxAge":31536000000,"expires":"2027-01-14T20:02:59.812Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"}}	2027-01-14 20:03:00
 Xi8AXu2P_GdI6dSkFbpZcG50qhkpC1Jd	{"cookie":{"originalMaxAge":31536000000,"expires":"2027-07-20T08:30:47.220Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"},"userId":"44032e5e-6b4b-47cf-8695-5def1719f061"}	2027-07-20 08:30:52
 ryFAfa6CFz9ePF9fNMKsOp6whdvuUUwR	{"cookie":{"originalMaxAge":31536000000,"expires":"2027-01-14T20:02:59.813Z","secure":false,"httpOnly":true,"path":"/","sameSite":"lax"}}	2027-01-14 20:03:00
@@ -72145,6 +72145,13 @@ CREATE UNIQUE INDEX ggt_token_group_idx ON public.group_guest_tokens USING btree
 
 
 --
+-- Name: gm_group_phone_unique_idx; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX gm_group_phone_unique_idx ON public.group_members USING btree (group_id, phone) WHERE (phone IS NOT NULL);
+
+
+--
 -- Name: gps_group_endpoint_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -72156,6 +72163,62 @@ CREATE UNIQUE INDEX gps_group_endpoint_idx ON public.group_push_subscriptions US
 --
 
 CREATE INDEX hv_member_key_idx ON public.highlighted_verses USING btree (member_key);
+
+
+--
+-- Name: idx_assignment_readings_assignment_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_assignment_readings_assignment_user ON public.assignment_readings USING btree (assignment_id, user_name);
+
+
+--
+-- Name: idx_assignment_readings_group_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_assignment_readings_group_id ON public.assignment_readings USING btree (group_id);
+
+
+--
+-- Name: idx_group_assignments_group_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_group_assignments_group_id ON public.group_assignments USING btree (group_id);
+
+
+--
+-- Name: idx_group_members_group_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_group_members_group_id ON public.group_members USING btree (group_id);
+
+
+--
+-- Name: idx_group_messages_group_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_group_messages_group_id ON public.group_messages USING btree (group_id);
+
+
+--
+-- Name: idx_group_missions_group_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_group_missions_group_id ON public.group_missions USING btree (group_id);
+
+
+--
+-- Name: idx_group_reading_logs_group_date; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_group_reading_logs_group_date ON public.group_reading_logs USING btree (group_id, date);
+
+
+--
+-- Name: idx_group_reading_logs_group_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_group_reading_logs_group_id ON public.group_reading_logs USING btree (group_id);
 
 
 --
@@ -72379,5 +72442,5 @@ ALTER TABLE ONLY public.user_reading_progress
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 8vKLeZim9qX3fE7Kei34UV8U3SsEbVClzKy54E7ERaqeq56VwzX9LICyY5MQpVb
+\unrestrict JNvhphzUMu9xx7l0ecAggiDgs8D7wZdLVFPJdA56TZq6DK3jyVzmHmPCBsZeoJt
 
