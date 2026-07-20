@@ -267,7 +267,10 @@ export const groupMembers = pgTable("group_members", {
   isAdmin: boolean("is_admin").default(false),
   isMuted: boolean("is_muted").default(false),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  gmGroupIdx: index("idx_group_members_group_id").on(t.groupId),
+  gmGroupPhoneUniqueIdx: uniqueIndex("gm_group_phone_unique_idx").on(t.groupId, t.phone).where(sql`${t.phone} IS NOT NULL`),
+}));
 
 export const groupGuestTokens = pgTable("group_guest_tokens", {
   id: serial("id").primaryKey(),
@@ -293,7 +296,10 @@ export const groupReadingLogs = pgTable("group_reading_logs", {
   scrollPercent: integer("scroll_percent").default(0),
   quality: text("quality").default("unknown"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  grlGroupIdx: index("idx_group_reading_logs_group_id").on(t.groupId),
+  grlGroupDateIdx: index("idx_group_reading_logs_group_date").on(t.groupId, t.date),
+}));
 
 export const groupMessages = pgTable("group_messages", {
   id: serial("id").primaryKey(),
@@ -307,7 +313,9 @@ export const groupMessages = pgTable("group_messages", {
   reactions: jsonb("reactions").$type<{ emoji: string; users: string[] }[]>().default([]),
   isPinned: boolean("is_pinned").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  gmsgGroupIdx: index("idx_group_messages_group_id").on(t.groupId),
+}));
 
 // Group Missions (weekly reading missions)
 export const groupMissions = pgTable("group_missions", {
@@ -321,7 +329,9 @@ export const groupMissions = pgTable("group_missions", {
   createdBy: text("created_by").notNull(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  gmisGroupIdx: index("idx_group_missions_group_id").on(t.groupId),
+}));
 
 // Church Reading Challenges
 export const churchChallenges = pgTable("church_challenges", {
@@ -525,7 +535,9 @@ export const groupAssignments = pgTable("group_assignments", {
   deadline: text("deadline"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  gaGroupIdx: index("idx_group_assignments_group_id").on(t.groupId),
+}));
 
 export const assignmentReadings = pgTable("assignment_readings", {
   id: serial("id").primaryKey(),
@@ -542,7 +554,10 @@ export const assignmentReadings = pgTable("assignment_readings", {
   completedAt: timestamp("completed_at"),
   completedDate: text("completed_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  arGroupIdx: index("idx_assignment_readings_group_id").on(t.groupId),
+  arAssignmentUserIdx: index("idx_assignment_readings_assignment_user").on(t.assignmentId, t.userName),
+}));
 
 export const insertGroupAssignmentSchema = createInsertSchema(groupAssignments).omit({ id: true, createdAt: true });
 export const insertAssignmentReadingSchema = createInsertSchema(assignmentReadings).omit({ id: true, createdAt: true });
