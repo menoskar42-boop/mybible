@@ -36,6 +36,41 @@ async function isAdminByLeaderKey(group: any, memberKey: string): Promise<boolea
   return isAdminMember(group.id, memberKey);
 }
 
+// ينقل كل تاريخ العضو من اسم قديم لاسم جديد (سجلات القراءة + المهام + الرسائل)
+// مع تجنّب التكرار في سجلات القراءة، حتى لا يتيتّم تاريخ العضو عند تغيير اسمه.
+async function migrateMemberName(groupId: number, oldName: string, newName: string): Promise<void> {
+  if (!oldName || !newName || oldName === newName) return;
+  // group_reading_logs — احذف المكرّر (نفس السفر/الإصحاح) ثم انقل
+  await pool.query(
+    `DELETE FROM group_reading_logs g
+     WHERE g.group_id = $1 AND g.user_name = $2
+       AND EXISTS (SELECT 1 FROM group_reading_logs r
+         WHERE r.group_id = $1 AND r.user_name = $3 AND r.book = g.book AND r.chapter = g.chapter)`,
+    [groupId, oldName, newName]
+  );
+  await pool.query(
+    `UPDATE group_reading_logs SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+    [newName, groupId, oldName]
+  );
+  // assignment_readings — احذف المكرّر ثم انقل
+  await pool.query(
+    `DELETE FROM assignment_readings g
+     WHERE g.group_id = $1 AND g.user_name = $2
+       AND EXISTS (SELECT 1 FROM assignment_readings r
+         WHERE r.group_id = $1 AND r.user_name = $3 AND r.book_name = g.book_name AND r.chapter = g.chapter)`,
+    [groupId, oldName, newName]
+  );
+  await pool.query(
+    `UPDATE assignment_readings SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+    [newName, groupId, oldName]
+  );
+  // group_messages — نقل مباشر (كل رسالة فريدة)
+  await pool.query(
+    `UPDATE group_messages SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
+    [newName, groupId, oldName]
+  );
+}
+
 export function registerGroupRoutes(app: Express) {
 
   // ── معلومات الدعوة (endpoint عام بدون auth) ──
@@ -76,10 +111,22 @@ export function registerGroupRoutes(app: Express) {
         .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.phone, normalizedPhone)));
       if (existingByPhone.length > 0) {
         const found = existingByPhone[0];
-        if (found.userName !== userName.trim()) {
-          await db.update(groupMembers).set({ userName: userName.trim() }).where(eq(groupMembers.id, found.id));
+        const newName = userName.trim();
+        if (found.userName !== newName) {
+          // حماية: لو الاسم الجديد مستخدَم من عضو آخر (تليفون مختلف) → ماتغيّرش الاسم
+          const clash = await db.select().from(groupMembers)
+            .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, newName)));
+          const takenByOther = clash.some(m => m.id !== found.id);
+          if (!takenByOther) {
+            // انقل التاريخ ثم غيّر الاسم — عشان التقدّم يفضل متربط بالعضو
+            await migrateMemberName(group.id, found.userName, newName);
+            await db.update(groupMembers).set({ userName: newName }).where(eq(groupMembers.id, found.id));
+            return res.json({ group, member: { ...found, userName: newName }, status: 'already_member' });
+          }
+          // الاسم محجوز لعضو تاني → سيب اسمه زي ما هو وتعرّف عليه بس
+          return res.json({ group, member: found, status: 'already_member' });
         }
-        return res.json({ group, member: { ...found, userName: userName.trim() }, status: 'already_member' });
+        return res.json({ group, member: found, status: 'already_member' });
       }
 
       // البحث بالاسم كـ fallback
@@ -494,10 +541,20 @@ export function registerGroupRoutes(app: Express) {
         .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.phone, normalizedJoinPhone)));
       if (existingByPhone.length > 0) {
         const found = existingByPhone[0];
-        if (!found.userName || found.userName !== userName.trim()) {
-          await db.update(groupMembers).set({ userName: userName.trim() }).where(eq(groupMembers.id, found.id));
+        const newName = userName.trim();
+        if (found.userName !== newName) {
+          // حماية: لو الاسم الجديد مستخدَم من عضو آخر (تليفون مختلف) → ماتغيّرش الاسم
+          const clash = await db.select().from(groupMembers)
+            .where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userName, newName)));
+          const takenByOther = clash.some(m => m.id !== found.id);
+          if (!takenByOther) {
+            await migrateMemberName(group.id, found.userName, newName);
+            await db.update(groupMembers).set({ userName: newName }).where(eq(groupMembers.id, found.id));
+            return res.json({ group, member: { ...found, userName: newName }, status: 'already_member' });
+          }
+          return res.json({ group, member: found, status: 'already_member' });
         }
-        return res.json({ group, member: { ...found, userName: userName.trim() }, status: 'already_member' });
+        return res.json({ group, member: found, status: 'already_member' });
       }
 
       // البحث بالاسم كـ fallback
@@ -919,33 +976,8 @@ export function registerGroupRoutes(app: Express) {
 
       const merged = !!target && target.memberKey !== source.memberKey;
 
-      // انقل قراءات fromName إلى toName مع تجنّب التكرار (يعمل للحالتين)
-      await pool.query(
-        `DELETE FROM group_reading_logs g
-         WHERE g.group_id = $1 AND g.user_name = $2
-           AND EXISTS (SELECT 1 FROM group_reading_logs r
-             WHERE r.group_id = $1 AND r.user_name = $3 AND r.book = g.book AND r.chapter = g.chapter)`,
-        [group.id, fromName, toName]
-      );
-      await pool.query(
-        `UPDATE group_reading_logs SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
-        [toName, group.id, fromName]
-      );
-      await pool.query(
-        `DELETE FROM assignment_readings g
-         WHERE g.group_id = $1 AND g.user_name = $2
-           AND EXISTS (SELECT 1 FROM assignment_readings r
-             WHERE r.group_id = $1 AND r.user_name = $3 AND r.book_name = g.book_name AND r.chapter = g.chapter)`,
-        [group.id, fromName, toName]
-      );
-      await pool.query(
-        `UPDATE assignment_readings SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
-        [toName, group.id, fromName]
-      );
-      await pool.query(
-        `UPDATE group_messages SET user_name = $1 WHERE group_id = $2 AND user_name = $3`,
-        [toName, group.id, fromName]
-      );
+      // انقل كل تاريخ fromName إلى toName (helper مشترك — يعمل للحالتين)
+      await migrateMemberName(group.id, fromName, toName);
 
       if (merged) {
         // العضو الجديد موجود — احذف الصف المكرر (مع نقل صلاحية الأدمن لو لزم)
