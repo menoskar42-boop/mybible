@@ -562,7 +562,7 @@ export type InsertChallengeParticipant = z.infer<typeof insertChallengeParticipa
 export const seoTopics = pgTable("seo_topics", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
-  slug: text("slug").notNull().unique(),
+  slug: text("slug").notNull(),
   keywords: text("keywords").array().notNull().default(sql`'{}'::text[]`),
   visitCount: integer("visit_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
